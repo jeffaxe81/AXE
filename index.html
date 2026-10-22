@@ -23,6 +23,13 @@
     .percent-head{display:flex;align-items:baseline;justify-content:space-between;gap:5px}.percent-head .pct{font-weight:840;font-size:27px;font-variant-numeric:tabular-nums;letter-spacing:-.04em}.percent-head .progress-label{font-size:11px;color:#9db1c8;text-align:right}.progress-track{height:8px;background:#2b3848;border-radius:99px;overflow:hidden;margin-top:12px}.progress-fill{height:100%;background:linear-gradient(90deg,#4eafbb,var(--accent));border-radius:99px;transition:width .5s}.project details{margin-top:15px;color:#b1c4d7;font-size:12px}.project summary{cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:5px 0}.project summary::after{content:"+";font-size:20px;color:var(--accent)}.project details[open] summary::after{content:"−"}.tasklist{padding:10px 0 1px;margin:0;list-style:none;display:grid;gap:9px}.tasklist li{display:flex;align-items:start;gap:8px;color:#a4b4c6}.tasklist li span{flex:none;color:#7d93ac}.tasklist li.done span{color:var(--accent)}.project-bottom{margin-top:auto;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#8fa2b9}.project-bottom a{color:var(--accent);font-weight:750}
     .timeline{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.event{display:flex;align-items:flex-start;gap:15px;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:17px 19px;min-width:0}.event-date{width:64px;flex:none;text-align:center;border-right:1px solid var(--line);padding-right:15px}.event-date strong{font-size:22px;font-variant-numeric:tabular-nums;display:block;line-height:1.1}.event-date small{color:var(--muted);font-size:11px}.event-content{min-width:0}.event-content .project-name{display:block;font-size:11px;color:var(--accent2);font-weight:750;margin-bottom:4px}.event-content a{display:block;font-weight:700;font-size:13px;line-height:1.4}.event-content a:hover{text-decoration:underline}.event-content .commit{display:block;color:#8297ae;font-size:11px;margin-top:7px}
     .method{display:grid;grid-template-columns:1fr 1fr;gap:24px;background:#142238;border:1px solid var(--line);border-radius:18px;padding:25px}.method h3{margin:0 0 9px;font-size:17px}.method p{color:#9eb1c7;font-size:13px;line-height:1.65;margin:0}.method a{color:var(--accent)}.formula{font-weight:800;color:var(--accent);font-size:15px;margin-top:13px;display:block}.empty{padding:50px;text-align:center;color:var(--muted);background:var(--panel);border-radius:15px;border:1px solid var(--line);grid-column:1/-1}footer{padding-top:30px;margin-top:50px;border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;justify-content:space-between;color:#8298b1;font-size:12px}
+
+    .history-controls{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:10px}
+    .refresh-btn{border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:10px 13px;color:var(--ink);font-size:12px;font-weight:750;transition:background .2s}
+    .refresh-btn:hover{background:#253d50}.refresh-btn:disabled{opacity:.6;cursor:wait}
+    .history-status{font-size:12px;color:var(--muted);margin:0 0 18px}.history-status strong{color:var(--ink)}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:520px){.history-controls{justify-content:flex-start;width:100%}.history-controls select{max-width:100%;flex:1}.refresh-btn{padding:10px}.section-header{flex-wrap:wrap}}
     @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
     @media(max-width:850px){.shell{display:block}aside{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:14px 21px;border-right:0;border-bottom:1px solid var(--line)}.aside-caption,.side-bottom{display:none}.nav{display:flex;gap:3px}.nav a{padding:8px}.nav a .nav-label{display:none}main{padding:22px}.hero{margin-top:28px;grid-template-columns:1fr}.hero-feature{min-height:165px}.rings{height:40px}.rings::before{top:-80px}.rings::after{top:-44px}.metrics{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:1fr}}
     @media(max-width:520px){.hero h1{font-size:41px}.projects{grid-template-columns:1fr}.metrics{gap:9px}.metric{padding:15px}.metric b{font-size:28px}.top-actions{justify-content:flex-end}.top-actions .review{display:none}.method{grid-template-columns:1fr;padding:19px}.event{padding:13px}.project .description{min-height:auto}footer{align-items:flex-start;flex-direction:column}.hero-feature{min-height:155px}}
@@ -43,7 +50,7 @@
     <div class="side-bottom"><strong>Projetos no GitHub</strong><p>Acesse o código, os commits e as evidências públicas de cada entrega.</p><a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">Ver todos os repositórios ↗</a></div>
   </aside>
   <main id="inicio">
-    <header class="topline"><div class="crumb">AXE <span aria-hidden="true">/</span> <strong>Portfólio de entregas</strong></div><div class="top-actions"><span class="review"><span class="live-dot"></span> Revisado em 22 out 2026</span><a href="https://github.com/jeffaxe81" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></header>
+    <header class="topline"><div class="crumb">AXE <span aria-hidden="true">/</span> <strong>Portfólio de entregas</strong></div><div class="top-actions"><span class="review">Marcos revisados em 22 out 2026</span><a href="https://github.com/jeffaxe81" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></header>
     <section class="hero" aria-label="Introdução">
       <div><div class="eyebrow">Engenharia • Produtos • Execução</div><h1>Projetos que saem do <span>papel.</span></h1><p class="lead">Um panorama transparente das iniciativas AXE: o que já foi entregue, o que segue em desenvolvimento e as evidências registradas no GitHub.</p></div>
       <div class="hero-feature"><div class="feature-top"><span>PORTFÓLIO / 2026</span><span>↗ 01</span></div><div class="rings" aria-hidden="true"></div><div><strong>Do planejamento à entrega.</strong><br><small>Marcos, execução e histórico em um só lugar.</small></div></div>
@@ -61,14 +68,18 @@
       <div id="projects" class="projects"></div>
     </section>
     <section id="historico" class="section">
-      <div class="section-header"><div><h2>Histórico recente de entregas</h2><p>Atualizações extraídas de commits públicos, com acesso direto à evidência.</p></div><span class="section-note">Registro até 22/10/2026</span></div>
-      <div id="timeline" class="timeline"></div>
+      <div class="section-header"><div><h2>Histórico recente de entregas</h2><p>Atualizações extraídas de commits públicos, com acesso direto à evidência.</p></div><div class="history-controls">
+        <label class="sr-only" for="history-project">Filtrar histórico por projeto</label>
+        <select id="history-project" class="filter" aria-label="Filtrar histórico por projeto"><option value="all">Todos os projetos</option></select>
+        <button id="history-refresh" type="button" class="refresh-btn" title="Consultar commits públicos do GitHub">↻ Atualizar histórico</button>
+      </div></div>
+      <p id="history-status" class="history-status" role="status" aria-live="polite">Exibindo histórico revisado de commits públicos.</p><div id="timeline" class="timeline"></div>
     </section>
     <section id="metodologia" class="section">
       <div class="section-header"><div><h2>Como o progresso é calculado</h2><p>Critérios visíveis para evitar percentuais arbitrários.</p></div></div>
       <div class="method">
         <div><h3>Percentual de marcos acompanhados</h3><p>Cada projeto tem uma lista explícita de marcos, com situação “concluído” ou “pendente”. O percentual considera apenas os marcos presentes na lista, selecionados a partir de documentação e commits. Não representa o percentual total de funcionalidades possíveis do produto.</p><span class="formula">Concluídos ÷ mapeados × 100</span></div>
-        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os dados de progresso e os links do histórico são mantidos no arquivo <code>index.html</code> da branch <code>gh-pages</code>; devem ser revisados a cada novo marco. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
+        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os marcos e seus percentuais são revisados manualmente no arquivo <code>index.html</code> da branch <code>gh-pages</code>. O histórico tenta carregar commits públicos recentes do GitHub, com cache local de 30 minutos; se houver indisponibilidade ou limite da API, mantém os registros revisados. Uma alteração de código não muda automaticamente um marco para “concluído”. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
       </div>
     </section>
     <footer><span>© 2026 AXE • Painel público de iniciativas</span><span>Dados auditáveis · Sem credenciais · GitHub Pages</span></footer>
@@ -148,15 +159,81 @@ function renderProjects(){
    return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
  }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
 }
+
+const STATIC_HISTORY=PROJECTS.flatMap(p=>p.history.map(h=>({project:p,date:h[0],title:h[1],sha:h[2]})));
+let historyData=STATIC_HISTORY;
+let historySource="revisado";
+const historySelect=document.getElementById("history-project");
+PROJECTS.forEach(p=>{const option=document.createElement("option");option.value=p.id;option.textContent=p.name;historySelect.appendChild(option)});
 function renderHistory(){
- const ev=PROJECTS.flatMap(p=>p.history.map(h=>({project:p,date:h[0],title:h[1],sha:h[2]}))).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
- document.getElementById("timeline").innerHTML=ev.map(e=>{const d=new Date(e.date+"T12:00:00");const day=String(d.getDate()).padStart(2,"0");const month=d.toLocaleDateString("pt-BR",{month:"short",year:"numeric"});return '<article class="event"><div class="event-date"><strong>'+day+'</strong><small>'+esc(month)+'</small></div><div class="event-content"><span class="project-name">'+esc(e.project.name)+'</span><a href="'+commit(e.project,e.sha)+'" target="_blank" rel="noopener noreferrer">'+esc(e.title)+' ↗</a><span class="commit">'+esc(e.sha.slice(0,7))+' · Commit público</span></div></article>'}).join("");
+ const selection=historySelect.value;
+ const ev=historyData.filter(e=>selection==="all"||e.project.id===selection).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+ document.getElementById("timeline").innerHTML=ev.length?ev.map(e=>{
+   const d=new Date(e.date+"T12:00:00");
+   const day=String(d.getDate()).padStart(2,"0");
+   const month=d.toLocaleDateString("pt-BR",{month:"short",year:"numeric"});
+   return '<article class="event"><div class="event-date"><strong>'+day+'</strong><small>'+esc(month)+'</small></div><div class="event-content"><span class="project-name">'+esc(e.project.name)+'</span><a href="'+commit(e.project,e.sha)+'" target="_blank" rel="noopener noreferrer">'+esc(e.title)+' ↗</a><span class="commit">'+esc(e.sha.slice(0,7))+' · Commit público</span></div></article>';
+ }).join(""):'<div class="empty">Sem commits para o projeto selecionado neste recorte.</div>';
 }
+historySelect.addEventListener("change",renderHistory);
+const historyStatus=document.getElementById("history-status");
+const refreshButton=document.getElementById("history-refresh");
+const CACHE_KEY="axe-portfolio-history-v2";
+const CACHE_MS=30*60*1000;
+function applyGithubHistory(items,at,cached){
+ const byId=new Map(PROJECTS.map(p=>[p.id,p]));
+ const clean=items.filter(e=>byId.has(e.repo)&&/^[0-9a-f]{40}$/i.test(e.sha)&&/^\d{4}-\d{2}-\d{2}$/.test(e.date))
+   .map(e=>({project:byId.get(e.repo),date:e.date,sha:e.sha,title:String(e.title).slice(0,160)}));
+ if(!clean.length)return false;
+ historyData=clean;
+ historySource="github";
+ for(const item of clean){if(item.date>item.project.updated)item.project.updated=item.date}
+ renderHistory();renderProjects();
+ const asDate=new Date(at);
+ const when=Number.isNaN(asDate.valueOf())?"recentemente":asDate.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+ historyStatus.textContent=clean.length+" commits públicos consultados "+(cached?"(cache) ":"")+"em "+when+". Os percentuais dos marcos permanecem revisados manualmente.";
+ return true;
+}
+async function refreshLiveHistory(force){
+ if(!force){
+   try{
+     const cached=JSON.parse(localStorage.getItem(CACHE_KEY)||"null");
+     if(cached&&Date.now()-cached.at<CACHE_MS&&applyGithubHistory(cached.items,cached.at,true))return;
+   }catch(_){}
+ }
+ refreshButton.disabled=true;
+ refreshButton.textContent="↻ Consultando…";
+ historyStatus.textContent="Consultando commits públicos dos projetos no GitHub…";
+ try{
+   const result=await Promise.allSettled(PROJECTS.map(async p=>{
+     const url="https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(p.id)+"/commits?per_page=3";
+     const response=await fetch(url,{headers:{"Accept":"application/vnd.github+json"}});
+     if(!response.ok)throw Error("GitHub HTTP "+response.status);
+     const commits=await response.json();
+     if(!Array.isArray(commits))throw Error("Resposta de commits inválida");
+     return commits.filter(c=>c&&typeof c.sha==="string"&&c.commit&&c.commit.committer&&c.commit.committer.date).map(c=>({
+       repo:p.id,sha:c.sha,date:c.commit.committer.date.slice(0,10),title:String(c.commit.message||"Commit sem descrição").split("\n")[0]
+     }));
+   }));
+   const items=result.filter(r=>r.status==="fulfilled").flatMap(r=>r.value);
+   if(!applyGithubHistory(items,Date.now(),false))throw Error("Nenhum commit disponível");
+   try{localStorage.setItem(CACHE_KEY,JSON.stringify({at:Date.now(),items}))}catch(_){}
+   const failures=result.filter(r=>r.status==="rejected").length;
+   if(failures)historyStatus.textContent+=" Alguns repositórios não responderam ("+failures+").";
+ }catch(error){
+   if(historySource!=="github"){historyData=STATIC_HISTORY;renderHistory()}
+   historyStatus.textContent="Consulta indisponível no momento. "+(historySource==="github"?"Mantidos os últimos dados consultados.":"Exibindo histórico revisado até 22/10/2026.")+" Pode haver limite de acesso da API pública.";
+ }finally{
+   refreshButton.disabled=false;
+   refreshButton.textContent="↻ Atualizar histórico";
+ }
+}
+refreshButton.addEventListener("click",()=>refreshLiveHistory(true));
 document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();
+renderProjects();renderHistory();refreshLiveHistory(false);
 </script>
 </body>
 </html>
