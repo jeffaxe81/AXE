@@ -617,6 +617,7 @@ refreshEvidence(false);
 
 
 /* The page polls ONE static JSON every 15 s. GitHub Actions collects sources every ~5 min. */
+const SNAPSHOT_RAW_URL="https://raw.githubusercontent.com/jeffaxe81/AXE/gh-pages/portfolio-status.json";
 const SNAPSHOT_PERIOD=15000;
 let lastSnapshot=null, snapshotBusy=false;
 const syncLabel=document.getElementById("sync-label");
@@ -676,7 +677,7 @@ async function pollSnapshot(){
  if(snapshotBusy||document.hidden)return;
  snapshotBusy=true;syncNow.disabled=true;
  try{
-  const response=await fetch("./portfolio-status.json?t="+Date.now(),{cache:"no-store"});
+  const response=await fetch(SNAPSHOT_RAW_URL+"?t="+Date.now(),{cache:"no-store"});
   if(!response.ok)throw Error("HTTP "+response.status);
   const result=await response.json();
   if(result.generated_at&&result.generated_at===lastSnapshot){
