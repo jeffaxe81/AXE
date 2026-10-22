@@ -582,7 +582,7 @@ function renderProgressTimeline(){
  const endDate=startOfDay(new Date());
  const minDate=trendRange.value==="all"?null:dayShift(endDate,-Number(trendRange.value)+1);
  for(const entry of progressHistory){
-  const at=Date.parse(entry.observed_at);
+  const at=Date.parse(entry.observed_at.length===10?entry.observed_at+"T12:00:00":entry.observed_at);
   if(!Number.isFinite(at)||at>endDate.valueOf()+12*3600000||minDate&&at<dayShift(minDate,-1).valueOf())continue;
   let total=0,done=0;
   let valid=true;
@@ -601,6 +601,7 @@ function renderProgressTimeline(){
  }
  const W=700,H=218,left=44,right=24,top=14,bottom=36;
  const y=p=>top+(100-p)*(H-top-bottom)/100;
+ dates.sort((a,b)=>a.at-b.at);
  const minimum=dates[0].at,maximum=dates[dates.length-1].at;
  const x=(v,index)=>dates.length===1?left+(W-left-right)/2:
   left+(maximum===minimum?index/(dates.length-1):(v-minimum)/(maximum-minimum))*(W-left-right);
