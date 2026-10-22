@@ -54,6 +54,9 @@
     .insight-card{min-width:0;padding:20px;border:1px solid var(--line);background:var(--panel);border-radius:17px}
     .insight-card h3{font-size:16px;margin:0 0 5px}
     .insight-card p{font-size:12px;color:var(--muted);margin:0 0 18px}
+    .progress-history-chart{width:100%;overflow-x:auto;min-height:150px}
+    .progress-history-chart svg{display:block;width:100%;min-width:420px;height:auto}
+    #progress-history-caption{margin:10px 0 0}
     .activity-chart{display:flex;gap:6px;align-items:stretch;min-height:180px;overflow-x:auto}
     .activity-bin{flex:1;min-width:20px;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;text-align:center}
     .activity-number{font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
@@ -159,6 +162,12 @@
         <article class="insight-card"><h3>Progresso atual por projeto</h3><p>Marcos concluídos / marcos mapeados, sem projeção retroativa.</p><div id="milestone-chart" class="milestone-chart"></div></article>
       </div>
       <p id="trend-note" class="history-status">Atividade calculada a partir de commits revisados; carregamento de commits públicos em andamento.</p>
+      <article class="insight-card" id="progress-history-panel">
+        <h3>Evolução comprovada dos marcos</h3>
+        <p>Registro persistente dos percentuais no momento em que a lista de marcos muda. Datas sem registro não são estimadas.</p>
+        <div id="progress-history-chart" class="progress-history-chart" role="img" aria-label="Histórico de percentuais dos marcos"></div>
+        <p id="progress-history-caption" class="history-status">Aguardando a primeira fotografia de marcos registrada pelo coletor.</p>
+      </article>
     </section>
     <section id="historico" class="section">
       <div class="section-header"><div><h2>Histórico recente de entregas</h2><p>Atualizações extraídas de commits públicos, com acesso direto à evidência.</p></div><div class="history-controls">
@@ -264,6 +273,7 @@ document.getElementById("m-progress").textContent=Math.round(100*done/total)+"%"
 document.getElementById("m-events").textContent=events;
 let currentFilter="all";
 const latestCommitsByProject={};
+let progressHistory=[];
 function renderProjects(){
  const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
  const order=document.getElementById("sort").value;
@@ -555,8 +565,66 @@ function renderInsights(){
  ).join("");
  trendNote.textContent="Período: "+rangeLabel+". "+(historySource==="github"?"Commits consultados no GitHub. ":"Histórico revisado local, enquanto a consulta ao GitHub não termina. ")+
   "Até 100 commits recentes por projeto, podendo não cobrir todo o período. Marcos: situação atual, não série histórica.";
+ renderProgressTimeline();
  renderConsolidated();
 }
+
+function renderProgressTimeline(){
+ const plot=document.getElementById("progress-history-chart");
+ const caption=document.getElementById("progress-history-caption");
+ if(!progressHistory.length){
+  plot.innerHTML='<p class="history-status">Ainda sem pontos históricos verificados.</p>';
+  caption.textContent="O histórico será registrado quando o coletor analisar os marcos; não existe uma curva retrospectiva inventada.";
+  return;
+ }
+ const projects=selectedProjects();
+ const dates=[];
+ const endDate=startOfDay(new Date());
+ const minDate=trendRange.value==="all"?null:dayShift(endDate,-Number(trendRange.value)+1);
+ for(const entry of progressHistory){
+  const at=Date.parse(entry.observed_at);
+  if(!Number.isFinite(at)||at>endDate.valueOf()+12*3600000||minDate&&at<dayShift(minDate,-1).valueOf())continue;
+  let total=0,done=0;
+  let valid=true;
+  for(const p of projects){
+   const item=entry.projects[p.id];
+   if(!item||!Number.isInteger(item.completed)||!Number.isInteger(item.total)||
+    item.total<1||item.completed<0||item.completed>item.total){valid=false;break}
+   total+=item.total;done+=item.completed;
+  }
+  if(valid&&total)dates.push({at,percent:100*done/total,done,total});
+ }
+ if(!dates.length){
+  plot.innerHTML='<p class="history-status">Nenhuma fotografia de marcos para este projeto e período.</p>';
+  caption.textContent="A ausência de amostras não equivale a 0% de conclusão.";
+  return;
+ }
+ const W=700,H=218,left=44,right=24,top=14,bottom=36;
+ const y=p=>top+(100-p)*(H-top-bottom)/100;
+ const minimum=dates[0].at,maximum=dates[dates.length-1].at;
+ const x=(v,index)=>dates.length===1?left+(W-left-right)/2:
+  left+(maximum===minimum?index/(dates.length-1):(v-minimum)/(maximum-minimum))*(W-left-right);
+ const horizontal=[0,25,50,75,100].map(v=>
+  '<line x1="'+left+'" y1="'+y(v)+'" x2="'+(W-right)+'" y2="'+y(v)+'" stroke="#35455b" stroke-width="1"/>'+
+  '<text x="'+(left-8)+'" y="'+(y(v)+4)+'" text-anchor="end" font-size="11" fill="#a9b9ce">'+v+'%</text>'
+ ).join("");
+ const line=dates.map((p,i)=>x(p.at,i).toFixed(2)+","+y(p.percent).toFixed(2)).join(" ");
+ const circles=dates.map((p,i)=>{
+  const label=new Date(p.at).toLocaleDateString("pt-BR")+" · "+p.done+"/"+p.total+" marcos ("+p.percent.toFixed(1)+"%)";
+  return '<circle cx="'+x(p.at,i).toFixed(2)+'" cy="'+y(p.percent).toFixed(2)+'" r="5" stroke="#112033" stroke-width="2" fill="#b6ec69"><title>'+esc(label)+'</title></circle>';
+ }).join("");
+ const firstDate=new Date(dates[0].at).toLocaleDateString("pt-BR");
+ const lastDate=new Date(dates[dates.length-1].at).toLocaleDateString("pt-BR");
+ const labels='<text x="'+left+'" y="'+(H-7)+'" fill="#a9b9ce" font-size="12">'+firstDate+'</text>'+
+ '<text x="'+(W-right)+'" y="'+(H-7)+'" fill="#a9b9ce" text-anchor="end" font-size="12">'+lastDate+'</text>';
+ plot.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+dates.length+' fotografias verificadas de progresso dos marcos">'+
+ horizontal+(dates.length>1?'<polyline points="'+line+'" fill="none" stroke="#69c9c9" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>':'')+
+ circles+labels+'</svg>';
+ const last=dates[dates.length-1];
+ caption.textContent=dates.length+" fotografia(s) verificadas · última: "+last.done+" de "+last.total+
+  " marcos ("+last.percent.toFixed(1)+"%). Cada ponto representa um registro real, não uma previsão. O eixo horizontal usa as datas da coleta.";
+}
+
 function availableEvidence(p){
  const e=evidenceData[p.id];
  const prs=e&&e.prs?e.prs:null;
@@ -634,7 +702,12 @@ function goodCommit(e){
 }
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
- if(!data.generated_at){showSync("arquivo pronto; aguardando a primeira execução da coleta",false);return}
+ if(Array.isArray(data.progress_history)){
+  progressHistory=data.progress_history.filter(entry=>entry&&typeof entry.observed_at==="string"&&Number.isFinite(Date.parse(entry.observed_at))&&
+   entry.projects&&typeof entry.projects==="object").slice(-365);
+  renderProgressTimeline();
+ }
+ if(!data.generated_at){showSync("arquivo inicial: histórico dos marcos disponível, aguardando coleta dos repositórios",false);return}
  if(!Number.isFinite(Date.parse(data.generated_at)))throw Error("data do snapshot inválida");
  const entries=[],evidence={...evidenceData};
  let errors=0;
