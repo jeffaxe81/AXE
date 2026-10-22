@@ -5,6 +5,7 @@ import datetime as dt
 import json
 import os
 import pathlib
+import re
 import sys
 import time
 import urllib.error
@@ -91,13 +92,61 @@ def ci(repo):
     }
 
 
-def generate(output):
+def extract_milestone_progress(html):
+    """Read only literal milestone lists from the reviewed page (no JS execution)."""
+    pattern = re.compile(
+        r'\{id:"([A-Za-z0-9_-]+)",name:"([^"]+)"[\s\S]*?milestones:\[([\s\S]*?)\],history:\['
+    )
+    matches = list(pattern.finditer(html))
+    expected = len(REPOS)
+    if len(matches) != expected or html.count("milestones:[") != expected:
+        raise ValueError("Expected exactly %d milestone lists, found %d" % (expected, len(matches)))
+    progress = {}
+    for match in matches:
+        repo_id = match.group(1)
+        if repo_id not in REPOS or repo_id in progress:
+            raise ValueError("Unknown or duplicate portfolio project: " + repo_id)
+        raw = "[" + match.group(3) + "]"
+        milestones = json.loads(raw)
+        if not isinstance(milestones, list) or not milestones:
+            raise ValueError("Milestones must be a nonempty list: " + repo_id)
+        if not all(
+            isinstance(row, list) and len(row) == 2
+            and isinstance(row[0], str) and bool(row[0].strip())
+            and type(row[1]) is bool
+            for row in milestones
+        ):
+            raise ValueError("Invalid milestone declaration: " + repo_id)
+        progress[repo_id] = {
+            "completed": sum(row[1] for row in milestones),
+            "total": len(milestones),
+        }
+    if set(progress) != set(REPOS):
+        raise ValueError("Portfolio and collector repository lists differ")
+    return progress
+
+
+def append_progress_history(old, progress):
+    """Append only actual changes; never manufacture intermediate dates/percentages."""
+    history = old.get("progress_history", []) if isinstance(old, dict) else []
+    if not isinstance(history, list):
+        history = []
+    history = [item for item in history if isinstance(item, dict) and isinstance(item.get("projects"), dict)]
+    if not history or history[-1]["projects"] != progress:
+        history.append({"observed_at": NOW, "projects": progress})
+    return history[-365:]
+
+
+def generate(output, html_file):
     old = {}
+    saved = {}
     if output.is_file():
         try:
             saved = json.loads(output.read_text(encoding="utf-8"))
             if saved.get("schema_version") == 1:
                 old = saved.get("projects") or {}
+            else:
+                saved = {}
         except (OSError, ValueError, TypeError):
             pass
     result = {}
@@ -121,7 +170,9 @@ def generate(output):
         for item in result.values()
     ):
         raise RuntimeError("All sources failed; keeping the previous snapshot")
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result}
+    progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
+    history = append_progress_history(saved, progress)
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
@@ -132,4 +183,6 @@ def generate(output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=pathlib.Path)
-    generate(parser.parse_args().output)
+    parser.add_argument("--html", required=True, type=pathlib.Path)
+    args = parser.parse_args()
+    generate(args.output, args.html)
