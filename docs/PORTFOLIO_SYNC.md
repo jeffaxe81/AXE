@@ -2,7 +2,7 @@
 
 ## Frequências
 
-- **15 segundos:** páginas index.html e qualidade.html consultam o arquivo público portfolio-status.json enquanto a guia estiver ativa. Uma guia suspensa é sincronizada ao voltar.
+- **15 segundos:** páginas index.html e qualidade.html consultam o arquivo bruto público da branch gh-pages pelo domínio raw.githubusercontent.com, com cache-busting. Isso dispensa novos builds do Pages apenas para atualizar o JSON enquanto a guia estiver ativa. Uma guia suspensa é sincronizada ao voltar.
 - **Aproximadamente 5 minutos:** o GitHub Actions do repositório AXE consulta os nove repositórios públicos e grava um novo JSON na branch gh-pages.
 - Agendamentos do GitHub podem atrasar e a implantação do Pages pode levar mais tempo. O site avisa quando a coleta está há mais de 20 minutos sem atualização.
 - **15 segundos não significa dados novos a cada 15 segundos.** O navegador checa a origem; novas evidências dependem da coleta agendada e da publicação.
@@ -11,7 +11,7 @@
 
 1. Verifique Settings → Actions → General → Workflow permissions. Para publicar automaticamente na gh-pages, o token do Actions precisa de permissão de escrita no conteúdo.
 2. Em Actions → Atualizar portfólio AXE, execute Run workflow na branch main para iniciar a primeira coleta, se o acionamento manual estiver habilitado.
-3. Verifique o arquivo portfolio-status.json atualizado na gh-pages e, em Settings → Pages, selecione Deploy from a branch → gh-pages / (root).
+3. Verifique o arquivo portfolio-status.json atualizado na gh-pages e, em Settings → Pages, confirme Deploy from a branch → gh-pages / (root), para servir as páginas HTML. O JSON atualizado é lido diretamente do GitHub Raw, independentemente da recompilação do Pages.
 4. O botão Verificar agora lê o arquivo público; ele não aciona uma nova execução do workflow.
 
 ## Fontes e interpretação
@@ -27,5 +27,7 @@
 
 - main: .github/workflows/portfolio-refresh.yml e scripts/refresh_portfolio.py
 - gh-pages: index.html, qualidade.html e portfolio-status.json
+- JSON consumido: https://raw.githubusercontent.com/jeffaxe81/AXE/gh-pages/portfolio-status.json
+- Commits enviados por GitHub Actions com GITHUB_TOKEN não disparam build de Pages; por isso o navegador consulta o JSON bruto. A CDN pode introduzir algum atraso.
 
 Se o GitHub Actions estiver desativado ou não tiver permissão para escrita, o JSON inicial permanece com generated_at nulo. A interface avisa e mantém botões para verificação manual.
