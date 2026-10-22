@@ -3,5 +3,87 @@
   "generated_at": null,
   "collection_interval_minutes": 5,
   "owner": "jeffaxe81",
-  "projects": {}
+  "projects": {},
+  "progress": {
+    "crm-vendas": {
+      "completed": 4,
+      "total": 7
+    },
+    "dispatch": {
+      "completed": 4,
+      "total": 6
+    },
+    "pabx-mvp": {
+      "completed": 5,
+      "total": 6
+    },
+    "axe-voice-desktop": {
+      "completed": 2,
+      "total": 6
+    },
+    "dispatch-v2": {
+      "completed": 4,
+      "total": 6
+    },
+    "centralizador-controle": {
+      "completed": 3,
+      "total": 5
+    },
+    "aderencia_tecnica": {
+      "completed": 4,
+      "total": 5
+    },
+    "axe-gestao-convites": {
+      "completed": 2,
+      "total": 5
+    },
+    "central-despacho-alertas-publicacao": {
+      "completed": 2,
+      "total": 4
+    }
+  },
+  "progress_history": [
+    {
+      "observed_at": "2026-10-22",
+      "projects": {
+        "crm-vendas": {
+          "completed": 4,
+          "total": 7
+        },
+        "dispatch": {
+          "completed": 4,
+          "total": 6
+        },
+        "pabx-mvp": {
+          "completed": 5,
+          "total": 6
+        },
+        "axe-voice-desktop": {
+          "completed": 2,
+          "total": 6
+        },
+        "dispatch-v2": {
+          "completed": 4,
+          "total": 6
+        },
+        "centralizador-controle": {
+          "completed": 3,
+          "total": 5
+        },
+        "aderencia_tecnica": {
+          "completed": 4,
+          "total": 5
+        },
+        "axe-gestao-convites": {
+          "completed": 2,
+          "total": 5
+        },
+        "central-despacho-alertas-publicacao": {
+          "completed": 2,
+          "total": 4
+        }
+      }
+    }
+  ],
+  "progress_source": "revisão explícita dos marcos na página pública"
 }
