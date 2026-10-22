@@ -44,6 +44,7 @@
     <nav class="nav">
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
+      <a href="./qualidade.html"><span class="sym">✓</span><span class="nav-label">PRs & CI</span></a>
       <a href="#historico"><span class="sym">◷</span><span class="nav-label">Histórico</span></a>
       <a href="#metodologia"><span class="sym">◎</span><span class="nav-label">Metodologia</span></a>
     </nav>
@@ -60,6 +61,10 @@
       <div class="metric"><label>Marcos concluídos</label><b id="m-done">—</b><span class="suffix" id="m-total">do total monitorado</span></div>
       <div class="metric"><label>Avanço dos marcos</label><b id="m-progress">—</b><span class="suffix">conclusão por contagem de marcos</span></div>
       <div class="metric"><label>Eventos no histórico</label><b id="m-events">—</b><span class="suffix">commits documentados nesta página</span></div>
+    </section>
+    <section aria-label="Indicadores de qualidade" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 24px;background:#15283b;border:1px solid var(--line);border-radius:16px;margin-top:26px">
+      <div><strong style="font-size:16px">PRs e testes — evidências consultáveis</strong><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Última PR e GitHub Actions na main, separados do progresso dos marcos.</p></div>
+      <a href="./qualidade.html" style="font-weight:800;color:var(--accent);white-space:nowrap">Abrir painel de qualidade ↗</a>
     </section>
     <section id="projetos" class="section">
       <div class="section-header"><div><h2>Projetos em destaque</h2><p>Consulte entregas realizadas, pendências e rastreabilidade por iniciativa.</p></div><span class="section-note" id="visible-count"></span></div>
