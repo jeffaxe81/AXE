@@ -44,6 +44,53 @@
     .ci-pill{font-weight:750;padding:5px 9px;border-radius:99px;color:#c6d4e6;background:#26364a}
     .ci-pill.ok{color:#b6ec69;background:#24402b}.ci-pill.fail{color:#ffc2a8;background:#52322d}.ci-pill.running{color:#ffe1a1;background:#463c25}
     @media(max-width:850px){.evidence-grid{grid-template-columns:1fr}}
+
+    .trend-controls,.report-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .trend-summary{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+    .trend-stat{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:10px 15px;min-width:140px}
+    .trend-stat b{font-size:21px;display:block;font-variant-numeric:tabular-nums}
+    .trend-stat span{display:block;font-size:11px;color:var(--muted)}
+    .insight-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin:0 0 16px}
+    .insight-card{min-width:0;padding:20px;border:1px solid var(--line);background:var(--panel);border-radius:17px}
+    .insight-card h3{font-size:16px;margin:0 0 5px}
+    .insight-card p{font-size:12px;color:var(--muted);margin:0 0 18px}
+    .activity-chart{display:flex;gap:6px;align-items:stretch;min-height:180px;overflow-x:auto}
+    .activity-bin{flex:1;min-width:20px;display:flex;flex-direction:column;justify-content:flex-end;gap:7px;text-align:center}
+    .activity-number{font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
+    .activity-track{height:120px;width:100%;background:linear-gradient(0deg,#1d3044 0,#1d304411 100%);border-bottom:1px solid #4d6075;display:flex;align-items:flex-end;border-radius:5px 5px 0 0;overflow:hidden}
+    .activity-bar{width:100%;background:linear-gradient(0deg,var(--accent2),var(--accent));border-radius:5px 5px 0 0;min-height:0;transition:height .2s}
+    .activity-label{color:var(--muted);font-size:10px;white-space:nowrap}
+    .milestone-chart{display:grid;gap:9px}
+    .milestone-entry{display:grid;grid-template-columns:minmax(94px,1fr) minmax(45px,1.2fr) 43px;align-items:center;gap:8px}
+    .milestone-entry a{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+    .milestone-entry a:hover{text-decoration:underline}
+    .milestone-entry .bar{height:8px;background:#2b3848;border-radius:99px;overflow:hidden}
+    .milestone-entry .bar>span{display:block;background:var(--accent);height:100%;border-radius:99px}
+    .milestone-entry b{font-size:11px;font-variant-numeric:tabular-nums;text-align:right}
+    .report-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px}
+    .report-table{width:100%;border-collapse:collapse;min-width:700px;font-size:12px}
+    .report-table th,.report-table td{text-align:left;padding:14px 12px;border-bottom:1px solid var(--line)}
+    .report-table th{color:var(--muted);background:#17263b;font-size:11px;white-space:nowrap}
+    .report-table tr:last-child td{border-bottom:0}
+    .report-table a{color:var(--accent);font-weight:750}
+    .report-table td{font-variant-numeric:tabular-nums}
+    @media(max-width:850px){.insight-grid{grid-template-columns:1fr}.trend-controls,.report-actions{justify-content:flex-start}.milestone-entry{grid-template-columns:minmax(105px,1fr) 1fr 45px}}
+    @media print {
+      body{background:white!important;color:black!important;font-size:12px}
+      .shell{display:block;max-width:none}
+      aside,.hero,.metrics,#projetos,#historico,#evidencias,#metodologia,.trend-controls,.report-actions,.top-actions,.insight-grid,.trend-summary,#trend-note,footer{display:none!important}
+      main{padding:0!important}
+      #evolucao{display:none!important}
+      #relatorio{display:block!important;margin:0}
+      .topline{display:none!important}
+      .report-table-wrap{overflow:visible;border:0}
+      .report-table{min-width:0;width:100%;color:#111;font-size:10px}
+      .report-table th{background:#eee!important;color:#111}
+      .report-table th,.report-table td{border-bottom:1px solid #ddd;padding:8px}
+      .report-table a{color:#111!important}
+      .history-status,.section-header p{color:#444!important}
+      .section-header{display:block}
+    }
     @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
     @media(max-width:850px){.shell{display:block}aside{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:14px 21px;border-right:0;border-bottom:1px solid var(--line)}.aside-caption,.side-bottom{display:none}.nav{display:flex;gap:3px}.nav a{padding:8px}.nav a .nav-label{display:none}main{padding:22px}.hero{margin-top:28px;grid-template-columns:1fr}.hero-feature{min-height:165px}.rings{height:40px}.rings::before{top:-80px}.rings::after{top:-44px}.metrics{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:1fr}}
     @media(max-width:520px){.hero h1{font-size:41px}.projects{grid-template-columns:1fr}.metrics{gap:9px}.metric{padding:15px}.metric b{font-size:28px}.top-actions{justify-content:flex-end}.top-actions .review{display:none}.method{grid-template-columns:1fr;padding:19px}.event{padding:13px}.project .description{min-height:auto}footer{align-items:flex-start;flex-direction:column}.hero-feature{min-height:155px}}
@@ -58,6 +105,8 @@
     <nav class="nav">
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
+      <a href="#evolucao"><span class="sym">▥</span><span class="nav-label">Evolução</span></a>
+      <a href="#relatorio"><span class="sym">▤</span><span class="nav-label">Relatório</span></a>
       <a href="./qualidade.html"><span class="sym">✓</span><span class="nav-label">PRs & CI</span></a>
       <a href="#historico"><span class="sym">◷</span><span class="nav-label">Histórico</span></a>
       <a href="#evidencias"><span class="sym">⌘</span><span class="nav-label">Evidências</span></a>
@@ -87,6 +136,25 @@
       <div class="filters" role="group" aria-label="Filtrar categoria"><button class="chip selected" data-filter="all" aria-pressed="true">Todos</button><button class="chip" data-filter="produto" aria-pressed="false">Produtos</button><button class="chip" data-filter="plataforma" aria-pressed="false">Plataformas</button><button class="chip" data-filter="prototipo" aria-pressed="false">Protótipos</button></div>
       <div id="projects" class="projects"></div>
     </section>
+    <section id="evolucao" class="section">
+      <div class="section-header">
+        <div><h2>Evolução de desenvolvimento</h2><p>Atividade registrada por commits e avanço atual dos marcos. Não são percentuais históricos inferidos.</p></div>
+        <div class="trend-controls">
+          <label class="sr-only" for="trend-project">Projeto do gráfico e relatório</label>
+          <select id="trend-project" class="filter" aria-label="Projeto do gráfico e relatório"><option value="all">Todos os projetos</option></select>
+          <label class="sr-only" for="trend-range">Período do gráfico e relatório</label>
+          <select id="trend-range" class="filter" aria-label="Período do gráfico e relatório">
+            <option value="7">Últimos 7 dias</option><option value="30" selected>Últimos 30 dias</option><option value="90">Últimos 90 dias</option><option value="all">Todo o histórico disponível</option>
+          </select>
+        </div>
+      </div>
+      <div class="trend-summary" id="trend-summary" aria-live="polite"></div>
+      <div class="insight-grid">
+        <article class="insight-card"><h3>Commits por intervalo</h3><p>Volume de commits no período selecionado, agrupado por data.</p><div id="activity-chart" class="activity-chart" role="img" aria-label="Gráfico de commits por intervalo de datas"></div></article>
+        <article class="insight-card"><h3>Progresso atual por projeto</h3><p>Marcos concluídos / marcos mapeados, sem projeção retroativa.</p><div id="milestone-chart" class="milestone-chart"></div></article>
+      </div>
+      <p id="trend-note" class="history-status">Atividade calculada a partir de commits revisados; carregamento de commits públicos em andamento.</p>
+    </section>
     <section id="historico" class="section">
       <div class="section-header"><div><h2>Histórico recente de entregas</h2><p>Atualizações extraídas de commits públicos, com acesso direto à evidência.</p></div><div class="history-controls">
         <label class="sr-only" for="history-project">Filtrar histórico por projeto</label>
@@ -104,11 +172,26 @@
       <div id="evidence-grid" class="evidence-grid"></div>
       <p class="history-status">Contagens de PRs: somente as 20 mais recentemente atualizadas por repositório, não totais históricos. CI: uma execução mais recente na <code>main</code>, quando disponível. Esses indicadores não demonstram homologação ou prontidão para produção.</p>
     </section>
+    <section id="relatorio" class="section">
+      <div class="section-header">
+        <div><h2>Relatório consolidado</h2><p>Fotografia dos marcos atuais, atividade no período e evidências disponíveis de PRs/CI.</p></div>
+        <div class="report-actions">
+          <button id="export-consolidated" type="button" class="refresh-btn">↓ Relatório CSV</button>
+          <button id="print-consolidated" type="button" class="refresh-btn">⎙ Imprimir / PDF</button>
+        </div>
+      </div>
+      <p id="report-intro" class="history-status"></p>
+      <div class="report-table-wrap"><table class="report-table" id="report-table">
+        <thead><tr><th scope="col">Projeto</th><th scope="col">Fase</th><th scope="col">Marcos</th><th scope="col">Avanço</th><th scope="col">Commits*</th><th scope="col">PRs abertas*</th><th scope="col">Última CI*</th></tr></thead>
+        <tbody id="report-rows"></tbody>
+      </table></div>
+      <p class="history-status">* Amostra de commits no período definido acima. PRs referem-se às últimas 20 consultadas, independentemente do período. CI é a última execução localizada na <code>main</code>. Traço indica informação indisponível, não zero.</p>
+    </section>
     <section id="metodologia" class="section">
       <div class="section-header"><div><h2>Como o progresso é calculado</h2><p>Critérios visíveis para evitar percentuais arbitrários.</p></div></div>
       <div class="method">
         <div><h3>Percentual de marcos acompanhados</h3><p>Cada projeto tem uma lista explícita de marcos, com situação “concluído” ou “pendente”. O percentual considera apenas os marcos presentes na lista, selecionados a partir de documentação e commits. Não representa o percentual total de funcionalidades possíveis do produto.</p><span class="formula">Concluídos ÷ mapeados × 100</span></div>
-        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os marcos e seus percentuais são revisados manualmente no arquivo <code>index.html</code> da branch <code>gh-pages</code>. O histórico tenta carregar commits públicos recentes do GitHub, com cache local de 30 minutos; se houver indisponibilidade ou limite da API, mantém os registros revisados. Uma alteração de código não muda automaticamente um marco para “concluído”. O painel de evidências mostra até 20 PRs recentes e o último workflow na <code>main</code> de quatro projetos, com cache de 30 minutos; ausência de resposta não significa zero PRs ou CI aprovada. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
+        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os marcos e seus percentuais são revisados manualmente no arquivo <code>index.html</code> da branch <code>gh-pages</code>. O histórico tenta carregar commits públicos recentes do GitHub, com cache local de 30 minutos; se houver indisponibilidade ou limite da API, mantém os registros revisados. Uma alteração de código não muda automaticamente um marco para “concluído”. O painel de evidências mostra até 20 PRs recentes e o último workflow na <code>main</code> de quatro projetos, com cache de 30 minutos; ausência de resposta não significa zero PRs ou CI aprovada. O gráfico histórico contabiliza uma amostra de até 100 commits recentes por repositório; registros anteriores podem não constar. O relatório aplica o período apenas aos commits: percentuais dos marcos, amostra de PRs e última CI são fotografias atuais. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
       </div>
     </section>
     <footer><span>© 2026 AXE • Painel público de iniciativas</span><span>Dados auditáveis · Sem credenciais · GitHub Pages</span></footer>
@@ -219,6 +302,8 @@ function applyGithubHistory(items,at,cached){
  historySource="github";
  for(const item of clean){if(item.date>item.project.updated)item.project.updated=item.date}
  renderHistory();renderProjects();
+ renderInsights();
+ document.getElementById("m-events").textContent=clean.length;
  const asDate=new Date(at);
  const when=Number.isNaN(asDate.valueOf())?"recentemente":asDate.toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
  historyStatus.textContent=clean.length+" commits públicos consultados "+(cached?"(cache) ":"")+"em "+when+". Os percentuais dos marcos permanecem revisados manualmente.";
@@ -236,7 +321,7 @@ async function refreshLiveHistory(force){
  historyStatus.textContent="Consultando commits públicos dos projetos no GitHub…";
  try{
    const result=await Promise.allSettled(PROJECTS.map(async p=>{
-     const url="https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(p.id)+"/commits?per_page=3";
+     const url="https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(p.id)+"/commits?per_page=100";
      const response=await fetch(url,{headers:{"Accept":"application/vnd.github+json"}});
      if(!response.ok)throw Error("GitHub HTTP "+response.status);
      const commits=await response.json();
@@ -310,7 +395,7 @@ function countRecentPrs(prs){
 }
 function applyEvidence(data,at,cached){
  if(!data||typeof data!=="object"||!evidenceProjects.some(p=>data[p.id]&&typeof data[p.id]==="object"))return false;
- evidenceData=data;renderEvidence();
+ evidenceData=data;renderEvidence();renderConsolidated();
  const when=new Date(at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
  const success=evidenceProjects.filter(p=>data[p.id]&&(data[p.id].prs||data[p.id].ci!==undefined)).length;
  evidenceStatus.textContent="Dados de "+success+" de "+evidenceProjects.length+" projetos; consulta de "+when+(cached?" (cache).":".")+" Resultados informativos, sem alterar o progresso dos marcos.";
@@ -375,6 +460,153 @@ document.getElementById("export-marcos").addEventListener("click",()=>{
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 });
 renderEvidence();
+
+/* Gráficos e relatório consolidado: a contagem de commits é uma amostra limitada. */
+const trendProject=document.getElementById("trend-project");
+const trendRange=document.getElementById("trend-range");
+const insightSummary=document.getElementById("trend-summary");
+const activityChart=document.getElementById("activity-chart");
+const milestoneChart=document.getElementById("milestone-chart");
+const trendNote=document.getElementById("trend-note");
+const reportRows=document.getElementById("report-rows");
+PROJECTS.forEach(p=>{
+ const option=document.createElement("option");
+ option.value=p.id;option.textContent=p.name;trendProject.appendChild(option);
+});
+function selectedProjects(){
+ return trendProject.value==="all"?PROJECTS:PROJECTS.filter(p=>p.id===trendProject.value);
+}
+function startOfDay(date){
+ return new Date(date.getFullYear(),date.getMonth(),date.getDate(),12,0,0);
+}
+function dateKey(date){
+ const y=date.getFullYear(),m=String(date.getMonth()+1).padStart(2,"0"),d=String(date.getDate()).padStart(2,"0");
+ return y+"-"+m+"-"+d;
+}
+function dayShift(date,n){
+ const d=startOfDay(date);d.setDate(d.getDate()+n);return d;
+}
+function selectedCommits(){
+ const ids=new Set(selectedProjects().map(p=>p.id));
+ const days=trendRange.value;
+ const today=startOfDay(new Date());
+ const min=days==="all"?null:dateKey(dayShift(today,-(Number(days)-1)));
+ const max=dateKey(today);
+ return historyData.filter(e=>ids.has(e.project.id)&&e.date<=max&&(!min||e.date>=min));
+}
+function formatShort(date){
+ return date.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"});
+}
+function countsByInterval(events){
+ const today=startOfDay(new Date());
+ const span=trendRange.value;
+ const min=span==="all"
+  ?(events.length?startOfDay(new Date(events.reduce((old,e)=>e.date<old?e.date:old,events[0].date)+"T12:00:00")):today)
+  :dayShift(today,-(Number(span)-1));
+ const totalDays=Math.max(1,Math.round((today-min)/86400000)+1);
+ const step=span==="7"?1:span==="30"?5:span==="90"?7:Math.max(1,Math.ceil(totalDays/12));
+ const buckets=[];
+ for(let start=0;start<totalDays;start+=step){
+  const left=dayShift(min,start);
+  const right=dayShift(min,Math.min(totalDays-1,start+step-1));
+  buckets.push({left:dateKey(left),right:dateKey(right),label:formatShort(left),count:0});
+ }
+ for(const event of events){
+  const i=buckets.findIndex(b=>event.date>=b.left&&event.date<=b.right);
+  if(i>=0)buckets[i].count++;
+ }
+ return buckets;
+}
+function renderInsights(){
+ const projects=selectedProjects();
+ const commits=selectedCommits();
+ const active=new Set(commits.map(e=>e.project.id)).size;
+ const rangeLabel=trendRange.options[trendRange.selectedIndex].textContent;
+ insightSummary.innerHTML=[
+  [String(commits.length),"Commits na amostra"],
+  [String(active),"Projetos com atividade"],
+  [String(projects.length),"Projetos selecionados"]
+ ].map(item=>'<div class="trend-stat"><b>'+esc(item[0])+'</b><span>'+esc(item[1])+'</span></div>').join("");
+ const bins=countsByInterval(commits);
+ const peak=Math.max(1,...bins.map(b=>b.count));
+ if(commits.length){
+  activityChart.innerHTML=bins.map(b=>{
+   const percent=100*b.count/peak;
+   const desc=b.count+" commits, "+b.left+" a "+b.right;
+   return '<div class="activity-bin" title="'+esc(desc)+'">'+
+     '<span class="activity-number">'+b.count+'</span>'+
+     '<div class="activity-track"><div class="activity-bar" style="height:'+percent+'%"></div></div>'+
+     '<span class="activity-label">'+esc(b.label)+'</span></div>';
+  }).join("");
+ }else{
+  activityChart.innerHTML='<p class="history-status">Nenhum commit na amostra para o período e projeto selecionados.</p>';
+ }
+ activityChart.setAttribute("aria-label",commits.length+" commits na amostra distribuídos por "+bins.length+" intervalos: "+rangeLabel+".");
+ milestoneChart.innerHTML=projects.map(p=>
+  '<div class="milestone-entry"><a title="'+esc(p.name)+'" href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">'+esc(p.name)+'</a>'+
+  '<div class="bar" role="progressbar" aria-label="'+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct(p)+'"><span style="width:'+pct(p)+'%"></span></div>'+
+  '<b>'+pct(p)+'%</b></div>'
+ ).join("");
+ trendNote.textContent="Período: "+rangeLabel+". "+(historySource==="github"?"Commits consultados no GitHub. ":"Histórico revisado local, enquanto a consulta ao GitHub não termina. ")+
+  "Até 100 commits recentes por projeto, podendo não cobrir todo o período. Marcos: situação atual, não série histórica.";
+ renderConsolidated();
+}
+function availableEvidence(p){
+ const e=evidenceData[p.id];
+ const prs=e&&e.prs?e.prs:null;
+ const ci=e&&Object.prototype.hasOwnProperty.call(e,"ci")?ciLabel(e.ci).title:null;
+ return {prs,ci};
+}
+function consolidatedRows(){
+ const commits=selectedCommits();
+ return selectedProjects().map(p=>{
+  const completed=p.milestones.filter(m=>m[1]).length;
+  const evidence=availableEvidence(p);
+  return {
+   project:p,category:p.kind,stage:p.stage,total:p.milestones.length,completed,
+   pending:p.milestones.length-completed,percent:pct(p),
+   activity:p.updated,commits:commits.filter(e=>e.project.id===p.id).length,
+   prs:evidence.prs,ci:evidence.ci
+  };
+ });
+}
+function renderConsolidated(){
+ const rows=consolidatedRows();
+ const rangeLabel=trendRange.options[trendRange.selectedIndex].textContent;
+ const totalMapped=rows.reduce((n,r)=>n+r.total,0),completed=rows.reduce((n,r)=>n+r.completed,0);
+ document.getElementById("report-intro").textContent=
+  rows.length+" projeto(s) • "+completed+" de "+totalMapped+" marcos mapeados concluídos • "+
+  "atividade nos "+rangeLabel.toLocaleLowerCase("pt-BR")+". Base: marcos revisados e evidências públicas disponíveis.";
+ reportRows.innerHTML=rows.map(r=>{
+  const pctText=r.percent+"%";
+  return '<tr><td><a target="_blank" rel="noopener noreferrer" href="'+repo(r.project)+'">'+esc(r.project.name)+'</a></td>'+
+   '<td>'+esc(r.stage)+'</td><td>'+r.completed+' / '+r.total+'</td><td><strong>'+pctText+'</strong></td>'+
+   '<td>'+r.commits+'</td><td>'+(r.prs?r.prs.open:"—")+'</td><td>'+esc(r.ci||"—")+'</td></tr>';
+ }).join("");
+}
+function downloadReportCsv(){
+ const rows=[["Projeto","Categoria","Fase","Marcos_concluidos","Marcos_pendentes","Marcos_mapeados",
+  "Avanco_atual_percentual","Ultima_atividade","Commits_amostra_periodo","PRs_abertas_amostra_20",
+  "PRs_mescladas_amostra_20","PRs_fechadas_sem_merge_amostra_20","Ultima_CI_main","Periodo_commits"]];
+ const period=trendRange.options[trendRange.selectedIndex].textContent;
+ for(const r of consolidatedRows())rows.push([
+  r.project.name,r.category,r.stage,r.completed,r.pending,r.total,r.percent,r.activity,r.commits,
+  r.prs?r.prs.open:"",r.prs?r.prs.merged:"",r.prs?r.prs.closed:"",r.ci||"",period
+ ]);
+ const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download="axe-relatorio-consolidado.csv";
+ document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+trendProject.addEventListener("change",renderInsights);
+trendRange.addEventListener("change",renderInsights);
+document.getElementById("export-consolidated").addEventListener("click",downloadReportCsv);
+document.getElementById("print-consolidated").addEventListener("click",()=>window.print());
+renderInsights();
+
 refreshEvidence(false);
 
 document.getElementById("search").addEventListener("input",renderProjects);
