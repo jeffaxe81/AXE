@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09111e">
+  <meta name="description" content="Portfólio público de projetos, entregas, indicadores de avanço e histórico de desenvolvimento da AXE.">
+  <title>AXE | Portfólio de entregas</title>
+  <style>
+    :root{--bg:#09111e;--panel:#111c2d;--panel2:#162337;--line:#25344b;--ink:#eaf1fa;--muted:#97a9be;--accent:#b6ec69;--accent2:#69c9c9;--warm:#ffc184;--radius:18px}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(circle at 78% -8%,#23334b 0,transparent 39%),var(--bg);color:var(--ink);font:15px/1.5 Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:inherit;text-decoration:none}button,input,select{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+    .shell{max-width:1530px;margin:auto;display:grid;grid-template-columns:246px minmax(0,1fr);min-height:100vh}
+    aside{position:sticky;top:0;height:100vh;border-right:1px solid var(--line);padding:34px 23px;display:flex;flex-direction:column;background:rgba(8,15,27,.5)}
+    .brand{display:flex;align-items:center;gap:12px;font-size:20px;font-weight:850;letter-spacing:.02em}.brand-mark{display:grid;place-items:center;width:41px;height:41px;border-radius:12px;background:var(--accent);color:#0a1521;font-size:18px;font-weight:900;box-shadow:0 7px 30px #b6ec6926}.brand small{display:block;color:var(--muted);font-size:10px;letter-spacing:.21em;text-transform:uppercase}
+    .aside-caption{font-size:10px;letter-spacing:.19em;color:#71859e;font-weight:800;text-transform:uppercase;margin:60px 12px 14px}.nav{display:grid;gap:8px}.nav a{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;color:#a2b3c7;font-weight:600}.nav a:hover,.nav a.active{background:#1a2a3d;color:var(--accent)}.nav .sym{width:23px;text-align:center;font-size:17px}.side-bottom{margin-top:auto;padding:18px;border:1px solid var(--line);border-radius:15px;background:#132035}.side-bottom strong{font-size:13px}.side-bottom p{font-size:12px;color:var(--muted);margin:8px 0 13px}.side-bottom a{display:inline-flex;gap:6px;align-items:center;color:var(--accent);font-size:13px;font-weight:700}
+    main{min-width:0;padding:36px clamp(20px,4vw,68px) 60px}.topline{display:flex;justify-content:space-between;gap:16px;align-items:center;color:var(--muted);font-size:12px}.crumb strong{color:var(--ink)}.top-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.live-dot{width:7px;height:7px;background:var(--accent);display:inline-block;border-radius:50%;box-shadow:0 0 0 5px #b6ec6922}.top-actions a{border:1px solid var(--line);padding:8px 12px;border-radius:10px;font-weight:700}
+    .hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(250px,.7fr);gap:24px;margin:33px 0 26px;align-items:stretch}.eyebrow{font-size:11px;letter-spacing:.19em;text-transform:uppercase;color:var(--accent);font-weight:800}.hero h1{font-size:clamp(35px,4.8vw,68px);letter-spacing:-.052em;line-height:1.03;margin:15px 0 20px;font-weight:850;max-width:700px}.hero h1 span{color:var(--accent)}.lead{max-width:590px;font-size:16px;color:#a9b9ce;line-height:1.7;margin:0}.hero-feature{min-height:245px;border-radius:21px;background:radial-gradient(circle at 115% -5%,#a4ef8966,transparent 55%),linear-gradient(145deg,#203950,#14243a);border:1px solid #3e5b6a;display:flex;flex-direction:column;justify-content:space-between;padding:27px;overflow:hidden}.feature-top{display:flex;justify-content:space-between;gap:12px;font-size:12px;color:#bbcadb}.rings{height:94px;position:relative}.rings::before,.rings::after{content:"";position:absolute;right:18px;top:-19px;width:151px;height:151px;border:1px solid #c1e7b866;border-radius:50%}.rings::after{right:54px;top:17px;width:79px;height:79px;background:#b6ec6917;border-color:var(--accent)}.hero-feature strong{font-size:22px;letter-spacing:-.03em}.hero-feature small{color:#b3c4d2}
+    .metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.metric{background:var(--panel);border:1px solid var(--line);padding:19px 20px;border-radius:15px;min-width:0}.metric label{display:block;color:var(--muted);font-size:12px;margin-bottom:9px}.metric b{font-size:33px;letter-spacing:-.04em;line-height:1.15;font-variant-numeric:tabular-nums}.metric .suffix{color:var(--muted);font-size:11px;margin-top:7px;display:block}.section{margin-top:49px;scroll-margin-top:25px}.section-header{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:21px}.section-header h2{font-size:25px;letter-spacing:-.03em;margin:0 0 5px}.section-header p{margin:0;color:var(--muted);font-size:13px}.section-note{font-size:12px;color:var(--muted)}
+    .tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}.search{flex:1;min-width:210px;position:relative}.search input{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px 12px 40px;width:100%;color:var(--ink)}.search input::placeholder{color:#7890a8}.search::before{content:"⌕";position:absolute;left:14px;top:5px;font-size:25px;color:#8b9eb6}.filter{border:1px solid var(--line);border-radius:10px;background:var(--panel);color:#ced8e4;padding:11px 13px;max-width:220px}
+    .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}.chip{border:1px solid var(--line);background:transparent;color:#a6b5c8;padding:8px 15px;border-radius:100px;font-size:12px;font-weight:650}.chip:hover,.chip.selected{background:#254033;border-color:#658954;color:var(--accent)}
+    .projects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}.project{background:linear-gradient(150deg,#142138,#101b2b);border:1px solid var(--line);border-radius:18px;padding:22px;min-width:0;display:flex;flex-direction:column;transition:transform .2s,border-color .2s}.project:hover{transform:translateY(-3px);border-color:#648576}.project-top{display:flex;align-items:center;justify-content:space-between;gap:10px}.project-icon{display:grid;place-items:center;width:44px;height:44px;border:1px solid #3e5269;background:#1e3146;border-radius:12px;font-size:19px}.status{color:#b2c3d4;font-size:10px;text-transform:uppercase;letter-spacing:.08em;font-weight:750;background:#23334a;padding:6px 9px;border-radius:100px}.status.plan{color:var(--warm);background:#3b302e}.status.mvp{color:var(--accent2);background:#1f383f}.project h3{font-size:20px;letter-spacing:-.03em;margin:20px 0 8px}.project .description{color:#a6b6ca;font-size:13px;margin:0 0 16px;min-height:58px}.tech{font-size:10px;color:#83a0bc;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.divider{border:0;border-top:1px solid #26364a;margin:22px 0 15px}
+    .percent-head{display:flex;align-items:baseline;justify-content:space-between;gap:5px}.percent-head .pct{font-weight:840;font-size:27px;font-variant-numeric:tabular-nums;letter-spacing:-.04em}.percent-head .progress-label{font-size:11px;color:#9db1c8;text-align:right}.progress-track{height:8px;background:#2b3848;border-radius:99px;overflow:hidden;margin-top:12px}.progress-fill{height:100%;background:linear-gradient(90deg,#4eafbb,var(--accent));border-radius:99px;transition:width .5s}.project details{margin-top:15px;color:#b1c4d7;font-size:12px}.project summary{cursor:pointer;font-weight:700;list-style:none;display:flex;align-items:center;justify-content:space-between;padding:5px 0}.project summary::after{content:"+";font-size:20px;color:var(--accent)}.project details[open] summary::after{content:"−"}.tasklist{padding:10px 0 1px;margin:0;list-style:none;display:grid;gap:9px}.tasklist li{display:flex;align-items:start;gap:8px;color:#a4b4c6}.tasklist li span{flex:none;color:#7d93ac}.tasklist li.done span{color:var(--accent)}.project-bottom{margin-top:auto;padding-top:20px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:11px;color:#8fa2b9}.project-bottom a{color:var(--accent);font-weight:750}
+    .timeline{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.event{display:flex;align-items:flex-start;gap:15px;border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:17px 19px;min-width:0}.event-date{width:64px;flex:none;text-align:center;border-right:1px solid var(--line);padding-right:15px}.event-date strong{font-size:22px;font-variant-numeric:tabular-nums;display:block;line-height:1.1}.event-date small{color:var(--muted);font-size:11px}.event-content{min-width:0}.event-content .project-name{display:block;font-size:11px;color:var(--accent2);font-weight:750;margin-bottom:4px}.event-content a{display:block;font-weight:700;font-size:13px;line-height:1.4}.event-content a:hover{text-decoration:underline}.event-content .commit{display:block;color:#8297ae;font-size:11px;margin-top:7px}
+    .method{display:grid;grid-template-columns:1fr 1fr;gap:24px;background:#142238;border:1px solid var(--line);border-radius:18px;padding:25px}.method h3{margin:0 0 9px;font-size:17px}.method p{color:#9eb1c7;font-size:13px;line-height:1.65;margin:0}.method a{color:var(--accent)}.formula{font-weight:800;color:var(--accent);font-size:15px;margin-top:13px;display:block}.empty{padding:50px;text-align:center;color:var(--muted);background:var(--panel);border-radius:15px;border:1px solid var(--line);grid-column:1/-1}footer{padding-top:30px;margin-top:50px;border-top:1px solid var(--line);display:flex;gap:16px;align-items:center;justify-content:space-between;color:#8298b1;font-size:12px}
+    @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
+    @media(max-width:850px){.shell{display:block}aside{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:14px 21px;border-right:0;border-bottom:1px solid var(--line)}.aside-caption,.side-bottom{display:none}.nav{display:flex;gap:3px}.nav a{padding:8px}.nav a .nav-label{display:none}main{padding:22px}.hero{margin-top:28px;grid-template-columns:1fr}.hero-feature{min-height:165px}.rings{height:40px}.rings::before{top:-80px}.rings::after{top:-44px}.metrics{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:1fr}}
+    @media(max-width:520px){.hero h1{font-size:41px}.projects{grid-template-columns:1fr}.metrics{gap:9px}.metric{padding:15px}.metric b{font-size:28px}.top-actions{justify-content:flex-end}.top-actions .review{display:none}.method{grid-template-columns:1fr;padding:19px}.event{padding:13px}.project .description{min-height:auto}footer{align-items:flex-start;flex-direction:column}.hero-feature{min-height:155px}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+  </style>
+</head>
+<body>
+<div class="shell">
+  <aside aria-label="Navegação principal">
+    <div class="brand"><span class="brand-mark">AX</span><span>AXE<small>Delivery Hub</small></span></div>
+    <div class="aside-caption">Workspace</div>
+    <nav class="nav">
+      <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
+      <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
+      <a href="#historico"><span class="sym">◷</span><span class="nav-label">Histórico</span></a>
+      <a href="#metodologia"><span class="sym">◎</span><span class="nav-label">Metodologia</span></a>
+    </nav>
+    <div class="side-bottom"><strong>Projetos no GitHub</strong><p>Acesse o código, os commits e as evidências públicas de cada entrega.</p><a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">Ver todos os repositórios ↗</a></div>
+  </aside>
+  <main id="inicio">
+    <header class="topline"><div class="crumb">AXE <span aria-hidden="true">/</span> <strong>Portfólio de entregas</strong></div><div class="top-actions"><span class="review"><span class="live-dot"></span> Revisado em 22 out 2026</span><a href="https://github.com/jeffaxe81" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></header>
+    <section class="hero" aria-label="Introdução">
+      <div><div class="eyebrow">Engenharia • Produtos • Execução</div><h1>Projetos que saem do <span>papel.</span></h1><p class="lead">Um panorama transparente das iniciativas AXE: o que já foi entregue, o que segue em desenvolvimento e as evidências registradas no GitHub.</p></div>
+      <div class="hero-feature"><div class="feature-top"><span>PORTFÓLIO / 2026</span><span>↗ 01</span></div><div class="rings" aria-hidden="true"></div><div><strong>Do planejamento à entrega.</strong><br><small>Marcos, execução e histórico em um só lugar.</small></div></div>
+    </section>
+    <section class="metrics" id="metrics" aria-label="Indicadores do portfólio">
+      <div class="metric"><label>Projetos acompanhados</label><b id="m-projects">—</b><span class="suffix">seleção de repositórios públicos</span></div>
+      <div class="metric"><label>Marcos concluídos</label><b id="m-done">—</b><span class="suffix" id="m-total">do total monitorado</span></div>
+      <div class="metric"><label>Avanço dos marcos</label><b id="m-progress">—</b><span class="suffix">conclusão por contagem de marcos</span></div>
+      <div class="metric"><label>Eventos no histórico</label><b id="m-events">—</b><span class="suffix">commits documentados nesta página</span></div>
+    </section>
+    <section id="projetos" class="section">
+      <div class="section-header"><div><h2>Projetos em destaque</h2><p>Consulte entregas realizadas, pendências e rastreabilidade por iniciativa.</p></div><span class="section-note" id="visible-count"></span></div>
+      <div class="tools"><label class="search"><input id="search" type="search" placeholder="Buscar projeto ou tecnologia…" aria-label="Buscar projetos"></label><select id="sort" class="filter" aria-label="Ordenar projetos"><option value="priority">Ordem do portfólio</option><option value="progress">Maior avanço</option><option value="recent">Atividade mais recente</option><option value="name">Nome A–Z</option></select></div>
+      <div class="filters" role="group" aria-label="Filtrar categoria"><button class="chip selected" data-filter="all" aria-pressed="true">Todos</button><button class="chip" data-filter="produto" aria-pressed="false">Produtos</button><button class="chip" data-filter="plataforma" aria-pressed="false">Plataformas</button><button class="chip" data-filter="prototipo" aria-pressed="false">Protótipos</button></div>
+      <div id="projects" class="projects"></div>
+    </section>
+    <section id="historico" class="section">
+      <div class="section-header"><div><h2>Histórico recente de entregas</h2><p>Atualizações extraídas de commits públicos, com acesso direto à evidência.</p></div><span class="section-note">Registro até 22/10/2026</span></div>
+      <div id="timeline" class="timeline"></div>
+    </section>
+    <section id="metodologia" class="section">
+      <div class="section-header"><div><h2>Como o progresso é calculado</h2><p>Critérios visíveis para evitar percentuais arbitrários.</p></div></div>
+      <div class="method">
+        <div><h3>Percentual de marcos acompanhados</h3><p>Cada projeto tem uma lista explícita de marcos, com situação “concluído” ou “pendente”. O percentual considera apenas os marcos presentes na lista, selecionados a partir de documentação e commits. Não representa o percentual total de funcionalidades possíveis do produto.</p><span class="formula">Concluídos ÷ mapeados × 100</span></div>
+        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os dados de progresso e os links do histórico são mantidos no arquivo <code>index.html</code> da branch <code>gh-pages</code>; devem ser revisados a cada novo marco. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
+      </div>
+    </section>
+    <footer><span>© 2026 AXE • Painel público de iniciativas</span><span>Dados auditáveis · Sem credenciais · GitHub Pages</span></footer>
+  </main>
+</div>
+<script>
+/* Edite os marcos e seus booleanos abaixo para atualizar os percentuais. */
+const PROJECTS = [
+  {id:"crm-vendas",name:"CRM Vendas",symbol:"◈",kind:"produto",stage:"Em evolução",type:"default",tech:"Next.js · NestJS · PostgreSQL · RLS",description:"Gestão comercial multiempresa com funil, integrações e controles operacionais.",updated:"2026-10-22",milestones:[
+    ["Monorepositório TypeScript documentado",true],["Estrutura multiempresa e RLS",true],["Proteções preventivas de restauração (#281)",true],["Ajustes de testes de idioma (#277)",true],["Onboarding homologado",false],["Auditoria funcional consolidada",false],["GO de produção validado",false]],history:[
+    ["2026-10-22","Proteção de backups preventivos em restauração","0a1fdeb547c0f6b6c5c066debb8866eb57975b3b"],
+    ["2026-10-21","Cópia preventiva imutável durante manutenção","1c35f2d501c7f4ee1ee26a34219d7ad919304451"]
+  ]},
+  {id:"dispatch",name:"AXE Dispatch",symbol:"⌁",kind:"plataforma",stage:"Em evolução",type:"default",tech:"Docker · MySQL · Gestão de ocorrências",description:"Despacho operacional, ocorrências, regras de atendimento e fluxos de integração.",updated:"2026-10-09",milestones:[
+    ["Bootstrap da primeira organização",true],["Pré-cadastro sem credenciais corrigido",true],["Integração de formulários D-012H",true],["Relatório de verificação D-012H",true],["Homologação ponta a ponta consolidada",false],["GO operacional de produção",false]],history:[
+    ["2026-10-09","Integração de formulários D-012H (PR #115)","9147655dd115ebce5dabea169a2e02e1b0607862"],
+    ["2026-09-29","Correção do pré-cadastro de usuários","3aee47e889c30f8cf9ae858e5d05ebf35c64691b"]
+  ]},
+  {id:"pabx-mvp",name:"AXE PABX",symbol:"◉",kind:"produto",stage:"MVP",type:"mvp",tech:"Asterisk · PJSIP · SIP/TLS · SRTP",description:"PABX SIP com tenants, provisão de terminais e evolução de atendimento por voz.",updated:"2026-09-11",milestones:[
+    ["Sinalização TLS e mídia SRTP no MVP",true],["Contextos de ramais por empresa",true],["Provisionamento inicial de telefones",true],["Integração URA com STT/LLM/TTS (#64)",true],["Filtros temporais de relatórios (#63)",true],["Homologação para uso em produção",false]],history:[
+    ["2026-09-11","Guia para executar a partir de Windows/WSL2","74f1b89e18c46cb01d2ffc968866fc61b88e985e"],
+    ["2026-09-10","Integração de voz com IA na URA","46e7396801b8575224f771c13fad513cf0fdb020"]
+  ]},
+  {id:"axe-voice-desktop",name:"AXE Voice",symbol:"◌",kind:"produto",stage:"Em evolução",type:"default",tech:"Windows · SIP · MicroSIP (base histórica) · Baresip (direção)",description:"Softphone desktop corporativo com foco em interface compacta e provisionamento.",updated:"2026-09-24",milestones:[
+    ["Fundação do repositório e documentação",true],["Importação da baseline MicroSIP 3.22.16",true],["Consolidação de uma base independente Baresip",false],["Nova interface desktop compacta integrada",false],["Validação SIP ponta a ponta na nova base",false],["Empacotamento de instalador validado",false]],history:[
+    ["2026-09-24","Importação oficial da baseline MicroSIP","568e34c4f6b2858009a1039ab56c7e00a297ce01"],
+    ["2026-09-24","Pipeline de importação idempotente","790598dc2bd3c6ff476705accf327f2350a8ca38"]
+  ]},
+  {id:"dispatch-v2",name:"Dispatch V2",symbol:"⌘",kind:"produto",stage:"MVP",type:"mvp",tech:"React 19 · tRPC · Drizzle · MySQL 8",description:"Interface de despacho com perfis de acesso, mapa, evidências e contêineres.",updated:"2026-09-03",milestones:[
+    ["Estrutura React/tRPC/Drizzle registrada",true],["Ajustes em mapas e tiles CARTO",true],["Perfis padrão e glossário adicionados",true],["Versão 1.16.0 registrada",true],["Teste funcional end-to-end documentado",false],["Aprovação de produção comprovada",false]],history:[
+    ["2026-09-03","Evolução da versão para 1.16.0","0ad3d95b5c975828072a2a9a6c20499c70d7ed0c"],
+    ["2026-09-02","Correções de mapas e perfis","2efbf38077da6169f65277399c3fc7e2aa688152"]
+  ]},
+  {id:"centralizador-controle",name:"Centralizador de Controle",symbol:"▤",kind:"plataforma",stage:"Em evolução",type:"default",tech:"Next.js · NestJS · OPA · PostgreSQL",description:"RBAC, políticas, cadastros de integrações e isolamento entre empresas.",updated:"2026-09-13",milestones:[
+    ["Ciclo de políticas RBAC → PolicyBundle",true],["Testes unitários de componentes RBAC",true],["Prova de isolamento RLS em PostgreSQL",true],["Homologação integrada com os sistemas",false],["Operação de produção validada",false]],history:[
+    ["2026-09-13","Prova real de isolamento RLS","212b20e5ef8b959c5d53d47caf6e984832264409"],
+    ["2026-09-13","Testes unitários RBAC e integração","c9cd1c4964d6d5aa6020e062b0a4680f10c28969"]
+  ]},
+  {id:"aderencia_tecnica",name:"Simulador de Propostas Cloud",symbol:"≋",kind:"prototipo",stage:"Protótipo",type:"plan",tech:"Streamlit · Python · SQLite · PDF",description:"Protótipo local de dimensionamento, simulação de propostas e relatórios.",updated:"2026-09-23",milestones:[
+    ["Interface Streamlit do protótipo",true],["Cálculo de dimensionamento com referência",true],["Geração de proposta em PDF",true],["Histórico local SQLite",true],["Validação de aderência para uso comercial",false]],history:[
+    ["2026-09-23","Publicação do protótipo de propostas Cloud","f26b6d792995789a7cca8c509f32340739e7800c"]
+  ]},
+  {id:"axe-gestao-convites",name:"Gestão de Convites",symbol:"✳",kind:"prototipo",stage:"Planejamento",type:"plan",tech:"Web local · MySQL · Docker (planejados)",description:"RSVP e controle de adultos, crianças, acompanhantes e limite de convidados.",updated:"2026-10-18",milestones:[
+    ["Especificação da Release 1",true],["Plano de implantação e validação",true],["Fluxo funcional de confirmação implementado",false],["Relatórios de presença testados",false],["Publicação e testes ponta a ponta",false]],history:[
+    ["2026-10-18","Plano de implementação e validação da Release 1","1c14f1436018eb408bc733481128945c51a51979"],
+    ["2026-10-18","Especificação de MySQL, Docker e testes","e6a0cea7086c7155b3d95d7e61880f53a1da3262"]
+  ]},
+  {id:"central-despacho-alertas-publicacao",name:"Central de Alertas",symbol:"⌬",kind:"plataforma",stage:"Em evolução",type:"default",tech:"Eventos · Observabilidade · Releases",description:"Base pública de documentação e evolução de alertas e observabilidade.",updated:"2026-09-13",milestones:[
+    ["Registro da release 1.12.0",true],["Observabilidade em modo shadow documentada",true],["Validação integrada da operação",false],["Homologação final para produção",false]],history:[
+    ["2026-09-13","Merge de observabilidade shadow (#9)","54f961b7ebc75935d50a3991a1307b96114586de"],
+    ["2026-09-13","Documentação da release 1.12.0","71a38693f40b543bdceb485fe1378e75b5334c99"]
+  ]}
+];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pct=p=>Math.round(100*p.milestones.filter(m=>m[1]).length/p.milestones.length);
+const repo=p=>"https://github.com/jeffaxe81/"+encodeURIComponent(p.id);
+const commit=(p,sha)=>repo(p)+"/commit/"+encodeURIComponent(sha);
+const formatDate=s=>new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
+const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
+document.getElementById("m-projects").textContent=PROJECTS.length;
+document.getElementById("m-done").textContent=done;
+document.getElementById("m-total").textContent="de "+total+" marcos mapeados";
+document.getElementById("m-progress").textContent=Math.round(100*done/total)+"%";
+document.getElementById("m-events").textContent=events;
+let currentFilter="all";
+function renderProjects(){
+ const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
+ const order=document.getElementById("sort").value;
+ const ps=PROJECTS.filter(p=>(currentFilter==="all"||p.kind===currentFilter)&&[p.name,p.tech,p.description,p.stage].join(" ").toLocaleLowerCase("pt-BR").includes(q));
+ if(order==="progress")ps.sort((a,b)=>pct(b)-pct(a));
+ if(order==="recent")ps.sort((a,b)=>b.updated.localeCompare(a.updated));
+ if(order==="name")ps.sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
+ document.getElementById("visible-count").textContent=ps.length+" de "+PROJECTS.length+" projetos";
+ document.getElementById("projects").innerHTML=ps.length?ps.map(p=>{
+   const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);
+   const tasks=p.milestones.map(m=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span>'+esc(m[0])+'</li>').join("");
+   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
+ }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
+}
+function renderHistory(){
+ const ev=PROJECTS.flatMap(p=>p.history.map(h=>({project:p,date:h[0],title:h[1],sha:h[2]}))).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,12);
+ document.getElementById("timeline").innerHTML=ev.map(e=>{const d=new Date(e.date+"T12:00:00");const day=String(d.getDate()).padStart(2,"0");const month=d.toLocaleDateString("pt-BR",{month:"short",year:"numeric"});return '<article class="event"><div class="event-date"><strong>'+day+'</strong><small>'+esc(month)+'</small></div><div class="event-content"><span class="project-name">'+esc(e.project.name)+'</span><a href="'+commit(e.project,e.sha)+'" target="_blank" rel="noopener noreferrer">'+esc(e.title)+' ↗</a><span class="commit">'+esc(e.sha.slice(0,7))+' · Commit público</span></div></article>'}).join("");
+}
+document.getElementById("search").addEventListener("input",renderProjects);
+document.getElementById("sort").addEventListener("change",renderProjects);
+document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
+document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
+renderProjects();renderHistory();
+</script>
+</body>
+</html>
