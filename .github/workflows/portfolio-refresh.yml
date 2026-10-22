@@ -30,10 +30,13 @@ jobs:
           path: pages
           fetch-depth: 0
 
+      - name: Validar parser de marcos e regressões
+        run: python3 -m unittest discover -s source/tests -p 'test_portfolio.py' -v
+
       - name: Coletar dados públicos dos projetos
         env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: python3 source/scripts/refresh_portfolio.py --output pages/portfolio-status.json
+        run: python3 source/scripts/refresh_portfolio.py --output pages/portfolio-status.json --html pages/index.html
 
       - name: Publicar snapshot
         working-directory: pages
