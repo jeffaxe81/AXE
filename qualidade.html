@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#09111e">
+<meta name="description" content="Painel de evidências de entregas, pull requests e GitHub Actions dos projetos AXE.">
+<title>AXE | Evidências de entregas</title>
+<style>
+:root{--bg:#09111e;--panel:#132033;--line:#2a3b4f;--text:#eaf1fa;--muted:#a0b3c9;--accent:#b6ec69}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 75% -15%,#28415b 0,transparent 38%),var(--bg);color:var(--text);font:15px/1.6 system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}button{font:inherit;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#1d3247;padding:11px 15px;color:var(--text);font-weight:650}button:disabled{opacity:.6;cursor:wait}button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.container{max-width:1260px;margin:auto;padding:30px clamp(18px,4vw,50px) 75px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}.brand{font-size:14px;font-weight:850;letter-spacing:.13em}.brand em{font-style:normal;color:var(--accent)}.nav{font-size:13px}
+.hero{margin:56px 0 34px}.eyebrow{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:.16em;font-weight:850}h1{font-size:clamp(36px,6vw,62px);letter-spacing:-.05em;line-height:1.06;max-width:850px;margin:15px 0 17px}h1 span{color:var(--accent)}.lead{color:var(--muted);max-width:790px;margin:0;font-size:16px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:28px 0}.stat{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:22px}.stat strong{display:block;font-size:32px;line-height:1.3;font-variant-numeric:tabular-nums}.stat small{color:var(--muted);font-size:12px}.stat label{display:block;color:var(--muted);font-size:12px}
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 0}.toolbar p{color:var(--muted);font-size:12px;flex:1;min-width:250px}.actions{display:flex;gap:10px;flex-wrap:wrap}.actions button.primary{background:var(--accent);color:#102030;border:0}
+.table-wrapper{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:15px}table{width:100%;border-collapse:collapse;min-width:880px}th,td{text-align:left;padding:16px;vertical-align:top;border-bottom:1px solid var(--line)}th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;background:#19293e}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#192c41}td{font-size:13px}td strong{display:block}.dim{font-size:11px;color:var(--muted)}.pr-title{display:block;max-width:280px;overflow-wrap:anywhere}
+.pill{display:inline-block;background:#2c3a4d;color:#c3d3e5;font-size:11px;font-weight:750;border-radius:12px;padding:3px 9px;white-space:nowrap}.pill.ok{background:#203c30;color:#b9ecc3}.pill.bad{background:#492b32;color:#ffc0c8}.pill.pending{background:#463c2a;color:#f3dfa9}
+.notes{margin-top:25px;border-left:3px solid var(--accent);padding:1px 16px;color:var(--muted);font-size:13px;max-width:1050px}.notes strong{color:var(--text)}footer{font-size:12px;color:var(--muted);margin-top:45px}
+@media(max-width:680px){.stats{grid-template-columns:1fr;gap:9px}.stat{padding:16px}.stat strong{font-size:26px}.hero{margin-top:38px}.toolbar{align-items:stretch}.actions button{flex:1}}
+</style>
+</head>
+<body><main class="container">
+<header class="header"><div class="brand">AXE <em>DELIVERY HUB</em> / QUALIDADE</div><nav class="nav"><a href="./index.html">← Voltar ao portfólio</a></nav></header>
+<section class="hero"><div class="eyebrow">Engenharia · Rastreabilidade · Evidências</div>
+<h1>Entregas com <span>evidência.</span></h1>
+<p class="lead">Consulte a última pull request atualizada e a última execução do GitHub Actions na branch main de cada projeto. Estes sinais não alteram os percentuais dos marcos acompanhados no portfólio.</p></section>
+<section class="stats" aria-label="Resumo do recorte"><div class="stat"><label>Projetos observados</label><strong id="projects-count">9</strong><small>repositórios públicos selecionados</small></div>
+<div class="stat"><label>Últimas PRs integradas</label><strong id="merged-count">—</strong><small>no máximo uma PR consultada por projeto</small></div>
+<div class="stat"><label>Última CI com sucesso</label><strong id="ci-count">—</strong><small>no máximo uma execução na main por projeto</small></div></section>
+<div class="toolbar"><p id="status" role="status" aria-live="polite">Consultando GitHub…</p><div class="actions">
+<button id="refresh" type="button" class="primary">↻ Atualizar indicadores</button>
+<button id="export" type="button">↓ Exportar CSV</button></div></div>
+<div class="table-wrapper" tabindex="0" aria-label="Tabela de indicadores de entrega e qualidade">
+<table><thead><tr><th scope="col">Projeto</th><th scope="col">Última PR atualizada</th><th scope="col">Situação da PR</th><th scope="col">Última CI na main</th><th scope="col">Atualização</th></tr></thead><tbody id="rows"></tbody></table></div>
+<div class="notes"><p><strong>Critérios:</strong> “integrada” significa PR efetivamente mesclada; “sucesso” significa conclusão bem-sucedida apenas da última execução do Actions retornada na main. PR fechada sem merge, execução cancelada e CI indisponível são situações diferentes. Ausência de workflow não implica falha.</p>
+<p>As consultas usam somente a API pública do GitHub, sem token. Os resultados são guardados no navegador por até 30 minutos para reduzir consultas e respeitar limites de acesso. Exportações refletem exclusivamente os dados carregados, incluindo indisponibilidades. Nenhum indicador comprova homologação ou GO de produção.</p></div>
+<footer>© 2026 AXE · Painel de rastreabilidade pública · <a href="https://github.com/jeffaxe81/AXE/tree/gh-pages">Código-fonte no GitHub</a></footer>
+</main>
+<script>
+"use strict";
+const projects=[
+ ["crm-vendas","CRM Vendas"],["dispatch","AXE Dispatch"],["pabx-mvp","AXE PABX"],
+ ["axe-voice-desktop","AXE Voice"],["dispatch-v2","Dispatch V2"],
+ ["centralizador-controle","Centralizador de Controle"],["aderencia_tecnica","Simulador de Propostas Cloud"],
+ ["axe-gestao-convites","Gestão de Convites"],["central-despacho-alertas-publicacao","Central de Alertas"]
+];
+const ttl=30*60*1000,key="axe-delivery-quality-v1";
+const status=document.getElementById("status"),table=document.getElementById("rows");
+const refresh=document.getElementById("refresh"),exportButton=document.getElementById("export");
+let records={},retrievedAt=null;
+const base=id=>"https://github.com/jeffaxe81/"+encodeURIComponent(id);
+function cellText(row,value){const td=document.createElement("td");td.textContent=value;row.appendChild(td);return td}
+function badge(parent,value,kind){const tag=document.createElement("span");tag.className="pill"+(kind?" "+kind:"");tag.textContent=value;parent.appendChild(tag);return tag}
+function link(parent,url,text){const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener noreferrer";a.textContent=text;parent.appendChild(a);return a}
+function validDate(v){return typeof v==="string"&&/^\d{4}-\d{2}-\d{2}/.test(v)?v.slice(0,10):null}
+function prettyDate(v){return v?new Date(v+"T12:00:00").toLocaleDateString("pt-BR"):"—"}
+function prStatus(pr){if(!pr||pr.kind==="error")return ["Indisponível",""];if(pr.kind==="none")return ["Sem PR",""];if(pr.status==="merged")return ["Integrada","ok"];if(pr.status==="open")return ["Aberta","pending"];if(pr.status==="draft")return ["Rascunho","pending"];if(pr.status==="closed")return ["Fechada sem merge",""];return ["Não verificada",""]}
+function ciStatus(ci){if(!ci||ci.kind==="error")return ["Indisponível",""];if(ci.kind==="none")return ["Sem execução",""];if(ci.status!=="completed")return ["Em andamento","pending"];if(ci.conclusion==="success")return ["Sucesso","ok"];if(["failure","timed_out","startup_failure","action_required"].includes(ci.conclusion))return ["Falha / atenção","bad"];if(ci.conclusion==="cancelled")return ["Cancelada",""];if(ci.conclusion==="skipped")return ["Ignorada",""];return ["Sem conclusão",""]}
+function paint(){
+ table.replaceChildren();
+ let merged=0,passed=0;
+ for(const [id,name] of projects){
+  const item=records[id]||{},pr=item.pr,ci=item.ci;
+  const tr=document.createElement("tr");
+  const n=cellText(tr,name);const small=document.createElement("div");small.className="dim";small.textContent=id;n.appendChild(small);
+  const tdPR=cellText(tr,"");if(pr&&pr.kind==="result")link(tdPR,base(id)+"/pull/"+pr.number,"#"+pr.number+" · "+pr.title).className="pr-title";else tdPR.textContent=pr&&pr.kind==="none"?"Nenhuma PR":"Não disponível";
+  const tdState=cellText(tr,"");const ps=prStatus(pr);badge(tdState,ps[0],ps[1]);
+  const tdCI=cellText(tr,"");const cs=ciStatus(ci);if(ci&&ci.kind==="result"){const a=link(tdCI,base(id)+"/actions/runs/"+ci.id,"");badge(a,cs[0],cs[1]);const sub=document.createElement("div");sub.className="dim";sub.textContent=ci.name;tdCI.appendChild(sub)}else badge(tdCI,cs[0],cs[1]);
+  cellText(tr,prettyDate((ci&&ci.date)||(pr&&pr.date)||null));
+  table.appendChild(tr);
+  if(pr&&pr.status==="merged")merged++;
+  if(ci&&ci.status==="completed"&&ci.conclusion==="success")passed++;
+ }
+ document.getElementById("projects-count").textContent=projects.length;
+ document.getElementById("merged-count").textContent=retrievedAt?merged+" / "+projects.length:"—";
+ document.getElementById("ci-count").textContent=retrievedAt?passed+" / "+projects.length:"—";
+}
+async function getJson(url){
+ const r=await fetch(url,{headers:{"Accept":"application/vnd.github+json"}});
+ if(!r.ok)throw Error("HTTP "+r.status);
+ return r.json();
+}
+async function getPR(id){
+ const data=await getJson("https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(id)+"/pulls?state=all&sort=updated&direction=desc&per_page=1");
+ if(!Array.isArray(data))throw Error("Lista de PRs inválida");if(!data.length)return {kind:"none"};
+ const p=data[0],number=Number(p.number);
+ if(!Number.isSafeInteger(number)||number<1)throw Error("Número de PR inválido");
+ return {kind:"result",number,title:String(p.title||"PR sem título").slice(0,130),status:p.merged_at?"merged":p.state==="open"?(p.draft?"draft":"open"):p.state==="closed"?"closed":"unknown",date:validDate(p.updated_at)};
+}
+async function getCI(id){
+ const data=await getJson("https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(id)+"/actions/runs?branch=main&per_page=1");
+ if(!data||!Array.isArray(data.workflow_runs))throw Error("Lista de CI inválida");if(!data.workflow_runs.length)return {kind:"none"};
+ const r=data.workflow_runs[0],idNum=Number(r.id);
+ if(!Number.isSafeInteger(idNum)||idNum<1)throw Error("ID de CI inválido");
+ return {kind:"result",id:idNum,name:String(r.name||"Workflow").slice(0,120),status:String(r.status||"unknown"),conclusion:String(r.conclusion||""),date:validDate(r.updated_at)};
+}
+function loadCache(){
+ try{const c=JSON.parse(localStorage.getItem(key)||"null");if(!c||!c.at||!c.rows)return false;
+  records=c.rows;retrievedAt=c.at;paint();return Date.now()-c.at<ttl;
+ }catch(_){return false}
+}
+async function update(force=false){
+ const fresh=loadCache();
+ if(fresh&&!force){status.textContent="Dados públicos em cache, atualizados há menos de 30 minutos.";return}
+ refresh.disabled=true;refresh.textContent="Consultando…";status.textContent="Consultando últimas PRs e execuções de CI de cada repositório…";
+ try{
+  const all=await Promise.all(projects.map(async ([id])=>{
+   const [a,b]=await Promise.allSettled([getPR(id),getCI(id)]);
+   return {id,pr:a.status==="fulfilled"?a.value:{kind:"error"},ci:b.status==="fulfilled"?b.value:{kind:"error"},errors:Number(a.status==="rejected")+Number(b.status==="rejected")};
+  }));
+  records={};for(const r of all)records[r.id]={pr:r.pr,ci:r.ci};
+  retrievedAt=Date.now();paint();
+  try{localStorage.setItem(key,JSON.stringify({at:retrievedAt,rows:records}))}catch(_){}
+  const errors=all.reduce((n,r)=>n+r.errors,0);
+  status.textContent="Consulta de "+projects.length+" projetos concluída. "+(errors?errors+" indicadores indisponíveis; não foram presumidos como sucesso ou falha.":"Sem erros de consulta.")+" Atualização: "+new Date(retrievedAt).toLocaleString("pt-BR")+".";
+ }catch(_){status.textContent="Consulta indisponível. Informações anteriores preservadas, quando disponíveis."}
+ finally{refresh.disabled=false;refresh.textContent="↻ Atualizar indicadores"}
+}
+function safeCsv(v){return '"'+String(v??"").replace(/^\s*[=+\-@]/,"'$&").replace(/"/g,'""')+'"'}
+function exportCsv(){
+ const rows=[["Projeto","Repositório","Última PR","Estado PR","Última CI na main","Status CI","Conclusão CI","Consultado em"]];
+ for(const [id,name] of projects){
+  const o=records[id]||{},p=o.pr||{},c=o.ci||{};
+  rows.push([name,base(id),p.kind==="result"?"#"+p.number:p.kind==="none"?"Sem PR":"Indisponível",prStatus(p)[0],
+    c.kind==="result"?c.name:c.kind==="none"?"Sem execução":"Indisponível",ciStatus(c)[0],
+    c.kind==="result"?(c.conclusion||c.status):"Não verificado",retrievedAt?new Date(retrievedAt).toISOString():"Não consultado"]);
+ }
+ const blob=new Blob(["\uFEFF"+rows.map(row=>row.map(safeCsv).join(";")).join("\r\n")+"\r\n"],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob),a=document.createElement("a");
+ a.href=url;a.download="axe-evidencias-pr-ci.csv";document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+refresh.addEventListener("click",()=>update(true));
+exportButton.addEventListener("click",exportCsv);
+paint();update();
+</script></body></html>
