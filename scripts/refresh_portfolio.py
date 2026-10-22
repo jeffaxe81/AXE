@@ -115,6 +115,12 @@ def generate(output):
                 item["errors"][key] = type(exc).__name__
                 failures.append(repo + ":" + key)
         result[repo] = item
+    # Prevent an empty successful-looking collection when every source is down.
+    if not any(
+        item.get("commits") is not None or item.get("prs") is not None or item.get("verified_at", {}).get("ci")
+        for item in result.values()
+    ):
+        raise RuntimeError("All sources failed; keeping the previous snapshot")
     payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
