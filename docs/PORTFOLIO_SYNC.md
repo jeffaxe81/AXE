@@ -23,6 +23,15 @@
 - Falhas por fonte são indicadas em errors; valores previamente confirmados podem ser mantidos, com timestamps de verificação originais.
 - Nenhuma credencial ou segredo é colocado no arquivo público; o token temporário de GitHub Actions é usado apenas durante a coleta.
 
+
+## Histórico real dos percentuais
+
+- O coletor extrai apenas listas literais de marcos de `gh-pages/index.html` (não executa JavaScript). A estrutura é validada por testes; um formato incompatível interrompe a publicação para evitar números inventados.
+- O arquivo público `portfolio-status.json` contém `progress` e `progress_history`. Uma nova fotografia é gravada **somente quando** o total ou a quantidade concluída de algum projeto muda.
+- A linha de base revisada em **22/10/2026** possui 9 projetos e 30 de 50 marcos concluídos (60%). O campo `generated_at` permanece nulo até a primeira coleta automática bem-sucedida: a linha de base não comprova sincronização.
+- O gráfico de evolução mostra somente os pontos históricos efetivamente registrados, sem interpolar progresso de datas antigas. O histórico tem um limite de 365 mudanças, não 365 dias.
+- O site consulta o JSON a cada 15 segundos, mas **não há garantia de dado novo** nesse intervalo; o GitHub Actions é agendado a cada cinco minutos, sujeito a atrasos e às permissões do repositório.
+
 ## Arquivos
 
 - main: .github/workflows/portfolio-refresh.yml e scripts/refresh_portfolio.py
