@@ -30,6 +30,20 @@
     .history-status{font-size:12px;color:var(--muted);margin:0 0 18px}.history-status strong{color:var(--ink)}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
     @media(max-width:520px){.history-controls{justify-content:flex-start;width:100%}.history-controls select{max-width:100%;flex:1}.refresh-btn{padding:10px}.section-header{flex-wrap:wrap}}
+    .evidence-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-bottom:16px}
+    .evidence-card{background:var(--panel);border:1px solid var(--line);border-radius:17px;padding:22px;min-width:0}
+    .evidence-card h3{font-size:16px;margin:0 0 4px}
+    .evidence-card .hint{color:var(--muted);font-size:11px;margin:0 0 15px}
+    .evidence-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .evidence-metric{background:#1a2a3e;border-radius:10px;padding:10px 7px;text-align:center}
+    .evidence-metric b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+    .evidence-metric span{display:block;font-size:10px;color:var(--muted)}
+    .evidence-ci{padding-top:15px;margin-top:15px;border-top:1px solid var(--line);font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+    .evidence-ci a,.evidence-card .evidence-links a{color:var(--accent);text-decoration:none;font-weight:750}
+    .evidence-card .evidence-links{display:flex;justify-content:space-between;gap:12px;margin-top:14px;font-size:12px}
+    .ci-pill{font-weight:750;padding:5px 9px;border-radius:99px;color:#c6d4e6;background:#26364a}
+    .ci-pill.ok{color:#b6ec69;background:#24402b}.ci-pill.fail{color:#ffc2a8;background:#52322d}.ci-pill.running{color:#ffe1a1;background:#463c25}
+    @media(max-width:850px){.evidence-grid{grid-template-columns:1fr}}
     @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
     @media(max-width:850px){.shell{display:block}aside{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:14px 21px;border-right:0;border-bottom:1px solid var(--line)}.aside-caption,.side-bottom{display:none}.nav{display:flex;gap:3px}.nav a{padding:8px}.nav a .nav-label{display:none}main{padding:22px}.hero{margin-top:28px;grid-template-columns:1fr}.hero-feature{min-height:165px}.rings{height:40px}.rings::before{top:-80px}.rings::after{top:-44px}.metrics{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:1fr}}
     @media(max-width:520px){.hero h1{font-size:41px}.projects{grid-template-columns:1fr}.metrics{gap:9px}.metric{padding:15px}.metric b{font-size:28px}.top-actions{justify-content:flex-end}.top-actions .review{display:none}.method{grid-template-columns:1fr;padding:19px}.event{padding:13px}.project .description{min-height:auto}footer{align-items:flex-start;flex-direction:column}.hero-feature{min-height:155px}}
@@ -46,6 +60,7 @@
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
       <a href="./qualidade.html"><span class="sym">✓</span><span class="nav-label">PRs & CI</span></a>
       <a href="#historico"><span class="sym">◷</span><span class="nav-label">Histórico</span></a>
+      <a href="#evidencias"><span class="sym">⌘</span><span class="nav-label">Evidências</span></a>
       <a href="#metodologia"><span class="sym">◎</span><span class="nav-label">Metodologia</span></a>
     </nav>
     <div class="side-bottom"><strong>Projetos no GitHub</strong><p>Acesse o código, os commits e as evidências públicas de cada entrega.</p><a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">Ver todos os repositórios ↗</a></div>
@@ -68,7 +83,7 @@
     </section>
     <section id="projetos" class="section">
       <div class="section-header"><div><h2>Projetos em destaque</h2><p>Consulte entregas realizadas, pendências e rastreabilidade por iniciativa.</p></div><span class="section-note" id="visible-count"></span></div>
-      <div class="tools"><label class="search"><input id="search" type="search" placeholder="Buscar projeto ou tecnologia…" aria-label="Buscar projetos"></label><select id="sort" class="filter" aria-label="Ordenar projetos"><option value="priority">Ordem do portfólio</option><option value="progress">Maior avanço</option><option value="recent">Atividade mais recente</option><option value="name">Nome A–Z</option></select></div>
+      <div class="tools"><label class="search"><input id="search" type="search" placeholder="Buscar projeto ou tecnologia…" aria-label="Buscar projetos"></label><select id="sort" class="filter" aria-label="Ordenar projetos"><option value="priority">Ordem do portfólio</option><option value="progress">Maior avanço</option><option value="recent">Atividade mais recente</option><option value="name">Nome A–Z</option></select><button type="button" class="refresh-btn" id="export-marcos" title="Exportar marcos e percentuais para CSV">↓ Exportar CSV</button></div>
       <div class="filters" role="group" aria-label="Filtrar categoria"><button class="chip selected" data-filter="all" aria-pressed="true">Todos</button><button class="chip" data-filter="produto" aria-pressed="false">Produtos</button><button class="chip" data-filter="plataforma" aria-pressed="false">Plataformas</button><button class="chip" data-filter="prototipo" aria-pressed="false">Protótipos</button></div>
       <div id="projects" class="projects"></div>
     </section>
@@ -80,11 +95,20 @@
       </div></div>
       <p id="history-status" class="history-status" role="status" aria-live="polite">Exibindo histórico revisado de commits públicos.</p><div id="timeline" class="timeline"></div>
     </section>
+    <section id="evidencias" class="section">
+      <div class="section-header">
+        <div><h2>Verificação no GitHub</h2><p>PRs recentes e resultado da última execução de CI na branch principal, para quatro projetos prioritários.</p></div>
+        <button id="evidence-refresh" type="button" class="refresh-btn">↻ Consultar evidências</button>
+      </div>
+      <p id="evidence-status" class="history-status" role="status" aria-live="polite">Ainda não consultado. Os indicadores serão obtidos diretamente dos repositórios públicos.</p>
+      <div id="evidence-grid" class="evidence-grid"></div>
+      <p class="history-status">Contagens de PRs: somente as 20 mais recentemente atualizadas por repositório, não totais históricos. CI: uma execução mais recente na <code>main</code>, quando disponível. Esses indicadores não demonstram homologação ou prontidão para produção.</p>
+    </section>
     <section id="metodologia" class="section">
       <div class="section-header"><div><h2>Como o progresso é calculado</h2><p>Critérios visíveis para evitar percentuais arbitrários.</p></div></div>
       <div class="method">
         <div><h3>Percentual de marcos acompanhados</h3><p>Cada projeto tem uma lista explícita de marcos, com situação “concluído” ou “pendente”. O percentual considera apenas os marcos presentes na lista, selecionados a partir de documentação e commits. Não representa o percentual total de funcionalidades possíveis do produto.</p><span class="formula">Concluídos ÷ mapeados × 100</span></div>
-        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os marcos e seus percentuais são revisados manualmente no arquivo <code>index.html</code> da branch <code>gh-pages</code>. O histórico tenta carregar commits públicos recentes do GitHub, com cache local de 30 minutos; se houver indisponibilidade ou limite da API, mantém os registros revisados. Uma alteração de código não muda automaticamente um marco para “concluído”. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
+        <div><h3>Limites e atualização</h3><p>Este é um retrato gerencial de 22/10/2026. Conclusão documental ou de código não comprova homologação, segurança ou prontidão de produção. Os marcos e seus percentuais são revisados manualmente no arquivo <code>index.html</code> da branch <code>gh-pages</code>. O histórico tenta carregar commits públicos recentes do GitHub, com cache local de 30 minutos; se houver indisponibilidade ou limite da API, mantém os registros revisados. Uma alteração de código não muda automaticamente um marco para “concluído”. O painel de evidências mostra até 20 PRs recentes e o último workflow na <code>main</code> de quatro projetos, com cache de 30 minutos; ausência de resposta não significa zero PRs ou CI aprovada. Veja também os <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer">repositórios originais</a>.</p></div>
       </div>
     </section>
     <footer><span>© 2026 AXE • Painel público de iniciativas</span><span>Dados auditáveis · Sem credenciais · GitHub Pages</span></footer>
@@ -143,6 +167,7 @@ const pct=p=>Math.round(100*p.milestones.filter(m=>m[1]).length/p.milestones.len
 const repo=p=>"https://github.com/jeffaxe81/"+encodeURIComponent(p.id);
 const commit=(p,sha)=>repo(p)+"/commit/"+encodeURIComponent(sha);
 const formatDate=s=>new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
+const EVIDENCE_IDS=["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop"];
 const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
 document.getElementById("m-projects").textContent=PROJECTS.length;
 document.getElementById("m-done").textContent=done;
@@ -234,6 +259,124 @@ async function refreshLiveHistory(force){
  }
 }
 refreshButton.addEventListener("click",()=>refreshLiveHistory(true));
+
+/* Evidências: amostragem explícita; jamais interpretar indisponibilidade como zero. */
+const evidenceProjects=EVIDENCE_IDS.map(id=>PROJECTS.find(p=>p.id===id)).filter(Boolean);
+const evidenceGrid=document.getElementById("evidence-grid");
+const evidenceStatus=document.getElementById("evidence-status");
+const evidenceRefresh=document.getElementById("evidence-refresh");
+const EVIDENCE_KEY="axe-portfolio-evidence-v1";
+let evidenceData={};
+const ghLink=(p,type)=>repo(p)+(type==="pr"?"/pulls":"/actions");
+function ciLabel(run){
+ if(!run)return {title:"Sem execução localizada",kind:"unknown"};
+ if(run.status!=="completed")return {title:"Em execução / aguardando",kind:"running"};
+ if(run.conclusion==="success")return {title:"Concluída com sucesso",kind:"ok"};
+ if(["failure","timed_out","action_required","startup_failure"].includes(run.conclusion))return {title:"Falha / ação necessária",kind:"fail"};
+ if(run.conclusion==="cancelled")return {title:"Cancelada",kind:"unknown"};
+ return {title:"Conclusão: "+String(run.conclusion||"indefinida"),kind:"unknown"};
+}
+function renderEvidence(){
+ evidenceGrid.innerHTML=evidenceProjects.map(p=>{
+  const e=evidenceData[p.id];
+  let metrics,ci,meta;
+  if(!e){
+    metrics='<p class="hint">Sem consulta concluída.</p>';
+    ci='<span class="ci-pill">Não consultada</span>';
+    meta="Últimas 20 PRs";
+  }else{
+    const counts=e.prs;
+    if(counts){
+      metrics='<div class="evidence-metrics">'+
+        '<div class="evidence-metric"><b>'+counts.open+'</b><span>abertas</span></div>'+
+        '<div class="evidence-metric"><b>'+counts.merged+'</b><span>mescladas</span></div>'+
+        '<div class="evidence-metric"><b>'+counts.closed+'</b><span>fechadas sem merge</span></div></div>';
+    }else metrics='<p class="hint">PRs indisponíveis nesta consulta.</p>';
+    const ciInfo=e.ci===undefined?{title:"CI indisponível",kind:"unknown"}:ciLabel(e.ci);
+    ci='<span class="ci-pill '+ciInfo.kind+'">'+esc(ciInfo.title)+'</span>';
+    meta="Amostra: até 20 PRs recentes";
+  }
+  return '<article class="evidence-card"><h3>'+esc(p.name)+'</h3><p class="hint">'+meta+'</p>'+metrics+
+    '<div class="evidence-ci"><span>Última CI na main</span>'+ci+'</div>'+
+    '<div class="evidence-links"><a href="'+ghLink(p,"pr")+'" target="_blank" rel="noopener noreferrer">Consultar PRs ↗</a><a href="'+ghLink(p,"ci")+'" target="_blank" rel="noopener noreferrer">Ver Actions ↗</a></div></article>';
+ }).join("");
+}
+function countRecentPrs(prs){
+ return {
+  open:prs.filter(p=>p.state==="open").length,
+  merged:prs.filter(p=>p.merged_at!==null&&Boolean(p.merged_at)).length,
+  closed:prs.filter(p=>p.state==="closed"&&!p.merged_at).length
+ };
+}
+function applyEvidence(data,at,cached){
+ if(!data||typeof data!=="object"||!evidenceProjects.some(p=>data[p.id]&&typeof data[p.id]==="object"))return false;
+ evidenceData=data;renderEvidence();
+ const when=new Date(at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+ const success=evidenceProjects.filter(p=>data[p.id]&&(data[p.id].prs||data[p.id].ci!==undefined)).length;
+ evidenceStatus.textContent="Dados de "+success+" de "+evidenceProjects.length+" projetos; consulta de "+when+(cached?" (cache).":".")+" Resultados informativos, sem alterar o progresso dos marcos.";
+ return true;
+}
+async function fetchGithubJson(url){
+ const response=await fetch(url,{headers:{"Accept":"application/vnd.github+json"}});
+ if(!response.ok)throw Error("GitHub HTTP "+response.status);
+ return response.json();
+}
+async function refreshEvidence(force){
+ if(!force){
+   try{
+    const cached=JSON.parse(localStorage.getItem(EVIDENCE_KEY)||"null");
+    if(cached&&Date.now()-cached.at<CACHE_MS&&applyEvidence(cached.data,cached.at,true))return;
+   }catch(_){}
+ }
+ evidenceRefresh.disabled=true;
+ evidenceRefresh.textContent="↻ Consultando…";
+ evidenceStatus.textContent="Consultando PRs e GitHub Actions…";
+ try{
+   const pairs=await Promise.all(evidenceProjects.map(async p=>{
+     const base="https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(p.id);
+     const [prResult,ciResult]=await Promise.allSettled([
+       fetchGithubJson(base+"/pulls?state=all&sort=updated&direction=desc&per_page=20"),
+       fetchGithubJson(base+"/actions/runs?branch=main&per_page=1")
+     ]);
+     const details={};
+     if(prResult.status==="fulfilled"&&Array.isArray(prResult.value))details.prs=countRecentPrs(prResult.value);
+     if(ciResult.status==="fulfilled"&&Array.isArray(ciResult.value.workflow_runs))details.ci=ciResult.value.workflow_runs[0]||null;
+     return [p.id,details];
+   }));
+   const data=Object.fromEntries(pairs);
+   const successful=pairs.some(([,e])=>e.prs||e.ci!==undefined);
+   if(!successful)throw Error("Nenhum endpoint respondeu");
+   applyEvidence(data,Date.now(),false);
+   const issues=pairs.reduce((n,[,e])=>n+(e.prs?0:1)+(e.ci===undefined?1:0),0);
+   if(issues)evidenceStatus.textContent+=" "+issues+" consulta(s) indisponível(is). Ausência de dados não implica ausência de entregas.";
+   try{localStorage.setItem(EVIDENCE_KEY,JSON.stringify({at:Date.now(),data}))}catch(_){}
+ }catch(_){
+   renderEvidence();
+   evidenceStatus.textContent="API indisponível. "+(Object.keys(evidenceData).length?"Mantidos resultados consultados anteriormente.":"Nenhum indicador de PR ou CI foi inferido.")+" Tente novamente após o limite público do GitHub ser restaurado.";
+ }finally{
+   evidenceRefresh.disabled=false;
+   evidenceRefresh.textContent="↻ Consultar evidências";
+ }
+}
+evidenceRefresh.addEventListener("click",()=>refreshEvidence(true));
+function asCsvCell(value){
+ let s=String(value??"");
+ if(/^[\s]*[=+\-@]/.test(s))s="'"+s;
+ return '"'+s.replace(/"/g,'""')+'"';
+}
+document.getElementById("export-marcos").addEventListener("click",()=>{
+ const rows=[["Projeto","Categoria","Fase","Marco","Situacao","Progresso_mapeado_percentual","Atualizacao"]];
+ for(const p of PROJECTS)for(const m of p.milestones)rows.push([p.name,p.kind,p.stage,m[0],m[1]?"Concluido":"Pendente",pct(p),p.updated]);
+ const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+ const url=URL.createObjectURL(blob);
+ const a=document.createElement("a");
+ a.href=url;a.download="axe-portfolio-marcos.csv";document.body.appendChild(a);a.click();a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+});
+renderEvidence();
+refreshEvidence(false);
+
 document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
