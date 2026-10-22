@@ -28,8 +28,9 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 <section class="stats" aria-label="Resumo do recorte"><div class="stat"><label>Projetos observados</label><strong id="projects-count">9</strong><small>repositórios públicos selecionados</small></div>
 <div class="stat"><label>Últimas PRs integradas</label><strong id="merged-count">—</strong><small>no máximo uma PR consultada por projeto</small></div>
 <div class="stat"><label>Última CI com sucesso</label><strong id="ci-count">—</strong><small>no máximo uma execução na main por projeto</small></div></section>
-<div class="toolbar"><p id="status" role="status" aria-live="polite">Consultando GitHub…</p><div class="actions">
-<button id="refresh" type="button" class="primary">↻ Atualizar indicadores</button>
+<div class="toolbar"><p id="status" role="status" aria-live="polite">Sincronização de 15 em 15 segundos; coleta programada a cada aproximadamente 5 minutos.</p><div class="actions">
+<button id="sync-now" type="button" class="primary">↻ Verificar agora</button>
+<button id="refresh" type="button">Consultar API manualmente</button>
 <button id="export" type="button">↓ Exportar CSV</button></div></div>
 <div class="table-wrapper" tabindex="0" aria-label="Tabela de indicadores de entrega e qualidade">
 <table><thead><tr><th scope="col">Projeto</th><th scope="col">Última PR atualizada</th><th scope="col">Situação da PR</th><th scope="col">Última CI na main</th><th scope="col">Atualização</th></tr></thead><tbody id="rows"></tbody></table></div>
@@ -131,7 +132,73 @@ function exportCsv(){
  a.href=url;a.download="axe-evidencias-pr-ci.csv";document.body.appendChild(a);a.click();a.remove();
  setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
+
+/* Uses the same public snapshot as the portfolio. No API request on each 15s check. */
+let lastQualitySnapshot=null, qualityBusy=false;
+const syncNow=document.getElementById("sync-now");
+function readQualitySnapshot(data){
+ if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects)throw Error("Snapshot inválido");
+ if(!data.generated_at){
+  status.textContent="Aguardando a primeira coleta do GitHub Actions. Consulte a API manualmente, se necessário.";
+  return;
+ }
+ if(!Number.isFinite(Date.parse(data.generated_at)))throw Error("Data inválida");
+ const next={...records};
+ let received=0,missing=0;
+ for(const [id] of projects){
+  const src=data.projects[id];if(!src)continue;
+  const item={...(next[id]||{})};
+  const latest=src.prs&&src.prs.latest;
+  if(src.prs&&!src.errors?.prs){
+   item.pr=latest&&Number.isSafeInteger(latest.number)&&latest.number>0?{
+    kind:"result",number:latest.number,title:String(latest.title||"PR sem título").slice(0,130),
+    status:String(latest.state||"unknown"),date:validDate(latest.updated_at)
+   }:{kind:"none"};
+   received++;
+  }else missing++;
+  const run=src.ci;
+  if(Object.prototype.hasOwnProperty.call(src,"ci")&&!src.errors?.ci){
+   item.ci=run&&Number.isSafeInteger(run.id)&&run.id>0?{
+    kind:"result",id:run.id,name:String(run.name||"Workflow").slice(0,120),
+    status:String(run.status||"unknown"),conclusion:String(run.conclusion||""),
+    date:validDate(run.updated_at)
+   }:run===null?{kind:"none"}:{kind:"error"};
+   received++;
+  }else missing++;
+  next[id]=item;
+ }
+ records=next;retrievedAt=Date.parse(data.generated_at);paint();
+ const age=Date.now()-retrievedAt,old=age>20*60*1000;
+ status.textContent="Verificado às "+new Date().toLocaleTimeString("pt-BR")+
+  "; coleta "+new Date(retrievedAt).toLocaleString("pt-BR")+
+  "; "+received+" evidências disponíveis"+(missing?"; "+missing+" fontes sem dados novos":"")+
+  (old?". ATENÇÃO: dados com mais de 20 minutos.":".")+
+  " O site verifica novamente em 15 segundos.";
+}
+async function pollQuality(){
+ if(qualityBusy||document.hidden)return;
+ qualityBusy=true;syncNow.disabled=true;
+ try{
+  const response=await fetch("./portfolio-status.json?t="+Date.now(),{cache:"no-store"});
+  if(!response.ok)throw Error("HTTP "+response.status);
+  const data=await response.json();
+  if(data.generated_at&&data.generated_at===lastQualitySnapshot){
+   const old=Date.now()-Date.parse(data.generated_at)>20*60*1000;
+   status.textContent="Verificado às "+new Date().toLocaleTimeString("pt-BR")+
+    "; sem alteração desde "+new Date(data.generated_at).toLocaleString("pt-BR")+
+    (old?" — dados antigos.":".")+" Próxima verificação em 15 segundos.";
+  }else{
+   readQualitySnapshot(data);lastQualitySnapshot=data.generated_at||null;
+  }
+ }catch(_){
+  status.textContent="Não foi possível verificar o arquivo. Dados anteriores preservados; tentativa em 15 segundos.";
+ }finally{qualityBusy=false;syncNow.disabled=false}
+}
+syncNow.addEventListener("click",pollQuality);
+setInterval(pollQuality,15000);
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollQuality()});
+
 refresh.addEventListener("click",()=>update(true));
 exportButton.addEventListener("click",exportCsv);
-paint();update();
+paint();pollQuality();
 </script></body></html>
