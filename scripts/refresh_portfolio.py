@@ -56,7 +56,7 @@ def commits(repo):
     return [
         {"sha": c["sha"], "date": c["commit"]["committer"]["date"][:10], "title": short(c["commit"]["message"])}
         for c in data if isinstance(c.get("sha"), str) and len(c["sha"]) == 40
-        and (c.get("commit") or {}).get("committer", {}).get("date")
+        and ((c.get("commit") or {}).get("committer") or {}).get("date")
     ]
 
 
@@ -72,7 +72,7 @@ def prs(repo):
         "latest": ({
             "number": data[0].get("number"), "title": short(data[0].get("title")),
             "state": "merged" if data[0].get("merged_at") else data[0].get("state"),
-            "url": data[0].get("html_url"),
+            "url": data[0].get("html_url"), "updated_at": data[0].get("updated_at"),
         } if data else None),
     }
 
@@ -85,7 +85,7 @@ def ci(repo):
         return None
     r = data["workflow_runs"][0]
     return {
-        "name": short(r.get("name"), 120), "status": short(r.get("status"), 40),
+        "id": r.get("id"), "name": short(r.get("name"), 120), "status": short(r.get("status"), 40),
         "conclusion": short(r.get("conclusion"), 40),
         "url": short(r.get("html_url"), 300), "updated_at": short(r.get("updated_at"), 35),
     }
