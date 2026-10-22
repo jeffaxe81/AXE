@@ -91,6 +91,10 @@
       .history-status,.section-header p{color:#444!important}
       .section-header{display:block}
     }
+    .sync-panel{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:13px 16px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--muted);font-size:12px}
+    .sync-panel strong{color:var(--ink)}.sync-panel button{margin-left:auto}.sync-led{height:9px;width:9px;border-radius:50%;background:var(--warm);box-shadow:0 0 0 4px #ffc18420}
+    .sync-led.ok{background:var(--accent)}.sync-led.error{background:#ff9a84}
+    .latest-commit{font-size:11px;color:var(--muted);margin-top:10px}.latest-commit a{color:var(--accent2)}
     @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
     @media(max-width:850px){.shell{display:block}aside{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:14px 21px;border-right:0;border-bottom:1px solid var(--line)}.aside-caption,.side-bottom{display:none}.nav{display:flex;gap:3px}.nav a{padding:8px}.nav a .nav-label{display:none}main{padding:22px}.hero{margin-top:28px;grid-template-columns:1fr}.hero-feature{min-height:165px}.rings{height:40px}.rings::before{top:-80px}.rings::after{top:-44px}.metrics{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:1fr}}
     @media(max-width:520px){.hero h1{font-size:41px}.projects{grid-template-columns:1fr}.metrics{gap:9px}.metric{padding:15px}.metric b{font-size:28px}.top-actions{justify-content:flex-end}.top-actions .review{display:none}.method{grid-template-columns:1fr;padding:19px}.event{padding:13px}.project .description{min-height:auto}footer{align-items:flex-start;flex-direction:column}.hero-feature{min-height:155px}}
@@ -116,6 +120,7 @@
   </aside>
   <main id="inicio">
     <header class="topline"><div class="crumb">AXE <span aria-hidden="true">/</span> <strong>Portfólio de entregas</strong></div><div class="top-actions"><span class="review">Marcos revisados em 22 out 2026</span><a href="https://github.com/jeffaxe81" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></header>
+    <div class="sync-panel" role="status" aria-live="polite"><span id="sync-led" class="sync-led"></span><strong>Atualização automática a cada 15 segundos</strong><span id="sync-label"> · aguardando snapshot do GitHub…</span><button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button></div>
     <section class="hero" aria-label="Introdução">
       <div><div class="eyebrow">Engenharia • Produtos • Execução</div><h1>Projetos que saem do <span>papel.</span></h1><p class="lead">Um panorama transparente das iniciativas AXE: o que já foi entregue, o que segue em desenvolvimento e as evidências registradas no GitHub.</p></div>
       <div class="hero-feature"><div class="feature-top"><span>PORTFÓLIO / 2026</span><span>↗ 01</span></div><div class="rings" aria-hidden="true"></div><div><strong>Do planejamento à entrega.</strong><br><small>Marcos, execução e histórico em um só lugar.</small></div></div>
@@ -258,6 +263,7 @@ document.getElementById("m-total").textContent="de "+total+" marcos mapeados";
 document.getElementById("m-progress").textContent=Math.round(100*done/total)+"%";
 document.getElementById("m-events").textContent=events;
 let currentFilter="all";
+const latestCommitsByProject={};
 function renderProjects(){
  const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
  const order=document.getElementById("sort").value;
@@ -267,9 +273,9 @@ function renderProjects(){
  if(order==="name")ps.sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
  document.getElementById("visible-count").textContent=ps.length+" de "+PROJECTS.length+" projetos";
  document.getElementById("projects").innerHTML=ps.length?ps.map(p=>{
-   const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);
+   const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);const latest=latestCommitsByProject[p.id];
    const tasks=p.milestones.map(m=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span>'+esc(m[0])+'</li>').join("");
-   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
+   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
  }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
 }
 
@@ -609,11 +615,94 @@ renderInsights();
 
 refreshEvidence(false);
 
+
+/* The page polls ONE static JSON every 15 s. GitHub Actions collects sources every ~5 min. */
+const SNAPSHOT_PERIOD=15000;
+let lastSnapshot=null, snapshotBusy=false;
+const syncLabel=document.getElementById("sync-label");
+const syncLed=document.getElementById("sync-led");
+const syncNow=document.getElementById("sync-now");
+const syncTime=value=>new Date(value).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+function showSync(message,ok){
+ syncLabel.textContent=" · "+message;
+ syncLed.classList.toggle("ok",ok===true);
+ syncLed.classList.toggle("error",ok===false);
+}
+function goodCommit(e){
+ return e&&/^[a-f0-9]{40}$/i.test(e.sha||"")&&/^\d{4}-\d{2}-\d{2}$/.test(e.date||"");
+}
+function importSnapshot(data){
+ if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
+ if(!data.generated_at){showSync("arquivo pronto; aguardando a primeira execução da coleta",false);return}
+ if(!Number.isFinite(Date.parse(data.generated_at)))throw Error("data do snapshot inválida");
+ const entries=[],evidence={...evidenceData};
+ let errors=0;
+ for(const p of PROJECTS){
+  const rec=data.projects[p.id];
+  if(!rec||typeof rec!=="object")continue;
+  errors+=Object.keys(rec.errors||{}).length;
+  if(Array.isArray(rec.commits)){
+   const list=rec.commits.filter(goodCommit).map(c=>({project:p,date:c.date,sha:c.sha,title:String(c.title||"Commit sem descrição").slice(0,160)}));
+   if(list.length){
+    entries.push(...list);
+    latestCommitsByProject[p.id]=list[0];
+    if(list[0].date>p.updated)p.updated=list[0].date;
+   }
+  }
+  const old=evidence[p.id]||{};
+  const next={...old};
+  if(rec.prs&&["open","merged","closed"].every(k=>Number.isSafeInteger(rec.prs[k])&&rec.prs[k]>=0))
+   next.prs={open:rec.prs.open,merged:rec.prs.merged,closed:rec.prs.closed};
+  if(!rec.errors?.ci&&Object.prototype.hasOwnProperty.call(rec,"ci")&&
+     (rec.ci===null||(rec.ci&&typeof rec.ci.status==="string"&&typeof rec.ci.conclusion==="string")))
+   next.ci=rec.ci;
+  evidence[p.id]=next;
+ }
+ if(entries.length){
+  const uniq=new Map(entries.map(e=>[e.project.id+"-"+e.sha,e]));
+  historyData=[...uniq.values()];historySource="github";
+  document.getElementById("m-events").textContent=historyData.length;
+  renderHistory();
+  historyStatus.textContent=historyData.length+" commits do snapshot público; até 100 registros por projeto.";
+ }
+ evidenceData=evidence;renderProjects();renderEvidence();renderInsights();
+ const stamp=new Date(data.generated_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+ evidenceStatus.textContent="Evidências públicas coletadas em "+stamp+". Os marcos permanecem revisados manualmente.";
+ const stale=Date.now()-Date.parse(data.generated_at)>20*60*1000;
+ showSync("verificado "+syncTime(Date.now())+" · coleta "+stamp+" (até ~5 min)"+
+  (errors?" · "+errors+" fontes indisponíveis":"")+(stale?" · coleta antiga":""),!stale&&errors===0);
+}
+async function pollSnapshot(){
+ if(snapshotBusy||document.hidden)return;
+ snapshotBusy=true;syncNow.disabled=true;
+ try{
+  const response=await fetch("./portfolio-status.json?t="+Date.now(),{cache:"no-store"});
+  if(!response.ok)throw Error("HTTP "+response.status);
+  const result=await response.json();
+  if(result.generated_at&&result.generated_at===lastSnapshot){
+   const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
+   showSync("verificado "+syncTime(Date.now())+" · sem mudanças desde "+syncTime(lastSnapshot)+
+    " · coleta ~5 min"+(stale?" · coleta antiga":""),!stale);
+  }else{
+   importSnapshot(result);
+   lastSnapshot=result.generated_at||null;
+  }
+ }catch(_){
+  showSync("falha ao acessar snapshot; nova tentativa em 15 s (dados anteriores preservados)",false);
+ }finally{snapshotBusy=false;syncNow.disabled=false}
+}
+function startSnapshotPolling(){
+ pollSnapshot();
+ setInterval(pollSnapshot,SNAPSHOT_PERIOD);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollSnapshot()});
+}
+syncNow.addEventListener("click",pollSnapshot);
+
 document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();refreshLiveHistory(false);
+renderProjects();renderHistory();startSnapshotPolling();
 </script>
 </body>
 </html>
