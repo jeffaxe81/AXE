@@ -186,6 +186,130 @@ def merge_version_history(old, projects):
     return result
 
 
+
+# Only explicit test-runner summaries are counted, never CI job successes.
+TEST_PARSER_VERSION = 1
+ANSI_ESC = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+TEST_NUM = re.compile(r"(\d[\d,]*)\s+(passed|failed|skipped|pending)\b", re.I)
+TEST_JOBS = re.compile(r"pytest|test|qualidade|quality|verify|checks", re.I)
+TEST_PYTEST_LINE = re.compile(r"(\d[\d,]*\s+(?:passed|failed|skipped)\b.*(?:\bin\s+\d+(?:\.\d+)?s\b|=+$))", re.I)
+TEST_VITEST_LINE = re.compile(r"\bTests\s*:?\s+(.{1,160})$", re.I)
+TEST_UNITTEST = re.compile(r"\bRan\s+(\d{1,7})\s+tests?\s+in\s+[\d.]+s\b")
+TEST_JEST_LINE = re.compile(r"\bTests:\s*(.{1,160})$", re.I)
+
+
+def test_counts_from_log(raw):
+    """Count terminal pytest/Vitest/Jest/unittest summaries, not individual test lines."""
+    clean = ANSI_ESC.sub("", raw)
+    lines = clean.splitlines()
+    summaries = []
+    for idx, line in enumerate(lines):
+        line = re.sub(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d+Z\s*", "", line).strip()
+        if len(line) > 400:
+            continue
+        candidates = []
+        jest = TEST_JEST_LINE.search(line)
+        vitest = TEST_VITEST_LINE.search(line) if not jest else None
+        pytest = TEST_PYTEST_LINE.search(line) if not jest and not vitest else None
+        if jest:
+            candidates.append(jest.group(1))
+        elif vitest:
+            candidates.append(vitest.group(1))
+        elif pytest and (line.startswith("=") or re.match(r"^\d+\s+", line) or line.startswith("FAILED ")):
+            candidates.append(pytest.group(1))
+        else:
+            unit = TEST_UNITTEST.search(line)
+            if unit:
+                following = ANSI_ESC.sub("", "\n".join(lines[idx+1:idx+9]))
+                if re.search(r"\bOK\b|\bFAILED\s*\(", following):
+                    fail_match = re.search(r"\bFAILED\s*\(([^)]+)\)", following)
+                    failed = 0
+                    if fail_match:
+                        failed = sum(int(n) for _, n in re.findall(r"\b(failures|errors)=(\d+)", fail_match.group(1)))
+                    n = int(unit.group(1))
+                    summaries.append({"passed": max(0, n - failed), "failed": failed, "skipped": 0})
+                continue
+        for candidate in candidates:
+            counts = {"passed": 0, "failed": 0, "skipped": 0}
+            for number, kind in TEST_NUM.findall(candidate):
+                key = "skipped" if kind.lower() == "pending" else kind.lower()
+                counts[key] += int(number.replace(",", ""))
+            if sum(counts.values()) > 0 and sum(counts.values()) <= 1000000:
+                summaries.append(counts)
+    return {
+        "passed": sum(row["passed"] for row in summaries),
+        "failed": sum(row["failed"] for row in summaries),
+        "skipped": sum(row["skipped"] for row in summaries),
+        "summaries": len(summaries),
+    }
+
+
+def fetch_job_text(repo, job_id):
+    """Read at most 3MB of a public Actions job log; never publish log text."""
+    url = "https://api.github.com/repos/" + OWNER + "/" + repo + "/actions/jobs/" + str(job_id) + "/logs"
+    headers = {"Accept": "application/vnd.github+json",
+               "User-Agent": "axe-delivery-hub-test-counts",
+               "X-GitHub-Api-Version": "2022-11-28"}
+    if os.environ.get("GITHUB_TOKEN"):
+        headers["Authorization"] = "Bearer " + os.environ["GITHUB_TOKEN"]
+    with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=30) as response:
+        data = response.read(3_000_001)
+    if len(data) > 3_000_000:
+        raise ValueError("Oversized test log")
+    return data.decode("utf-8", errors="replace")
+
+
+def collect_test_counts(repo, ci_record, previous):
+    """Only latest completed main CI. Cache by workflow run to limit GitHub traffic."""
+    if ci_record is None:
+        return None
+    run_id = ci_record.get("id")
+    if type(run_id) is not int or run_id <= 0:
+        raise ValueError("CI run ID missing")
+    if ci_record.get("status") != "completed":
+        return {"run_id": run_id, "status": "running", "parser_version": TEST_PARSER_VERSION}
+    if isinstance(previous, dict) and previous.get("run_id") == run_id and previous.get("parser_version") == TEST_PARSER_VERSION and previous.get("status") in ("available", "no_summary"):
+        return {**previous, "checked_at": NOW}
+    data = api(repo, "actions/runs/" + str(run_id) + "/jobs?per_page=40")
+    if not isinstance(data, dict) or not isinstance(data.get("jobs"), list):
+        raise ValueError("CI job list unavailable")
+    jobs = [j for j in data["jobs"] if isinstance(j, dict) and
+            TEST_JOBS.search(str(j.get("name", ""))) and j.get("status") == "completed"]
+    if len(jobs) > 12:
+        jobs = jobs[:12]
+    results = {"passed": 0, "failed": 0, "skipped": 0}
+    parsed_jobs = 0
+    missing_logs = 0
+    for job in jobs:
+        job_id = job.get("id")
+        if type(job_id) is not int or job_id <= 0:
+            missing_logs += 1
+            continue
+        try:
+            counts = test_counts_from_log(fetch_job_text(repo, job_id))
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, OSError):
+            missing_logs += 1
+            continue
+        if counts["summaries"] == 0:
+            continue
+        parsed_jobs += 1
+        for key in results:
+            results[key] += counts[key]
+    available = parsed_jobs > 0
+    return {
+        "run_id": run_id, "run_url": "https://github.com/" + OWNER + "/" + repo + "/actions/runs/" + str(run_id),
+        "run_name": short(ci_record.get("name"), 120), "run_updated_at": short(ci_record.get("updated_at"), 35),
+        "run_conclusion": short(ci_record.get("conclusion"), 40),
+        "status": "available" if available else "no_summary",
+        "parser_version": TEST_PARSER_VERSION, "checked_at": NOW,
+        "parsed_jobs": parsed_jobs, "scanned_jobs": len(jobs), "missing_logs": missing_logs,
+        "partial": missing_logs > 0 or parsed_jobs < len(jobs) or len(data["jobs"]) >= 40,
+        "passed": results["passed"] if available else None,
+        "failed": results["failed"] if available else None,
+        "skipped": results["skipped"] if available else None,
+    }
+
+
 def extract_milestone_progress(html):
     """Read only literal milestone lists from the reviewed page (no JS execution)."""
     pattern = re.compile(
@@ -434,6 +558,14 @@ def generate(output, html_file):
                 item["verified_at"][key] = (prev.get("verified_at") or {}).get(key)
                 item["errors"][key] = type(exc).__name__
                 failures.append(repo + ":" + key)
+        try:
+            item["tests"] = collect_test_counts(repo, item.get("ci"), prev.get("tests"))
+            item["verified_at"]["tests"] = NOW
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, OSError, KeyError, TypeError) as exc:
+            item["tests"] = prev.get("tests")
+            item["verified_at"]["tests"] = (prev.get("verified_at") or {}).get("tests")
+            item["errors"]["tests"] = type(exc).__name__
+            failures.append(repo + ":tests")
         result[repo] = item
     # Prevent an empty successful-looking collection when every source is down.
     if not any(
