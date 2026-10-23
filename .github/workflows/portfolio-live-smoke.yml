@@ -50,7 +50,7 @@ jobs:
           quality = Path("/tmp/axe-quality.html").read_text(encoding="utf-8")
           snapshot = json.loads(Path("/tmp/axe-status.json").read_text(encoding="utf-8"))
 
-          required = ('id="testes"', 'id="online"', 'id="versoes"', 'id="gates"',
+          required = ('id="ultima-hora"', 'id="testes"', 'id="online"', 'id="versoes"', 'id="gates"',
                       'id="liberacao"', 'id="rastreio"')
           missing = [marker for marker in required if marker not in site]
           if missing:
@@ -66,6 +66,19 @@ jobs:
           projects = snapshot.get("projects")
           versions = snapshot.get("version_history")
           test_history = snapshot.get("test_history")
+          hourly = snapshot.get("progress_hourly")
+          samples = snapshot.get("progress_samples")
+          if not isinstance(samples, list) or not samples:
+              raise SystemExit("Medições históricas de progresso ausentes")
+          if not isinstance(hourly, dict) or hourly.get("status") not in ("measured", "insufficient_history"):
+              raise SystemExit("Indicador horário de progresso inválido")
+          if hourly.get("measured_at") != samples[-1].get("observed_at"):
+              raise SystemExit("Indicador horário não acompanha a última coleta")
+          if hourly.get("status") == "measured":
+              if not isinstance(hourly.get("portfolio"), dict):
+                  raise SystemExit("Progresso consolidado da hora ausente")
+              if set(hourly.get("projects", {})) != set(projects):
+                  raise SystemExit("Progresso horário por projeto incompleto")
           if not isinstance(projects, dict) or len(projects) != 9:
               raise SystemExit("Snapshot incompleto: esperado nove projetos")
           if not isinstance(versions, dict) or set(versions) != set(projects):
