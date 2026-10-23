@@ -196,6 +196,11 @@
     @media(max-width:950px){.online-feed,.versions-list{grid-template-columns:1fr}}
     @media(max-width:650px){.online-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.online-control label{flex-basis:100%;margin-top:4px}.online-control .filter{flex:1;width:100%}}
     @media print{#online,#versoes{display:none!important}}
+
+    .project-version{color:#9eb5cc;font-size:11px;line-height:1.5;margin-top:11px;overflow-wrap:anywhere}
+    .project-version span{color:var(--muted)}
+    .project-version a{color:var(--accent);font-weight:790}
+    .project-version a:hover{text-decoration:underline;text-underline-offset:2px}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -545,6 +550,18 @@ let currentFilter="all";
 const latestCommitsByProject={};
 let sourceRecords={};
 let progressHistory=[];
+
+function projectVersionSnippet(p){
+ const history=versionsForProject(p);
+ const newestRelease=history.filter(x=>x.kind==="release").sort((a,b)=>String(b.published_at||"").localeCompare(String(a.published_at||"")))[0];
+ const latestTag=history.find(x=>x.kind==="tag");
+ const entry=newestRelease||latestTag;
+ if(!entry)return '<div class="project-version">Versão: <span>sem registro público na coleta</span> · <a href="#versoes">Histórico</a></div>';
+ const url=safeVersionUrl(p,entry.version,entry.kind);
+ if(!url)return "";
+ return '<div class="project-version">'+(entry.kind==="release"?"Release publicada: ":"Tag registrada: ")+
+  '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+esc(entry.version)+' ↗</a></div>';
+}
 function renderProjects(){
  const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
  const order=document.getElementById("sort").value;
@@ -556,7 +573,7 @@ function renderProjects(){
  document.getElementById("projects").innerHTML=ps.length?ps.map(p=>{
    const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);const latest=latestCommitsByProject[p.id];
    const tasks=p.milestones.map((m,i)=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span><span>'+esc(m[0])+trackingChips(p,i)+'</span></li>').join("");
-   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><div class="project-health" data-health="'+esc(p.id)+'"><span class="health-dot" aria-hidden="true"></span><span class="health-label">Aguardando coleta</span></div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
+   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><div class="project-health" data-health="'+esc(p.id)+'"><span class="health-dot" aria-hidden="true"></span><span class="health-label">Aguardando coleta</span></div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+projectVersionSnippet(p)+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
  }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
  refreshProjectHealth();
 }
@@ -1487,7 +1504,7 @@ async function consultGitHubNow(){
     kind:"release",version:String(v.tag_name||"").slice(0,100),name:String(v.name||v.tag_name||"").slice(0,100),
     published_at:v.published_at,prerelease:!!v.prerelease,notes:String(v.body||"").split("\n")[0].slice(0,220)})):[];
   onlineOverrides[id]={data,versions,at:Date.now()};
-  renderOnline();renderVersions();
+  renderOnline();renderVersions();renderProjects();
   document.getElementById("online-status").textContent="Consulta direta de "+id+" às "+
    new Date().toLocaleTimeString("pt-BR")+". "+result.filter(x=>x.status==="fulfilled").length+
    " de 4 fontes responderam; falhas preservaram os dados da última coleta.";
