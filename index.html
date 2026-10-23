@@ -95,7 +95,10 @@
       .section-header{display:block}
     }
     .sync-panel{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:13px 16px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--muted);font-size:12px}
-    .sync-panel strong{color:var(--ink)}.sync-panel button{margin-left:auto}.sync-led{height:9px;width:9px;border-radius:50%;background:var(--warm);box-shadow:0 0 0 4px #ffc18420}
+    .sync-panel strong{color:var(--ink)}.sync-panel button{margin-left:auto}
+    .sync-select{background:#192a40;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 11px;min-height:39px;max-width:100%;font-size:12px}
+    .sync-explain{flex-basis:100%;color:var(--muted);font-size:11px;line-height:1.55}
+    .sync-panel #sync-label{flex:1;min-width:170px}.sync-led{height:9px;width:9px;border-radius:50%;background:var(--warm);box-shadow:0 0 0 4px #ffc18420}
     .sync-led.ok{background:var(--accent)}.sync-led.error{background:#ff9a84}
     .latest-commit{font-size:11px;color:var(--muted);margin-top:10px}.latest-commit a{color:var(--accent2)}
     @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
@@ -123,7 +126,19 @@
   </aside>
   <main id="inicio">
     <header class="topline"><div class="crumb">AXE <span aria-hidden="true">/</span> <strong>Portfólio de entregas</strong></div><div class="top-actions"><span class="review">Marcos revisados em 22 out 2026</span><a href="https://github.com/jeffaxe81" target="_blank" rel="noopener noreferrer">GitHub ↗</a></div></header>
-    <div class="sync-panel" role="status" aria-live="polite"><span id="sync-led" class="sync-led"></span><strong>Atualização automática a cada 15 segundos</strong><span id="sync-label"> · aguardando snapshot do GitHub…</span><button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button></div>
+    <div class="sync-panel">
+      <span id="sync-led" class="sync-led" aria-hidden="true"></span>
+      <label for="sync-mode"><strong>Atualização dos projetos</strong></label>
+      <select id="sync-mode" class="sync-select" aria-label="Modo e intervalo de atualização">
+        <option value="manual">Manual</option>
+        <option value="15s">Automático · 15 s</option>
+        <option value="30s">Automático · 30 s</option>
+        <option value="online">Online · acompanhar</option>
+      </select>
+      <span id="sync-label" role="status" aria-live="polite"> · verificando preferência…</span>
+      <button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button>
+      <small class="sync-explain">Online verifica ao voltar à aba ou reconectar e a cada 15 s. Os dados só mudam após nova coleta do GitHub (agendada a cada ~5 min).</small>
+    </div>
     <section class="hero" aria-label="Introdução">
       <div><div class="eyebrow">Engenharia • Produtos • Execução</div><h1>Projetos que saem do <span>papel.</span></h1><p class="lead">Um panorama transparente das iniciativas AXE: o que já foi entregue, o que segue em desenvolvimento e as evidências registradas no GitHub.</p></div>
       <div class="hero-feature"><div class="feature-top"><span>PORTFÓLIO / 2026</span><span>↗ 01</span></div><div class="rings" aria-hidden="true"></div><div><strong>Do planejamento à entrega.</strong><br><small>Marcos, execução e histórico em um só lugar.</small></div></div>
@@ -685,16 +700,19 @@ renderInsights();
 refreshEvidence(false);
 
 
-/* The page polls ONE static JSON every 15 s. GitHub Actions collects sources every ~5 min. */
+/* Refresh interval is a browser preference; GitHub Actions collects source evidence ~every five minutes. */
 const SNAPSHOT_RAW_URL="https://raw.githubusercontent.com/jeffaxe81/AXE/gh-pages/portfolio-status.json";
-const SNAPSHOT_PERIOD=15000;
-let lastSnapshot=null, snapshotBusy=false;
+const SYNC_SETTING_KEY="axe-delivery-sync-mode-v2";
+const SYNC_PERIODS={manual:0,"15s":15000,"30s":30000,online:15000};
+const SYNC_NAMES={manual:"Manual","15s":"Automático 15 s","30s":"Automático 30 s",online:"Online"};
+let syncMode="15s",syncTimer=null,lastSnapshot=null,snapshotBusy=false,lastSnapshotCheckAt=0;
 const syncLabel=document.getElementById("sync-label");
 const syncLed=document.getElementById("sync-led");
 const syncNow=document.getElementById("sync-now");
+const syncModeSelect=document.getElementById("sync-mode");
 const syncTime=value=>new Date(value).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
 function showSync(message,ok){
- syncLabel.textContent=" · "+message;
+ syncLabel.textContent=" · "+SYNC_NAMES[syncMode]+": "+message;
  syncLed.classList.toggle("ok",ok===true);
  syncLed.classList.toggle("error",ok===false);
 }
@@ -747,13 +765,30 @@ function importSnapshot(data){
  showSync("verificado "+syncTime(Date.now())+" · coleta "+stamp+" (até ~5 min)"+
   (errors?" · "+errors+" fontes indisponíveis":"")+(stale?" · coleta antiga":""),!stale&&errors===0);
 }
+function onlineAvailable(){
+ return typeof navigator==="undefined" || navigator.onLine!==false;
+}
+function readSyncPreference(){
+ try{
+  const v=localStorage.getItem(SYNC_SETTING_KEY);
+  if(Object.prototype.hasOwnProperty.call(SYNC_PERIODS,v))return v;
+ }catch(_){}
+ return "15s";
+}
+function describeRefreshFailure(){
+ return syncMode==="manual"
+  ?"consulte novamente pelo botão Verificar agora; dados anteriores preservados"
+  :"nova tentativa no próximo intervalo; dados anteriores preservados";
+}
 async function pollSnapshot(){
  if(snapshotBusy||document.hidden)return;
+ if(!onlineAvailable()){showSync("sem conexão; dados anteriores preservados",false);return}
  snapshotBusy=true;syncNow.disabled=true;
  try{
   const response=await fetch(SNAPSHOT_RAW_URL+"?t="+Date.now(),{cache:"no-store"});
   if(!response.ok)throw Error("HTTP "+response.status);
   const result=await response.json();
+  lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
    showSync("verificado "+syncTime(Date.now())+" · sem mudanças desde "+syncTime(lastSnapshot)+
@@ -763,13 +798,43 @@ async function pollSnapshot(){
    lastSnapshot=result.generated_at||null;
   }
  }catch(_){
-  showSync("falha ao acessar snapshot; nova tentativa em 15 s (dados anteriores preservados)",false);
+  showSync("falha ao acessar snapshot; "+describeRefreshFailure(),false);
  }finally{snapshotBusy=false;syncNow.disabled=false}
 }
-function startSnapshotPolling(){
+function setSyncMode(value,save=true){
+ syncMode=Object.prototype.hasOwnProperty.call(SYNC_PERIODS,value)?value:"15s";
+ syncModeSelect.value=syncMode;
+ if(syncTimer!==null){clearInterval(syncTimer);syncTimer=null}
+ if(save){try{localStorage.setItem(SYNC_SETTING_KEY,syncMode)}catch(_){}}
+ if(syncMode==="manual"){
+  showSync("sem verificações periódicas. Use Verificar agora.",null);
+  return;
+ }
+ if(!onlineAvailable()){
+  showSync("aguardando conexão para consultar o GitHub",false);
+  return;
+ }
+ showSync(syncMode==="online"
+  ?"acompanhamento ativo na aba visível; verificação no retorno ou reconexão"
+  :"verificação periódica enquanto a aba estiver visível",null);
  pollSnapshot();
- setInterval(pollSnapshot,SNAPSHOT_PERIOD);
- document.addEventListener("visibilitychange",()=>{if(!document.hidden)pollSnapshot()});
+ syncTimer=setInterval(pollSnapshot,SYNC_PERIODS[syncMode]);
+}
+function startSnapshotPolling(){
+ syncModeSelect.addEventListener("change",()=>setSyncMode(syncModeSelect.value));
+ setSyncMode(readSyncPreference(),false);
+ document.addEventListener("visibilitychange",()=>{
+  if(document.hidden||syncMode==="manual")return;
+  if(syncMode==="online"||Date.now()-lastSnapshotCheckAt>=SYNC_PERIODS[syncMode])pollSnapshot();
+ });
+ window.addEventListener("online",()=>{
+  if(syncMode!=="manual")pollSnapshot();
+  else showSync("conexão restabelecida; verificação manual disponível",null);
+ });
+ window.addEventListener("offline",()=>showSync("sem internet; dados anteriores preservados",false));
+ window.addEventListener("storage",event=>{
+  if(event.key===SYNC_SETTING_KEY)setSyncMode(event.newValue,false);
+ });
 }
 syncNow.addEventListener("click",pollSnapshot);
 
