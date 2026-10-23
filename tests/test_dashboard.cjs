@@ -130,7 +130,7 @@ assert.ok(checked.ciRunUrl===null,"Without a verified CI run ID no link may be i
 assert.ok(p.elements.get("queue-summary").innerHTML.includes("Pendências mapeadas"));
 assert.ok(p.elements.get("queue-list").innerHTML.includes("sem leitura recente"));
 // Evidências só afetam a rastreabilidade, não a conclusão editorial.
-assert.equal(p.fn("trackedRows().length"),10,"Exactly ten reviewed GitHub links");
+assert.equal(p.fn("trackedRows().length"),15,"Exactly fifteen reviewed GitHub links");
 assert.equal(p.fn("PROJECTS[0].milestones.filter(m=>m[1]).length"),4);
 const trace=JSON.stringify({"crm-vendas":{"2":[{"kind":"pr","number":281,"state":"merged","verified_at":"2026-10-23T15:20:00Z"}]}});
 p.fn("trackingData="+trace);
@@ -141,5 +141,31 @@ p.fn("document.getElementById('tracking-filter').value='all'; renderTracking()")
 assert.ok(p.elements.get("tracking-rows").innerHTML.includes("pull/281"));
 assert.ok(p.elements.get("tracking-rows").innerHTML.includes("Não verificado"));
 assert.ok(p.elements.get("tracking-summary").innerHTML.includes("Vínculos revisados"));
+// Matriz de gates: classificação editorial de todos os marcos; CI independente.
+const coverage=p.fn("PROJECTS.map(x=>({id:x.id,all:[...GATE_MATRIX[x.id].dev,...GATE_MATRIX[x.id].tests,...GATE_MATRIX[x.id].homolog,...GATE_MATRIX[x.id].release],size:x.milestones.length}))");
+for(const entry of coverage) {
+  assert.equal(entry.all.length,entry.size,"Every monitored milestone must have a stage");
+  assert.equal(new Set(entry.all).size,entry.size,"Milestone stages cannot overlap");
+  assert.ok(entry.all.every(i=>i>=0&&i<entry.size));
+}
+const crmGate=p.fn("gateRecord(PROJECTS[0],"+queueNow+")");
+assert.equal(crmGate.counts.dev.completed,3);
+assert.equal(crmGate.counts.dev.total,3);
+assert.equal(crmGate.counts.tests.completed,1);
+assert.equal(crmGate.counts.homolog.completed,0);
+assert.equal(crmGate.counts.release.completed,0);
+assert.equal(crmGate.ciState,"Não verificada");
+const validCi=JSON.stringify({"crm-vendas":{verified_at:{ci:recent},errors:{},ci:{id:12345,status:"completed",conclusion:"success"}}});
+p.fn("sourceRecords="+validCi);
+const successGate=p.fn("gateRecord(PROJECTS[0],"+queueNow+")");
+assert.equal(successGate.ciState,"Sucesso");
+assert.equal(successGate.ciLink,"https://github.com/jeffaxe81/crm-vendas/actions/runs/12345");
+assert.equal(p.fn("PROJECTS[0].milestones.filter(m=>m[1]).length"),4);
+p.fn("document.getElementById('gate-filter').value='all'; renderGateMatrix()");
+assert.ok(p.elements.get("gate-table").innerHTML.includes("Homologação"));
+assert.ok(p.elements.get("gate-table").innerHTML.includes("Não mapeado"));
+assert.ok(p.elements.get("gate-summary").innerHTML.includes("Liberação pendente"));
+p.fn("sourceRecords={}");
+console.log("PASS: nine stage-gate matrices, explicit milestones, independent CI and release status");
 console.log("PASS: fila de próximas entregas, 9 projetos, nulidade de PR/CI desatualizadas e evidências verificadas");
 console.log("PASS: HTML JavaScript, manual/15s/30s/online timers and 10 freshness scenarios");
