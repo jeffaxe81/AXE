@@ -141,6 +141,31 @@
     @media(max-width:1200px){.gate-head{display:none}.gate-row{grid-template-columns:repeat(2,minmax(0,1fr))}.gate-project{grid-column:1/-1;padding-bottom:7px;border-bottom:1px solid var(--line)}.gate-cell-title{display:block;color:#8fa5bc;font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;font-weight:750}}
     @media(max-width:600px){.gate-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.gate-row{grid-template-columns:1fr}.gate-project{grid-column:1}.gate-cell{padding-bottom:8px;border-bottom:1px solid #26374a}.gate-cell:last-child{border-bottom:0}}
     @media print{#gates{display:none!important}}
+
+    .release-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .release-stat{padding:17px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+    .release-stat b{font-size:27px;font-variant-numeric:tabular-nums;line-height:1.1;display:block}
+    .release-stat span{font-size:11px;color:var(--muted);display:block;margin-top:7px}
+    .release-ledger-link{font-size:12px;color:var(--accent);font-weight:750;display:inline-block;margin-left:auto}
+    .release-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .release-card{background:linear-gradient(140deg,#16253a,#101c2e);border:1px solid var(--line);border-radius:16px;padding:20px;min-width:0}
+    .release-title{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+    .release-title h3{font-size:17px;margin:0;letter-spacing:-.02em}
+    .release-state{font-size:10px;font-weight:850;text-transform:uppercase;letter-spacing:.05em;border-radius:20px;padding:6px 10px;background:#29364a;color:#b6c7db}
+    .release-state.go{background:#254332;color:#b6ec69}.release-state.no_go,.release-state.invalid{background:#47322e;color:#ffceae}
+    .release-sub{color:var(--muted);font-size:12px;margin:4px 0 11px}
+    .release-evidence{display:grid;gap:7px;margin:13px 0 14px}
+    .release-check{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:start;background:#17273b;border-radius:9px;padding:10px 11px;color:#afc1d5;font-size:12px}
+    .release-check strong{color:var(--ink);font-weight:700}
+    .release-symbol{width:15px;text-align:center;color:#ffceae;font-weight:900}
+    .release-check.verified .release-symbol{color:var(--accent)}
+    .release-check a{font-size:10px;color:var(--accent);font-weight:850}
+    .release-decision{font-size:11px;color:#b4c6d9;border-top:1px solid var(--line);padding-top:13px;line-height:1.65;overflow-wrap:anywhere}
+    .release-decision a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+    .release-empty{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted);grid-column:1/-1}
+    @media(max-width:1100px){.release-cards{grid-template-columns:1fr}.release-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:600px){.release-check{grid-template-columns:auto 1fr}.release-check a{grid-column:2}.release-ledger-link{margin-left:0}}
+    @media print{#liberacao{display:none!important}}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -188,6 +213,7 @@
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
       <a href="#fila"><span class="sym">☷</span><span class="nav-label">Próximas entregas</span></a>
       <a href="#gates"><span class="sym">▣</span><span class="nav-label">Homologação</span></a>
+      <a href="#liberacao"><span class="sym">◈</span><span class="nav-label">GO / NO-GO</span></a>
       <a href="#rastreio"><span class="sym">⌗</span><span class="nav-label">Rastreabilidade</span></a>
       <a href="#evolucao"><span class="sym">▥</span><span class="nav-label">Evolução</span></a>
       <a href="#relatorio"><span class="sym">▤</span><span class="nav-label">Relatório</span></a>
@@ -280,6 +306,27 @@
       <p id="gate-description" class="history-status" role="status" aria-live="polite"></p>
       <div class="gate-table" id="gate-table"></div>
       <p class="history-status">Cada etapa lista apenas marcos explicitamente cadastrados. "Concluído" corresponde ao registro editorial do marco; não prova homologação externa. CI é uma medição separada, verificada por data, e não atualiza percentuais. "Não mapeado" indica ausência de marco cadastrado, não aprovação implícita.</p>
+    </section>
+    <section id="liberacao" class="section" aria-labelledby="release-heading">
+      <div class="section-header">
+        <div><h2 id="release-heading">Controle de liberação — GO / NO-GO</h2><p>Critérios obrigatórios, evidências públicas e decisões formais. Ausência de registro não significa aprovação ou reprovação.</p></div>
+        <button id="release-export" class="refresh-btn" type="button">↓ Exportar controle CSV</button>
+      </div>
+      <div class="release-summary" id="release-summary" aria-live="polite"></div>
+      <div class="queue-toolbar">
+        <label for="release-filter">Situação</label>
+        <select id="release-filter" class="filter">
+          <option value="all">Todos os projetos</option>
+          <option value="unrecorded">Sem decisão registrada</option>
+          <option value="no_go">NO-GO registrado</option>
+          <option value="go">GO documentado</option>
+          <option value="incomplete">Critérios documentais incompletos</option>
+        </select>
+        <a class="release-ledger-link" href="https://github.com/jeffaxe81/AXE/blob/gh-pages/release-approvals.json" target="_blank" rel="noopener noreferrer">Consultar registro auditável ↗</a>
+      </div>
+      <p id="release-note" class="history-status" role="status" aria-live="polite">Aguardando leitura do registro público de decisões.</p>
+      <div class="release-cards" id="release-cards"></div>
+      <p class="history-status">O GO só pode ser <strong>registrado</strong> por uma decisão explícita vinculada a evidências públicas, a um responsável, uma data e um SHA de código, após cumprir os critérios e os marcos de homologação/liberação. Isso é um registro documental, não uma comprovação independente de implantação. As decisões e suas alterações ficam versionadas no GitHub. CI e merge não aprovam produção automaticamente.</p>
     </section>
     <section id="rastreio" class="section" aria-labelledby="tracking-title">
       <div class="section-header"><div><h2 id="tracking-title">Rastreabilidade dos marcos</h2><p>Issues e PRs vinculadas somente após revisão manual. Integração não equivale à homologação.</p></div>
@@ -416,6 +463,8 @@ const formatDate=s=>new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-d
 const EVIDENCE_IDS=["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop"];
 const MILESTONE_LINKS = {"crm-vendas":{"2":[{"kind":"pr","number":281}],"3":[{"kind":"pr","number":277}],"6":[{"kind":"issue","number":142},{"kind":"issue","number":159}]},"dispatch":{"0":[{"kind":"pr","number":118}],"1":[{"kind":"pr","number":119}],"2":[{"kind":"pr","number":115}],"4":[{"kind":"pr","number":166}]},"axe-gestao-convites":{"2":[{"kind":"pr","number":1}]},"axe-voice-desktop":{"0":[{"kind":"pr","number":1}],"4":[{"kind":"pr","number":70}],"5":[{"kind":"pr","number":76}]},"central-despacho-alertas-publicacao":{"1":[{"kind":"pr","number":9}]},"pabx-mvp":{"5":[{"kind":"pr","number":53},{"kind":"pr","number":54}]}};
 let trackingData={};
+let releaseControl=null;
+const RELEASE_CRITERIA=[["functional","Testes funcionais"],["security","Segurança"],["data","Dados e recuperação"],["rollback","Rollback / implantação"],["approval","Aceite formal"]];
 const GATE_MATRIX = {"crm-vendas":{"dev":[0,1,2],"tests":[3,5],"homolog":[4],"release":[6]},"dispatch":{"dev":[0,1,2],"tests":[3],"homolog":[4],"release":[5]},"pabx-mvp":{"dev":[0,1,2,3,4],"tests":[],"homolog":[5],"release":[]},"axe-voice-desktop":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"dispatch-v2":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"centralizador-controle":{"dev":[0],"tests":[1,2],"homolog":[3],"release":[4]},"aderencia_tecnica":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[]},"axe-gestao-convites":{"dev":[0,1,2],"tests":[3],"homolog":[],"release":[4]},"central-despacho-alertas-publicacao":{"dev":[0,1],"tests":[2],"homolog":[3],"release":[]}};
 const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
 document.getElementById("m-projects").textContent=PROJECTS.length;
@@ -860,6 +909,8 @@ function goodCommit(e){
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
+ releaseControl=data.release_control&&typeof data.release_control==="object"?data.release_control:null;
+ renderReleases();
  renderGateMatrix();
  trackingData=data.tracking&&typeof data.tracking==="object"?data.tracking:{};
  refreshProjectHealth();
@@ -989,6 +1040,7 @@ async function pollSnapshot(){
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    refreshProjectHealth();
+   renderReleases();
    renderGateMatrix();
    renderTracking();
    renderProjects();
@@ -1081,6 +1133,71 @@ function exportTrackedCsv(){
 document.getElementById("tracking-filter").addEventListener("change",renderTracking);
 document.getElementById("tracking-export").addEventListener("click",exportTrackedCsv);
 
+
+
+/* Governance ledger: an explicit manual decision is never inferred from CI or PR state. */
+const releaseFilter=document.getElementById("release-filter");
+const releaseCards=document.getElementById("release-cards");
+function releaseState(project){
+ const record=releaseControl?.owner==="jeffaxe81"&&releaseControl?.schema_version===1?releaseControl.projects?.[project.id]:null;
+ const entries=RELEASE_CRITERIA.map(([id,label])=>{
+  const check=record?.checks?.[id];
+  const evidence=typeof check?.evidence==="string"&&
+   check.evidence.startsWith("https://github.com/jeffaxe81/"+project.id+"/")?check.evidence:null;
+  const verified=check?.status==="verified"&&!!evidence&&typeof check.verified_at==="string"&&typeof check.note==="string";
+  return {id,label,verified,evidence,detail:verified?check.note:null};
+ });
+ const checked=entries.filter(e=>e.verified).length;
+ const decisions=Array.isArray(record?.decisions)?record.decisions:[];
+ const decision=decisions.length?decisions[decisions.length-1]:null;
+ const formal=decision&&["GO","NO_GO"].includes(decision.outcome)&&
+  /^[a-f0-9]{40}$/.test(decision.sha||"")&&typeof decision.reviewer==="string"&&
+  typeof decision.recorded_at==="string"&&typeof decision.reason==="string"&&
+  typeof decision.reference==="string"&&decision.reference.startsWith("https://github.com/jeffaxe81/"+project.id+"/");
+ const groups=GATE_MATRIX[project.id];
+ const mapped=(groups.homolog.length>0&&groups.release.length>0);
+ const complete=mapped&&["homolog","release"].every(k=>groups[k].every(i=>project.milestones[i][1]===true));
+ const ok=!!formal&&decision.outcome==="GO"&&checked===RELEASE_CRITERIA.length&&complete;
+ const state=decision?.outcome==="NO_GO"&&formal?"no_go":decision?.outcome==="GO"?(ok?"go":"invalid"):"unrecorded";
+ return {project,entries,checked,state,decision:formal?decision:null,historyLength:decisions.length,mapped,complete};
+}
+function renderReleases(){
+ const all=PROJECTS.map(releaseState);
+ const stats=[["Projetos",all.length],["Critérios documentados",all.reduce((n,p)=>n+p.checked,0)+" / "+(all.length*RELEASE_CRITERIA.length)],
+  ["GO registrados",all.filter(p=>p.state==="go").length],["NO-GO registrados",all.filter(p=>p.state==="no_go").length]];
+ document.getElementById("release-summary").innerHTML=stats.map(([label,n])=>'<div class="release-stat"><b>'+esc(n)+'</b><span>'+esc(label)+'</span></div>').join("");
+ const selected=all.filter(x=>releaseFilter.value==="all"||releaseFilter.value==="incomplete"&&x.checked<RELEASE_CRITERIA.length||
+  releaseFilter.value==="unrecorded"&&x.state==="unrecorded"||releaseFilter.value===x.state);
+ document.getElementById("release-note").textContent=
+  selected.length+" de "+all.length+" projetos exibidos. Registro de decisões "+
+  (releaseControl?"carregado da coleta pública; nenhuma aprovação é presumida.":"não disponível; todos permanecem sem liberação presumida.");
+ releaseCards.innerHTML=selected.length?selected.map(row=>{
+  const label=row.state==="go"?"GO documentado":row.state==="no_go"?"NO-GO registrado":
+   row.state==="invalid"?"GO sem requisitos válidos":"Sem decisão registrada";
+  const checks=row.entries.map(x=>'<div class="release-check '+(x.verified?"verified":"")+'"><span class="release-symbol">'+(x.verified?"✓":"○")+
+   '</span><div><strong>'+esc(x.label)+'</strong>'+(x.verified?'<span class="trace-label">'+esc(x.detail)+'</span>':"")+'</div>'+
+   (x.verified?'<a href="'+esc(x.evidence)+'" target="_blank" rel="noopener noreferrer">Evidência ↗</a>':'<span class="trace-label">Não registrada</span>')+'</div>').join("");
+  const d=row.decision;
+  const event=d?'<strong>'+esc(d.outcome)+"</strong> por "+esc(d.reviewer)+" em "+esc(d.recorded_at)+
+   ' · <a href="'+esc(d.reference)+'" target="_blank" rel="noopener noreferrer">Ver decisão ↗</a>'+
+   '<div>'+esc(d.reason)+'</div><div>SHA '+esc(d.sha.slice(0,12))+" · "+row.historyLength+" decisão(ões) no registro</div>":
+   "Nenhum GO ou NO-GO formal documentado neste repositório.";
+  return '<article class="release-card"><div class="release-title"><h3>'+esc(row.project.name)+'</h3><span class="release-state '+esc(row.state)+'">'+esc(label)+'</span></div>'+
+   '<p class="release-sub">'+row.checked+' de '+RELEASE_CRITERIA.length+' critérios documentados · homologação/liberação '+
+   (row.complete?"com marcos concluídos":row.mapped?"com marcos pendentes":"não totalmente mapeadas")+'</p>'+
+   '<div class="release-evidence">'+checks+'</div><div class="release-decision">'+event+'</div></article>';
+ }).join(""):'<div class="release-empty">Nenhum projeto corresponde ao filtro atual.</div>';
+}
+function exportReleaseCsv(){
+ const rows=[["Projeto","Situação GO/NO-GO","Critério","Evidência documentada","URL","Última decisão","Responsável","SHA","Referência da decisão"]];
+ PROJECTS.map(releaseState).forEach(x=>x.entries.forEach(e=>rows.push([x.project.name,x.state,e.label,e.verified?"Sim":"Não",e.evidence||"",
+  x.decision?.outcome||"",x.decision?.reviewer||"",x.decision?.sha||"",x.decision?.reference||""])));
+ const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=url;a.download="axe-go-no-go.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+releaseFilter.addEventListener("change",renderReleases);
+document.getElementById("release-export").addEventListener("click",exportReleaseCsv);
 
 /* Stage gates are curated groups of milestones, not inferred from PR counts. */
 const gateFilter=document.getElementById("gate-filter");
@@ -1241,7 +1358,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();startSnapshotPolling();
 </script>
 </body>
 </html>
