@@ -235,12 +235,12 @@ function setQualitySyncMode(value,save=true){
   return;
  }
  if(!qualityConnected()){
-  qualityStatus("aguardando conexão; nenhuma informação será presumida.");
-  return;
+  qualityStatus("aguardando conexão; retomará automaticamente ao reconectar");
+ }else{
+  qualityStatus(qualityMode==="online"?"acompanhando a conexão e a aba visível; coleta ~5 min":
+   "intervalo configurado; atualização dos dados conforme a coleta ~5 min");
+  pollQuality();
  }
- qualityStatus(qualityMode==="online"?"acompanhando a conexão e a aba visível; coleta ~5 min":
-  "intervalo configurado; atualização dos dados conforme a coleta ~5 min");
- pollQuality();
  qualityTimer=setInterval(pollQuality,QUALITY_SYNC_PERIODS[qualityMode]);
 }
 function startQualitySync(){
