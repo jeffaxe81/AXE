@@ -451,6 +451,89 @@ def extract_milestone_progress(html):
     return progress
 
 
+
+def append_progress_samples(saved, progress, observed_at=NOW):
+    """Record periodic editorial snapshots; only real observation times are admissible."""
+    parsed_now = dt.datetime.fromisoformat(observed_at.replace("Z", "+00:00"))
+    old = saved.get("progress_samples", []) if isinstance(saved, dict) else []
+    old = old if isinstance(old, list) else []
+    samples = []
+    for row in old[-700:]:
+        if not isinstance(row, dict) or set(row) != {"observed_at", "projects"}:
+            continue
+        stamp = row["observed_at"]
+        try:
+            moment = dt.datetime.fromisoformat(stamp.replace("Z", "+00:00"))
+        except (AttributeError, ValueError):
+            continue
+        if moment.tzinfo is None or not parsed_now - dt.timedelta(hours=48) <= moment < parsed_now:
+            continue
+        projects = row["projects"]
+        if not isinstance(projects, dict) or set(projects) != set(progress):
+            continue
+        if any(not isinstance(v, dict) or
+               type(v.get("completed")) is not int or type(v.get("total")) is not int or
+               v["total"] < 1 or not 0 <= v["completed"] <= v["total"] or
+               v["total"] != progress[k]["total"] for k, v in projects.items()):
+            continue
+        samples.append(row)
+    samples.sort(key=lambda row: row["observed_at"])
+    # Re-running a collector with an identical timestamp cannot create duplicate observations.
+    samples = [row for row in samples if row["observed_at"] != observed_at]
+    samples.append({"observed_at": observed_at, "projects": progress})
+    return samples[-600:]
+
+
+def hourly_progress(samples, at=NOW):
+    """Compare to the nearest genuine snapshot 60–80 minutes prior.
+
+    If the collector has not recorded an hourly baseline yet, report
+    insufficient history instead of claiming a zero-percent movement.
+    """
+    current = samples[-1]
+    now = dt.datetime.fromisoformat(at.replace("Z", "+00:00"))
+    cutoff = now - dt.timedelta(hours=1)
+    candidates = []
+    for sample in samples[:-1]:
+        try:
+            date = dt.datetime.fromisoformat(sample["observed_at"].replace("Z", "+00:00"))
+        except (KeyError, AttributeError, ValueError):
+            continue
+        if cutoff - dt.timedelta(minutes=20) <= date <= cutoff:
+            candidates.append((date, sample))
+    output = {"window_minutes": 60, "measured_at": at, "baseline_at": None,
+              "status": "insufficient_history", "portfolio": None, "projects": {}}
+    if not candidates:
+        return output
+    _, baseline = max(candidates, key=lambda item: item[0])
+    output["baseline_at"] = baseline["observed_at"]
+    output["status"] = "measured"
+
+    def comparison(previous, latest):
+        initial_done = previous["completed"]
+        initial_total = previous["total"]
+        final_done = latest["completed"]
+        final_total = latest["total"]
+        if initial_total != final_total:
+            return None
+        points = round(100 * (final_done - initial_done) / final_total, 2)
+        return {"before_percent": round(100 * initial_done / initial_total, 2),
+                "after_percent": round(100 * final_done / final_total, 2),
+                "delta_points": points, "delta_milestones": final_done - initial_done,
+                "before_completed": initial_done, "after_completed": final_done,
+                "total": final_total}
+
+    before = baseline["projects"]
+    after = current["projects"]
+    output["projects"] = {repo: comparison(before[repo], row) for repo, row in after.items()}
+    start = {"completed": sum(row["completed"] for row in before.values()),
+             "total": sum(row["total"] for row in before.values())}
+    end = {"completed": sum(row["completed"] for row in after.values()),
+           "total": sum(row["total"] for row in after.values())}
+    output["portfolio"] = comparison(start, end)
+    return output
+
+
 def append_progress_history(old, progress):
     """Append only actual changes; never manufacture intermediate dates/percentages."""
     history = old.get("progress_history", []) if isinstance(old, dict) else []
@@ -683,6 +766,8 @@ def generate(output, html_file):
         raise RuntimeError("All sources failed; keeping the previous snapshot")
     progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
     history = append_progress_history(saved, progress)
+    progress_samples = append_progress_samples(saved, progress)
+    progress_hourly = hourly_progress(progress_samples)
     version_history = merge_version_history(saved, result)
     test_history = append_test_history(saved, result)
     release_control = load_release_control(output.with_name("release-approvals.json"), html_file.read_text(encoding="utf-8"), progress)
@@ -694,7 +779,7 @@ def generate(output, html_file):
         "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
         "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
     }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history, "test_history": test_history}
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "progress_samples": progress_samples, "progress_hourly": progress_hourly, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history, "test_history": test_history}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
