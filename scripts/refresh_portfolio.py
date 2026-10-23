@@ -193,7 +193,7 @@ ANSI_ESC = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 TEST_NUM = re.compile(r"(\d[\d,]*)\s+(passed|failed|skipped|pending)\b", re.I)
 TEST_JOBS = re.compile(r"pytest|test|qualidade|quality|verify|checks", re.I)
 TEST_PYTEST_LINE = re.compile(r"(\d[\d,]*\s+(?:passed|failed|skipped)\b.*(?:\bin\s+\d+(?:\.\d+)?s\b|=+$))", re.I)
-TEST_VITEST_LINE = re.compile(r"\bTests\s*:?\s+(.{1,160})$", re.I)
+TEST_VITEST_LINE = re.compile(r"\bTests\s*:?\s+(?=\d)(.{1,160})$", re.I)
 TEST_UNITTEST = re.compile(r"\bRan\s+(\d{1,7})\s+tests?\s+in\s+[\d.]+s\b")
 TEST_JEST_LINE = re.compile(r"\bTests:\s*(.{1,160})$", re.I)
 
