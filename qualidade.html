@@ -16,6 +16,10 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 .toolbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 0}.toolbar p{color:var(--muted);font-size:12px;flex:1;min-width:250px}.actions{display:flex;gap:10px;flex-wrap:wrap}.actions button.primary{background:var(--accent);color:#102030;border:0}
 .table-wrapper{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:15px}table{width:100%;border-collapse:collapse;min-width:880px}th,td{text-align:left;padding:16px;vertical-align:top;border-bottom:1px solid var(--line)}th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.09em;background:#19293e}tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#192c41}td{font-size:13px}td strong{display:block}.dim{font-size:11px;color:var(--muted)}.pr-title{display:block;max-width:280px;overflow-wrap:anywhere}
 .pill{display:inline-block;background:#2c3a4d;color:#c3d3e5;font-size:11px;font-weight:750;border-radius:12px;padding:3px 9px;white-space:nowrap}.pill.ok{background:#203c30;color:#b9ecc3}.pill.bad{background:#492b32;color:#ffc0c8}.pill.pending{background:#463c2a;color:#f3dfa9}
+.pill.stale,.pill.error{background:#52322f;color:#ffc2ad}
+.pill.partial{background:#4c4029;color:#ffe1a1}
+.source-caption{display:block;color:var(--muted);font-size:10px;margin-top:5px}
+
 .notes{margin-top:25px;border-left:3px solid var(--accent);padding:1px 16px;color:var(--muted);font-size:13px;max-width:1050px}.notes strong{color:var(--text)}footer{font-size:12px;color:var(--muted);margin-top:45px}
 .mode-label{font-size:12px;align-self:center;color:var(--muted);font-weight:700}
 .mode-select{border:1px solid var(--line);border-radius:10px;background:#1d3247;color:var(--text);padding:10px;font:inherit;font-size:12px;max-width:100%}
@@ -44,9 +48,9 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 <button id="export" type="button">↓ Exportar CSV</button></div></div>
 <p class="sync-help">Modo Online: verifica ao voltar à aba ou reconectar e a cada 15 s. Os dados dependem da coleta do GitHub (~5 min); a consulta direta à API permanece disponível pelo botão manual.</p>
 <div class="table-wrapper" tabindex="0" aria-label="Tabela de indicadores de entrega e qualidade">
-<table><thead><tr><th scope="col">Projeto</th><th scope="col">Última PR atualizada</th><th scope="col">Situação da PR</th><th scope="col">Última CI na main</th><th scope="col">Atualização</th></tr></thead><tbody id="rows"></tbody></table></div>
+<table><thead><tr><th scope="col">Projeto</th><th scope="col">Última PR atualizada</th><th scope="col">Situação da PR</th><th scope="col">Última CI na main</th><th scope="col">Último evento</th><th scope="col">Verificação das fontes</th></tr></thead><tbody id="rows"></tbody></table></div>
 <div class="notes"><p><strong>Critérios:</strong> “integrada” significa PR efetivamente mesclada; “sucesso” significa conclusão bem-sucedida apenas da última execução do Actions retornada na main. PR fechada sem merge, execução cancelada e CI indisponível são situações diferentes. Ausência de workflow não implica falha.</p>
-<p>As consultas usam somente a API pública do GitHub, sem token. Os resultados são guardados no navegador por até 30 minutos para reduzir consultas e respeitar limites de acesso. Exportações refletem exclusivamente os dados carregados, incluindo indisponibilidades. Nenhum indicador comprova homologação ou GO de produção.</p></div>
+<p>As consultas automáticas usam o snapshot público do coletor (até cerca de cinco minutos entre coletas); a consulta manual direta usa a API pública do GitHub, sem token. Os resultados manuais são guardados no navegador por até 30 minutos. Exportações refletem exclusivamente os dados carregados, incluindo indisponibilidades. Nenhum indicador comprova homologação ou GO de produção.</p></div>
 <footer>© 2026 AXE · Painel de rastreabilidade pública · <a href="https://github.com/jeffaxe81/AXE/tree/gh-pages">Código-fonte no GitHub</a></footer>
 </main>
 <script>
@@ -60,7 +64,7 @@ const projects=[
 const ttl=30*60*1000,key="axe-delivery-quality-v1";
 const status=document.getElementById("status"),table=document.getElementById("rows");
 const refresh=document.getElementById("refresh"),exportButton=document.getElementById("export");
-let records={},retrievedAt=null;
+let records={},retrievedAt=null,qualitySourceMeta={};
 const base=id=>"https://github.com/jeffaxe81/"+encodeURIComponent(id);
 function cellText(row,value){const td=document.createElement("td");td.textContent=value;row.appendChild(td);return td}
 function badge(parent,value,kind){const tag=document.createElement("span");tag.className="pill"+(kind?" "+kind:"");tag.textContent=value;parent.appendChild(tag);return tag}
@@ -69,6 +73,30 @@ function validDate(v){return typeof v==="string"&&/^\d{4}-\d{2}-\d{2}/.test(v)?v
 function prettyDate(v){return v?new Date(v+"T12:00:00").toLocaleDateString("pt-BR"):"—"}
 function prStatus(pr){if(!pr||pr.kind==="error")return ["Indisponível",""];if(pr.kind==="none")return ["Sem PR",""];if(pr.status==="merged")return ["Integrada","ok"];if(pr.status==="open")return ["Aberta","pending"];if(pr.status==="draft")return ["Rascunho","pending"];if(pr.status==="closed")return ["Fechada sem merge",""];return ["Não verificada",""]}
 function ciStatus(ci){if(!ci||ci.kind==="error")return ["Indisponível",""];if(ci.kind==="none")return ["Sem execução",""];if(ci.status!=="completed")return ["Em andamento","pending"];if(ci.conclusion==="success")return ["Sucesso","ok"];if(["failure","timed_out","startup_failure","action_required"].includes(ci.conclusion))return ["Falha / atenção","bad"];if(ci.conclusion==="cancelled")return ["Cancelada",""];if(ci.conclusion==="skipped")return ["Ignorada",""];return ["Sem conclusão",""]}
+
+function evaluateSourceMeta(meta,now=Date.now()){
+ if(!meta||typeof meta!=="object")return {label:"Não verificada",kind:"",tooltip:"Nenhuma coleta confirmada"};
+ const verified=meta.verified_at||{},errors=meta.errors||{};
+ const points=[],missing=[],failed=[];
+ for(const key of ["prs","ci"]){
+  const stamp=Date.parse(verified[key]||"");
+  if(errors[key])failed.push(key);
+  if(Number.isFinite(stamp)&&stamp<=now+5*60*1000)points.push({key,stamp});
+  else missing.push(key);
+ }
+ if(!points.length){
+  return failed.length?{label:"Erro na coleta",kind:"error",tooltip:"Falhas: "+failed.join(", ")}:
+  {label:"Não verificada",kind:"",tooltip:"Sem timestamp de origem confirmado"};
+ }
+ const details=(meta.origin||"Fonte pública")+": "+points.map(p=>p.key+" "+new Date(p.stamp).toLocaleString("pt-BR")).join(" | ")+
+ (missing.length?" | Sem verificação: "+missing.join(", "):"")+
+ (failed.length?" | Erros: "+failed.join(", "):"");
+ if(failed.length)return {label:"Erro na coleta",kind:"error",tooltip:details};
+ if(points.some(p=>now-p.stamp>20*60*1000))return {label:"Dados antigos",kind:"stale",tooltip:details};
+ if(missing.length)return {label:"Parcial",kind:"partial",tooltip:details};
+ return {label:"Verificada",kind:"ok",tooltip:details};
+}
+
 function paint(){
  table.replaceChildren();
  let merged=0,passed=0;
@@ -80,6 +108,13 @@ function paint(){
   const tdState=cellText(tr,"");const ps=prStatus(pr);badge(tdState,ps[0],ps[1]);
   const tdCI=cellText(tr,"");const cs=ciStatus(ci);if(ci&&ci.kind==="result"){const a=link(tdCI,base(id)+"/actions/runs/"+ci.id,"");badge(a,cs[0],cs[1]);const sub=document.createElement("div");sub.className="dim";sub.textContent=ci.name;tdCI.appendChild(sub)}else badge(tdCI,cs[0],cs[1]);
   cellText(tr,prettyDate((ci&&ci.date)||(pr&&pr.date)||null));
+  const health=cellText(tr,"");
+  const report=evaluateSourceMeta(qualitySourceMeta[id]);
+  health.title=report.tooltip;
+  badge(health,report.label,report.kind);
+  const more=document.createElement("span");more.className="source-caption";
+  more.textContent=qualitySourceMeta[id]?.origin||"Sem consulta confirmada";
+  health.appendChild(more);
   table.appendChild(tr);
   if(pr&&pr.status==="merged")merged++;
   if(ci&&ci.status==="completed"&&ci.conclusion==="success")passed++;
@@ -121,7 +156,16 @@ async function update(force=false){
    const [a,b]=await Promise.allSettled([getPR(id),getCI(id)]);
    return {id,pr:a.status==="fulfilled"?a.value:{kind:"error"},ci:b.status==="fulfilled"?b.value:{kind:"error"},errors:Number(a.status==="rejected")+Number(b.status==="rejected")};
   }));
-  records={};for(const r of all)records[r.id]={pr:r.pr,ci:r.ci};
+  const checked=new Date().toISOString();
+  records={};qualitySourceMeta={};
+  for(const r of all){
+   records[r.id]={pr:r.pr,ci:r.ci};
+   qualitySourceMeta[r.id]={
+    origin:"API direta",
+    verified_at:{prs:r.pr.kind!=="error"?checked:null,ci:r.ci.kind!=="error"?checked:null},
+    errors:{...(r.pr.kind==="error"?{prs:"Falha na API"}:{}),...(r.ci.kind==="error"?{ci:"Falha na API"}:{})}
+   };
+  }
   retrievedAt=Date.now();paint();
   try{localStorage.setItem(key,JSON.stringify({at:retrievedAt,rows:records}))}catch(_){}
   const errors=all.reduce((n,r)=>n+r.errors,0);
@@ -158,10 +202,11 @@ function readQualitySnapshot(data){
   return;
  }
  if(!Number.isFinite(Date.parse(data.generated_at)))throw Error("Data inválida");
- const next={...records};
+ const next={...records},nextMeta={...qualitySourceMeta};
  let received=0,missing=0;
  for(const [id] of projects){
   const src=data.projects[id];if(!src)continue;
+  nextMeta[id]={origin:"Snapshot público",verified_at:src.verified_at||{},errors:src.errors||{}};
   const item={...(next[id]||{})};
   const latest=src.prs&&src.prs.latest;
   if(src.prs&&!src.errors?.prs){
@@ -182,7 +227,7 @@ function readQualitySnapshot(data){
   }else missing++;
   next[id]=item;
  }
- records=next;retrievedAt=Date.parse(data.generated_at);paint();
+ records=next;qualitySourceMeta=nextMeta;retrievedAt=Date.parse(data.generated_at);paint();
  const age=Date.now()-retrievedAt,old=age>20*60*1000;
  status.textContent="Verificado às "+new Date().toLocaleTimeString("pt-BR")+
   "; coleta "+new Date(retrievedAt).toLocaleString("pt-BR")+
@@ -213,6 +258,7 @@ async function pollQuality(){
   const data=await response.json();
   lastQualityCheckAt=Date.now();
   if(data.generated_at&&data.generated_at===lastQualitySnapshot){
+   paint();
    const old=Date.now()-Date.parse(data.generated_at)>20*60*1000;
    qualityStatus("verificado às "+new Date().toLocaleTimeString("pt-BR")+
     "; sem alteração desde "+new Date(data.generated_at).toLocaleString("pt-BR")+
