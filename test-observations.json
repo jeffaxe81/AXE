@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "owner": "jeffaxe81",
-  "method": "Revisao de resumos terminais em logs oficiais de jobs CI pelo conector GitHub; nao equivale a homologacao.",
+  "method": "Revisao de resumos terminais em logs oficiais de jobs CI pelo conector GitHub; nao equivale a homologacao. Categoria atribuida somente quando identificada explicitamente no nome do runner: unittest Python e Playwright E2E; demais nao classificados.",
   "observed_at": "2026-10-23T19:22:08Z",
   "projects": {
     "crm-vendas": {
@@ -21,37 +21,43 @@
           "name": "unittest Python",
           "passed": 17,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unit"
         },
         {
           "name": "Vitest contracts",
           "passed": 132,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "Vitest web",
           "passed": 643,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "Jest API shard 1",
           "passed": 526,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "Jest API shard 2",
           "passed": 579,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "Playwright end-to-end",
           "passed": 7,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "e2e"
         }
       ]
     },
@@ -72,7 +78,8 @@
           "name": "Vitest (suite observada)",
           "passed": 1366,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         }
       ]
     },
@@ -93,49 +100,57 @@
           "name": "pytest admin-api",
           "passed": 393,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest scripts",
           "passed": 127,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest ai-worker",
           "passed": 86,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest backup",
           "passed": 8,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest asterisk-agi",
           "passed": 19,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest configuracoes-web",
           "passed": 302,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest queue-api",
           "passed": 377,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         },
         {
           "name": "pytest asterisk-scripts",
           "passed": 8,
           "failed": 0,
-          "skipped": 0
+          "skipped": 0,
+          "category": "unclassified"
         }
       ]
     },
@@ -156,7 +171,8 @@
           "name": "Vitest quality",
           "passed": 112,
           "failed": 0,
-          "skipped": 1
+          "skipped": 1,
+          "category": "unclassified"
         }
       ]
     }
