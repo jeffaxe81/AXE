@@ -939,6 +939,8 @@ async function pollSnapshot(){
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    refreshProjectHealth();
+   renderTracking();
+   renderProjects();
    const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
    showSync("verificado "+syncTime(Date.now())+" · sem mudanças desde "+syncTime(lastSnapshot)+
     " · coleta ~5 min"+(stale?" · coleta antiga":""),!stale);
