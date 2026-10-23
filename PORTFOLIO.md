@@ -13,6 +13,8 @@ O site usa a branch `gh-pages` com diretório `/(root)`. Se a publicação for d
 ## Seções
 
 - **Visão geral:** resumo dos projetos e avanço de marcos.
+- **Acompanhamento online:** PRs abertas (amostra de até 12 por repositório), commits recentes, execução de CI, filtros por projeto e por tipo. Escolha um projeto para solicitar consulta direta ao GitHub; a ação é limitada para não estourar a API anônima.
+- **Versões e releases:** histórico por projeto com tags do Git e GitHub Releases publicados, tipo, notas, data/primeira observação, links de origem e exportação CSV.
 - **Projetos:** barras de avanço, marcos concluídos e pendentes e links aos repositórios.
 - **Próximas entregas:** lista de marcos ainda pendentes, filtrável por PR aberta, última CI em falha verificada ou ausência de commit registrado há 30 dias. A lista respeita a ordem editorial do plano, sem declarar prioridade ou prazo.
 - **Matriz de homologação:** quatro grupos editoriais (desenvolvimento, testes, homologação e liberação/entrega) para os nove projetos. Exibe contagem de marcos concluídos em cada grupo e CI como sinal separado, com filtros e exportação CSV.
@@ -100,6 +102,32 @@ Qualquer violação interrompe a geração de um novo snapshot, preservando o sn
 - A interface oferece filtros por situação e exportação `axe-go-no-go.csv` com critérios, evidências e última decisão.
 - Os percentuais de desenvolvimento e os estados de CI/PR permanecem independentes do histórico de liberação.
 - Consulte o [histórico de alterações do arquivo](https://github.com/jeffaxe81/AXE/commits/gh-pages/release-approvals.json) para rastrear revisões.
+
+## Acompanhamento online do desenvolvimento e versionamento (v6)
+
+A página principal oferece seções **Acompanhamento online** e **Histórico de versões e releases**, acessíveis no topo pelo menu. O painel de atividade usa dados públicos de GitHub:
+
+- últimas **12 PRs abertas** por repositório, inclusive drafts, com título, número e data de atualização. Essa quantidade é uma **amostra**, não necessariamente o total de PRs abertas;
+- até **8 commits mais recentes** por projeto exibidos na área online, com link ao commit, SHA abreviado e dia registrado;
+- última execução encontrada do CI na branch \`main\`, quando disponível, com status e link;
+- filtros por projeto e por tipo de atividade, exibidos dentro do próprio portfólio;
+- botão **Consultar GitHub agora**, ativado ao selecionar um único projeto, que consulta diretamente commits, PRs abertas, última CI e GitHub Releases (4 chamadas sem credenciais). Aplica proteção de 90 segundos para o mesmo projeto, evitando esgotar a cota pública do GitHub.
+
+O seletor global \`Manual / 15 s / 30 s / Online\` atualiza **a leitura do snapshot publicado**, não o próprio GitHub a cada 15 segundos. O coletor do GitHub Actions executa aproximadamente a cada 5 minutos, sujeito ao agendamento do GitHub. Se faltar informação, a interface não inventa atividades nem afirma que o projeto parou de ser desenvolvido. Uma atualização direta é temporária até a próxima coleta agendada.
+
+### Versionamento e histórico persistente
+
+O script em \`main/scripts/refresh_portfolio.py\` passa a consultar por repositório:
+
+1. GitHub **Releases** públicas (últimas 20) com \`tag_name\`, data original de publicação, nome, resumo, tipo estável/pré-release e link canônico;
+2. **tags Git** (últimas 30), com nome da tag e SHA de commit; sem data de lançamento inferida;
+3. histórico acumulado em \`gh-pages/portfolio-status.json\`, campo \`version_history\`. Ele preserva a data \`first_seen_at\` da primeira observação e até 60 versões históricas por projeto. Uma tag passa a ser identificada como release **somente** se o GitHub Releases confirmar a publicação, preservando a primeira observação do registro.
+
+Quando o projeto só tem uma tag, o site mostra **Tag de código**, sem declará-la versão homologada ou release lançada. Quando existe uma release oficial, mostra **Release publicada** ou **Pré-release publicada** com sua data de publicação original. Não se presumem datas para tags. Se uma tag deixa a janela das últimas 30, a entrada permanece no histórico acumulado.
+
+A página oferece filtros de projeto/tipo e exportação \`axe-historico-de-releases.csv\`. É possível rastrear alterações do snapshot pela branch \`gh-pages\`. A automação registra as versões públicas encontradas; não altera percentuais dos marcos, estados de homologação ou GO/NO-GO.
+
+Os dados são limitados a repositórios públicos previamente selecionados, sem tokens no HTML e com texto e links sanitizados. Novos projetos exigem inclusão explícita tanto na declaração \`PROJECTS\` quanto na lista \`REPOS\` do coletor.
 
 ## Atualização automática
 
