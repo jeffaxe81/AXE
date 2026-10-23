@@ -33,3 +33,11 @@ jobs:
           node-version: "22"
       - name: Checar links, HTML e JavaScript
         run: node tests/validate-pages.cjs
+      - name: Preparar testes de comportamento da main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: regression
+          persist-credentials: false
+      - name: Executar regressões de interface e controle GO/NO-GO
+        run: node regression/tests/test_dashboard.cjs index.html qualidade.html
