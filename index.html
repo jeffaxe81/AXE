@@ -103,6 +103,7 @@
     .queue-more ul{padding-left:16px;margin:12px 0 0;font-size:12px;color:#a8bbcf}
     .queue-more li{margin-bottom:5px}
     .queue-link{font-size:12px;font-weight:800;color:var(--accent);white-space:nowrap;display:inline-block;margin-top:12px}
+    .queue-links{display:flex;flex-wrap:wrap;gap:0 12px}
     .queue-empty{padding:25px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
     @media(max-width:1100px){.queue-item{grid-template-columns:minmax(140px,.8fr) minmax(0,1.5fr)}.queue-more{grid-column:1/-1}.queue-more ul{columns:2}}
     @media(max-width:650px){.queue-summary{grid-template-columns:1fr 1fr}.queue-stat:last-child{grid-column:1/-1}.queue-item{grid-template-columns:1fr;gap:8px}.queue-more{grid-column:auto}.queue-more ul{columns:1}.queue-toolbar select{width:100%}.queue-toolbar label{width:100%;margin-top:5px}}
@@ -976,6 +977,7 @@ function nextStepInfo(project,record,nowMs=Date.now()){
  const ciReliable=validRecentEvidence(record?.verified_at?.ci,record?.errors,"ci",nowMs);
  const openPrs=prsReliable&&Number.isSafeInteger(record?.prs?.open)&&record.prs.open>=0?record.prs.open:null;
  const ciResult=ciReliable&&record?.ci&&typeof record.ci.conclusion==="string"?record.ci.conclusion:null;
+ const ciRunId=ciReliable&&Number.isSafeInteger(record?.ci?.id)&&record.ci.id>0?record.ci.id:null;
  const latest=Array.isArray(record?.commits)&&!record.errors?.commits&&record.commits.length
    ?record.commits.find(x=>/^\d{4}-\d{2}-\d{2}$/.test(x?.date||""))?.date:null;
  const reference=latest||project.updated;
@@ -983,7 +985,7 @@ function nextStepInfo(project,record,nowMs=Date.now()){
  const daysOld=Number.isFinite(age)&&nowMs>=age?Math.floor((nowMs-age)/86400000):null;
  const quiet=daysOld!==null&&daysOld>=30;
  return {id:project.id,project,pending,remaining:pending.length,openPrs,ciResult,quiet,daysOld,latestDate:reference,
-   recentActivityVerified:!!latest};
+   recentActivityVerified:!!latest,ciRunUrl:ciRunId?repo(project)+"/actions/runs/"+ciRunId:null};
 }
 function queueItems(nowMs=Date.now()){
  return PROJECTS.map(p=>nextStepInfo(p,sourceRecords[p.id],nowMs)).filter(item=>item.remaining>0);
@@ -1021,7 +1023,7 @@ function renderQueue(){
   ].filter(Boolean).join("");
   return '<article class="queue-item"><div><h3 class="queue-name"><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">'+esc(p.name)+'</a></h3><span class="queue-pct">'+pct(p)+'% dos marcos mapeados</span><div class="queue-sub">Última atividade registrada: '+esc(formatDate(item.latestDate))+(item.recentActivityVerified?" · GitHub":" · cadastro")+'</div></div>'+
    '<div><div class="queue-next-label">Próximo marco listado</div><div class="queue-next-title">'+esc(item.pending[0])+'</div><div class="queue-facts">'+facts+'</div></div>'+
-   '<div><details class="queue-more"><summary>Ver todos os marcos pendentes</summary><ul>'+item.pending.map(m=>'<li>'+esc(m)+'</li>').join("")+'</ul></details><a class="queue-link" href="'+repo(p)+'/issues" target="_blank" rel="noopener noreferrer">Abrir issues ↗</a></div></article>';
+   '<div><details class="queue-more"><summary>Ver todos os marcos pendentes</summary><ul>'+item.pending.map(m=>'<li>'+esc(m)+'</li>').join("")+'</ul></details><div class="queue-links"><a class="queue-link" href="'+repo(p)+'/issues" target="_blank" rel="noopener noreferrer">Issues ↗</a><a class="queue-link" href="'+repo(p)+'/pulls" target="_blank" rel="noopener noreferrer">PRs ↗</a>'+(item.ciRunUrl?'<a class="queue-link" href="'+item.ciRunUrl+'" target="_blank" rel="noopener noreferrer">Última CI ↗</a>':'')+'</div></div></article>';
  }).join(""):'<div class="queue-empty">Nenhum projeto corresponde a este filtro. Altere o filtro ou consulte os dados novamente.</div>';
 }
 function exportQueueCsv(){
