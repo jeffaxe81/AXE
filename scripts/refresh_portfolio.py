@@ -62,14 +62,36 @@ def commits(repo):
 
 
 def prs(repo):
+    """Sample recent PRs and independently fetch current open work.
+
+    The legacy open/merged/closed counts retain their meaning: last 20 updates.
+    """
     data = api(repo, "pulls?state=all&sort=updated&direction=desc&per_page=20")
     if not isinstance(data, list):
         raise ValueError("Invalid PR response")
+    active = api(repo, "pulls?state=open&sort=updated&direction=desc&per_page=12")
+    if not isinstance(active, list):
+        raise ValueError("Invalid open PR response")
+    entries = []
+    for item in active:
+        number, url = item.get("number"), item.get("html_url")
+        if (type(number) is not int or number <= 0 or
+            url != "https://github.com/" + OWNER + "/" + repo + "/pull/" + str(number) or
+            item.get("state") != "open" or not isinstance(item.get("updated_at"), str)):
+            continue
+        entries.append({
+            "number": number, "title": short(item.get("title"), 150),
+            "url": url, "updated_at": short(item["updated_at"], 35),
+            "draft": bool(item.get("draft", False)),
+        })
     return {
         "open": sum(p.get("state") == "open" for p in data),
         "merged": sum(bool(p.get("merged_at")) for p in data),
         "closed": sum(p.get("state") == "closed" and not p.get("merged_at") for p in data),
         "sample_size": len(data),
+        "active": entries,
+        "active_sample_size": len(entries),
+        "active_limit": 12,
         "latest": ({
             "number": data[0].get("number"), "title": short(data[0].get("title")),
             "state": "merged" if data[0].get("merged_at") else data[0].get("state"),
