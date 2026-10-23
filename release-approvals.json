@@ -1,0 +1,322 @@
+{
+  "schema_version": 1,
+  "owner": "jeffaxe81",
+  "purpose": "Registro público de evidências e decisões; nenhum GO presumido",
+  "projects": {
+    "crm-vendas": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "dispatch": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "pabx-mvp": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "axe-voice-desktop": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "dispatch-v2": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "centralizador-controle": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "aderencia_tecnica": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "axe-gestao-convites": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    },
+    "central-despacho-alertas-publicacao": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
+    }
+  }
+}
