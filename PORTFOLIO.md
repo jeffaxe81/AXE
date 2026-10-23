@@ -151,6 +151,21 @@ Para cada execução com resumo reconhecido, o snapshot publica `tests.categorie
 
 A seção **Validação por release** lista GitHub Releases publicadas e as quantidades de casos só quando `test_history[].head_sha` é idêntico ao `version_history[].sha` daquela release. Se não há igualdade exata, mostra **“Não vinculados por SHA”**, sem aproveitar a última CI ou assumir que uma execução anterior validou aquela versão. O histórico é apenas o de execuções observadas pelo sistema, não um inventário completo nem comprovação de homologação ou aprovação GO.
 
+## Avanço na última hora (v9)
+
+O painel [Última hora](https://jeffaxe81.github.io/AXE/#ultima-hora) mostra **quantos pontos percentuais (p.p.) cada projeto e o portfólio avançaram** em marcos concluídos durante aproximadamente uma hora, além do número de marcos modificados e da quantidade de projetos que avançaram. A informação também aparece nos cartões dos projetos e no CSV de marcos.
+
+### Cálculo e confiabilidade
+
+- `progress_samples` conserva fotografias datadas do progresso editorial por projeto (até 600 registros/48 horas), sem criar datas retroativas.
+- `progress_hourly` compara a fotografia atual com a observação mais recente de pelo menos 60 minutos antes e no máximo 80 minutos de distância. Sem essa base, mostra **“Aguardando 1 hora de medições”**, nunca zero presumido.
+- Cada percentual = 100 × marcos concluídos / marcos cadastrados. O **avanço é a diferença em pontos percentuais**, não a variação percentual relativa. O consolidado divide a soma dos marcos concluídos pela soma dos totais, sem fazer média simples dos projetos.
+- O período e os percentuais anterior/atual são exibidos. Se um marco for reaberto, o valor pode ficar negativo. Se o snapshot tiver mais de 20 minutos, os indicadores passam a “Medição antiga”.
+- Após uma hora completa de medições válidas, **0 p.p.** indica que nenhum marco cadastrado mudou nesse período.
+- A exportação de marcos inclui `Avanco_ultima_hora_pp`, `Marcos_ultima_hora` e `Medicao_ultima_hora`, deixando vazios os campos de variação sem comparação confiável.
+
+Este indicador acompanha os **marcos editoriais de entrega**, não o volume de código, PRs, testes, homologação ou autorização GO/NO-GO. Nem um commit nem uma CI bem-sucedida alteram automaticamente a conclusão de um marco.
+
 ## Atualização automática
 
 O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
