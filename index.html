@@ -115,6 +115,32 @@
     .trace-sub{display:block;margin-top:5px}
     .tasklist li>span:last-child{min-width:0}
     @media print{#rastreio{display:none!important}}
+    .gate-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:18px}
+    .gate-stat{padding:16px;border:1px solid var(--line);border-radius:13px;background:var(--panel)}
+    .gate-stat b{font-size:27px;font-weight:850;letter-spacing:-.035em;line-height:1.1;display:block;font-variant-numeric:tabular-nums}
+    .gate-stat span{display:block;color:var(--muted);margin-top:7px;font-size:11px}
+    .gate-table{display:grid;gap:12px}
+    .gate-head,.gate-row{display:grid;grid-template-columns:minmax(135px,1.1fr) repeat(4,minmax(115px,1fr));gap:10px;align-items:start}
+    .gate-head{padding:0 16px;color:#91a6bf;font-size:11px;font-weight:780}
+    .gate-row{padding:18px 16px;background:linear-gradient(145deg,#142239,#111c2d);border:1px solid var(--line);border-radius:14px}
+    .gate-project{font-size:14px;font-weight:800;overflow-wrap:anywhere}.gate-project a:hover{text-decoration:underline}
+    .gate-project small{display:block;font-size:11px;color:var(--muted);font-weight:500;margin-top:6px}
+    .gate-cell{min-width:0}
+    .gate-cell-title{display:none}
+    .gate-status{display:inline-block;border-radius:7px;border:1px solid #405670;background:#24354a;padding:5px 8px;color:#bfd1e3;font-size:11px;font-weight:780}
+    .gate-status.complete{color:#b6ec69;border-color:#436749;background:#243f30}
+    .gate-status.pending{color:#ffd1a6;border-color:#5c493b;background:#3b302a}
+    .gate-status.unknown{color:#9fafc2;border-color:#334458;background:#253242}
+    .gate-count{margin:7px 0 0;color:#9bb1c8;font-size:10px}
+    .gate-cell details{margin-top:8px;font-size:11px;color:#a7bacf}
+    .gate-cell summary{cursor:pointer;color:#b4c9dd;font-weight:700}
+    .gate-cell ul{padding-left:14px;margin:7px 0 0}.gate-cell li{margin:5px 0}
+    .gate-ci{display:block;font-size:10px;color:#a6b9d0;margin-top:7px;overflow-wrap:anywhere}
+    .gate-ci a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+    .gate-empty{padding:25px;color:var(--muted);border:1px dashed var(--line);border-radius:14px;text-align:center}
+    @media(max-width:1200px){.gate-head{display:none}.gate-row{grid-template-columns:repeat(2,minmax(0,1fr))}.gate-project{grid-column:1/-1;padding-bottom:7px;border-bottom:1px solid var(--line)}.gate-cell-title{display:block;color:#8fa5bc;font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px;font-weight:750}}
+    @media(max-width:600px){.gate-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.gate-row{grid-template-columns:1fr}.gate-project{grid-column:1}.gate-cell{padding-bottom:8px;border-bottom:1px solid #26374a}.gate-cell:last-child{border-bottom:0}}
+    @media print{#gates{display:none!important}}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -161,6 +187,7 @@
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
       <a href="#fila"><span class="sym">☷</span><span class="nav-label">Próximas entregas</span></a>
+      <a href="#gates"><span class="sym">▣</span><span class="nav-label">Homologação</span></a>
       <a href="#rastreio"><span class="sym">⌗</span><span class="nav-label">Rastreabilidade</span></a>
       <a href="#evolucao"><span class="sym">▥</span><span class="nav-label">Evolução</span></a>
       <a href="#relatorio"><span class="sym">▤</span><span class="nav-label">Relatório</span></a>
@@ -232,6 +259,27 @@
       <p id="queue-meta" class="history-status" role="status" aria-live="polite"></p>
       <div id="queue-list" class="queue-list"></div>
       <p class="history-status">A próxima entrega é o primeiro marco ainda não concluído na lista editorial. PRs são contadas apenas entre as 20 mais recentemente atualizadas por repositório; CI e PRs exigem evidência recente. A ausência de commits por 30 dias não significa atraso. Percentuais mudam somente após revisão explícita dos marcos.</p>
+    </section>
+    <section id="gates" class="section" aria-labelledby="gate-heading">
+      <div class="section-header">
+        <div><h2 id="gate-heading">Desenvolvimento, testes e homologação</h2>
+          <p>Matriz de marcos documentados — o estado da CI é complementar e não representa aceite ou liberação.</p></div>
+        <button type="button" class="refresh-btn" id="gate-export">↓ Exportar matriz CSV</button>
+      </div>
+      <div class="gate-summary" id="gate-summary" aria-live="polite"></div>
+      <div class="queue-toolbar">
+        <label for="gate-filter">Exibir</label>
+        <select class="filter" id="gate-filter">
+          <option value="all">Todos os projetos</option>
+          <option value="homolog">Homologação documentada pendente</option>
+          <option value="release">Marco de liberação pendente</option>
+          <option value="ci-fail">Última CI com falha verificada</option>
+          <option value="unmapped">Sem marco de homologação cadastrado</option>
+        </select>
+      </div>
+      <p id="gate-description" class="history-status" role="status" aria-live="polite"></p>
+      <div class="gate-table" id="gate-table"></div>
+      <p class="history-status">Cada etapa lista apenas marcos explicitamente cadastrados. "Concluído" corresponde ao registro editorial do marco; não prova homologação externa. CI é uma medição separada, verificada por data, e não atualiza percentuais. "Não mapeado" indica ausência de marco cadastrado, não aprovação implícita.</p>
     </section>
     <section id="rastreio" class="section" aria-labelledby="tracking-title">
       <div class="section-header"><div><h2 id="tracking-title">Rastreabilidade dos marcos</h2><p>Issues e PRs vinculadas somente após revisão manual. Integração não equivale à homologação.</p></div>
@@ -368,6 +416,7 @@ const formatDate=s=>new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-d
 const EVIDENCE_IDS=["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop"];
 const MILESTONE_LINKS = {"crm-vendas":{"2":[{"kind":"pr","number":281}],"3":[{"kind":"pr","number":277}],"6":[{"kind":"issue","number":142},{"kind":"issue","number":159}]},"dispatch":{"0":[{"kind":"pr","number":118}],"1":[{"kind":"pr","number":119}],"2":[{"kind":"pr","number":115}],"4":[{"kind":"pr","number":166}]},"axe-gestao-convites":{"2":[{"kind":"pr","number":1}]},"axe-voice-desktop":{"0":[{"kind":"pr","number":1}],"4":[{"kind":"pr","number":70}],"5":[{"kind":"pr","number":76}]},"central-despacho-alertas-publicacao":{"1":[{"kind":"pr","number":9}]},"pabx-mvp":{"5":[{"kind":"pr","number":53},{"kind":"pr","number":54}]}};
 let trackingData={};
+const GATE_MATRIX = {"crm-vendas":{"dev":[0,1,2],"tests":[3,5],"homolog":[4],"release":[6]},"dispatch":{"dev":[0,1,2],"tests":[3],"homolog":[4],"release":[5]},"pabx-mvp":{"dev":[0,1,2,3,4],"tests":[],"homolog":[5],"release":[]},"axe-voice-desktop":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"dispatch-v2":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"centralizador-controle":{"dev":[0],"tests":[1,2],"homolog":[3],"release":[4]},"aderencia_tecnica":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[]},"axe-gestao-convites":{"dev":[0,1,2],"tests":[3],"homolog":[],"release":[4]},"central-despacho-alertas-publicacao":{"dev":[0,1],"tests":[2],"homolog":[3],"release":[]}};
 const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
 document.getElementById("m-projects").textContent=PROJECTS.length;
 document.getElementById("m-done").textContent=done;
@@ -811,6 +860,7 @@ function goodCommit(e){
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
+ renderGateMatrix();
  trackingData=data.tracking&&typeof data.tracking==="object"?data.tracking:{};
  refreshProjectHealth();
  renderTracking();
@@ -939,6 +989,7 @@ async function pollSnapshot(){
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    refreshProjectHealth();
+   renderGateMatrix();
    renderTracking();
    renderProjects();
    const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
@@ -1030,6 +1081,82 @@ function exportTrackedCsv(){
 document.getElementById("tracking-filter").addEventListener("change",renderTracking);
 document.getElementById("tracking-export").addEventListener("click",exportTrackedCsv);
 
+
+/* Stage gates are curated groups of milestones, not inferred from PR counts. */
+const gateFilter=document.getElementById("gate-filter");
+function gateRecord(project,now=Date.now()){
+ const groups=GATE_MATRIX[project.id];
+ const counts={};
+ for(const category of ["dev","tests","homolog","release"]){
+  const entries=groups[category]||[];
+  counts[category]={items:entries.map(index=>({index,title:project.milestones[index][0],done:project.milestones[index][1]})),
+   completed:entries.filter(i=>project.milestones[i][1]).length,total:entries.length};
+ }
+ const source=sourceRecords[project.id],ciFresh=validRecentEvidence(source?.verified_at?.ci,source?.errors,"ci",now);
+ const ci=ciFresh&&source&&Object.prototype.hasOwnProperty.call(source,"ci")?source.ci:undefined;
+ const ciState=ci===undefined?"Não verificada":ci===null?"Sem execução":ci.status!=="completed"?"Em execução":
+  ci.conclusion==="success"?"Sucesso":ci.conclusion==="failure"||ci.conclusion==="timed_out"?"Falha":ci.conclusion==="cancelled"?"Cancelada":"Sem conclusão";
+ const id=ciFresh&&Number.isSafeInteger(ci?.id)&&ci.id>0?ci.id:null;
+ return {project,counts,ciState,ciLink:id?repo(project)+"/actions/runs/"+id:null};
+}
+function gateCategoryLabel(x){
+ if(!x.total)return "Não mapeado";
+ if(x.completed===x.total)return "Marcos concluídos";
+ if(x.completed===0)return "Pendente";
+ return "Parcial";
+}
+function renderGateMatrix(){
+ const list=PROJECTS.map(p=>gateRecord(p));
+ const filtered=list.filter(item=>gateFilter.value==="all"||
+  gateFilter.value==="homolog"&&item.counts.homolog.total>item.counts.homolog.completed||
+  gateFilter.value==="release"&&item.counts.release.total>item.counts.release.completed||
+  gateFilter.value==="ci-fail"&&item.ciState==="Falha"||
+  gateFilter.value==="unmapped"&&item.counts.homolog.total===0);
+ const homologPending=list.filter(x=>x.counts.homolog.total>x.counts.homolog.completed).length;
+ const releasePending=list.filter(x=>x.counts.release.total>x.counts.release.completed).length;
+ const failing=list.filter(x=>x.ciState==="Falha").length;
+ const stats=[["Projetos monitorados",list.length],["Homologação pendente",homologPending],
+  ["Liberação pendente",releasePending],["Última CI em falha",failing]];
+ document.getElementById("gate-summary").innerHTML=stats.map(([label,n])=>'<div class="gate-stat"><b>'+n+'</b><span>'+esc(label)+'</span></div>').join("");
+ document.getElementById("gate-description").textContent=filtered.length+" de "+list.length+
+  " projetos exibidos · marcos com revisão editorial; o indicador CI exige coleta sem erro nos últimos 20 minutos.";
+ const columns=[["dev","Desenvolvimento"],["tests","Testes / verificação"],["homolog","Homologação"],["release","Liberação / entrega"]];
+ document.getElementById("gate-table").innerHTML=
+  '<div class="gate-head"><span>Projeto</span>'+columns.map(x=>'<span>'+esc(x[1])+'</span>').join("")+'</div>'+
+  (filtered.length?filtered.map(g=>{
+   const cells=columns.map(([key,title])=>{
+    const group=g.counts[key],state=!group.total?"unknown":group.completed===group.total?"complete":"pending";
+    const status=gateCategoryLabel(group);
+    const summary=group.total?group.completed+" de "+group.total+" marcos cadastrados":"Sem marcos nesta etapa";
+    const details=group.total?'<details><summary>Ver marcos</summary><ul>'+
+      group.items.map(x=>'<li>'+esc(x.done?"✓ ":"○ ")+esc(x.title)+'</li>').join("")+'</ul></details>':"";
+    const ci=key==="tests"?'<span class="gate-ci">CI: '+esc(g.ciState)+
+      (g.ciLink?' · <a href="'+g.ciLink+'" target="_blank" rel="noopener noreferrer">Execução ↗</a>':"")+'</span>':"";
+    return '<div class="gate-cell"><span class="gate-cell-title">'+esc(title)+'</span>'+
+      '<span class="gate-status '+state+'">'+esc(status)+'</span><div class="gate-count">'+esc(summary)+'</div>'+ci+details+'</div>';
+   }).join("");
+   return '<article class="gate-row"><div class="gate-project"><a target="_blank" rel="noopener noreferrer" href="'+repo(g.project)+'">'+esc(g.project.name)+' ↗</a>'+
+    '<small>'+pct(g.project)+'% dos marcos monitorados (não é homologação)</small></div>'+cells+'</article>';
+  }).join(""):'<div class="gate-empty">Nenhum projeto corresponde ao filtro selecionado.</div>');
+}
+function exportGatesCsv(){
+ const rows=[["Projeto","Etapa","Marco","Situação editorial","Última CI confirmada","Fonte"]];
+ const names={dev:"Desenvolvimento",tests:"Testes / verificação",homolog:"Homologação",release:"Liberação / entrega"};
+ for(const p of PROJECTS){
+  const gate=gateRecord(p);
+  for(const key of Object.keys(names)){
+   const items=gate.counts[key].items;
+   if(!items.length)rows.push([p.name,names[key],"Não mapeado","",gate.ciState,repo(p)]);
+   for(const item of items)rows.push([p.name,names[key],item.title,item.done?"Concluído no cadastro":"Pendente no cadastro",gate.ciState,repo(p)]);
+  }
+ }
+ const contents="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const url=URL.createObjectURL(new Blob([contents],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=url;a.download="axe-matriz-homologacao.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+gateFilter.addEventListener("change",renderGateMatrix);
+document.getElementById("gate-export").addEventListener("click",exportGatesCsv);
+
 /* Fila operacional: interpreta evidências, sem equiparar commit/PR a entrega homologada. */
 const queueFilter=document.getElementById("queue-filter");
 const queueSort=document.getElementById("queue-sort");
@@ -1114,7 +1241,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();startSnapshotPolling();
 </script>
 </body>
 </html>
