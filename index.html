@@ -166,6 +166,36 @@
     @media(max-width:1100px){.release-cards{grid-template-columns:1fr}.release-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
     @media(max-width:600px){.release-check{grid-template-columns:auto 1fr}.release-check a{grid-column:2}.release-ledger-link{margin-left:0}}
     @media print{#liberacao{display:none!important}}
+
+    .online-control{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 13px}
+    .online-control label{font-size:11px;color:var(--muted);font-weight:800}
+    .online-control .filter{max-width:none}
+    .online-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin:13px 0 16px}
+    .online-stat{padding:15px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
+    .online-stat b{font-size:24px;line-height:1.15;font-variant-numeric:tabular-nums;display:block}
+    .online-stat span{font-size:11px;color:var(--muted);display:block;margin-top:5px}
+    .online-feed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .online-event{padding:18px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(145deg,#16273b,#0f1d2f);min-width:0}
+    .online-event-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+    .online-event-type{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;border:1px solid #467067;background:#203c3c;border-radius:20px;padding:5px 8px;color:var(--accent)}
+    .online-event-type.pr{border-color:#725343;background:#3b3030;color:#ffd0ad}.online-event-type.ci{border-color:#486289;background:#28364d;color:#b4d0fd}
+    .online-event-project{font-size:11px;color:var(--muted);font-weight:700}
+    .online-event h3{font-size:15px;line-height:1.38;margin:10px 0 7px;overflow-wrap:anywhere}
+    .online-event a:hover{text-decoration:underline;text-underline-offset:3px;color:var(--accent)}
+    .online-event-meta{font-size:11px;color:#91a6bd;display:flex;flex-wrap:wrap;gap:10px}
+    .online-empty{grid-column:1/-1;text-align:center;padding:24px;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+    .versions-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .version-row{padding:18px;background:linear-gradient(145deg,#14283a,#111d30);border:1px solid var(--line);border-radius:15px;min-width:0}
+    .version-row-top{display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+    .version-row h3{font-size:18px;margin:9px 0 4px;overflow-wrap:anywhere}
+    .version-row a:hover{color:var(--accent);text-decoration:underline}
+    .version-type{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--accent);background:#213d34;border-radius:99px;padding:5px 8px}
+    .version-type.tag{color:#a8c1d6;background:#263a4d}.version-type.pre{color:#ffd1a8;background:#463a2d}
+    .version-notes{color:#9eb0c4;font-size:12px;margin:11px 0 0;line-height:1.5;overflow-wrap:anywhere}
+    .version-details{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    @media(max-width:950px){.online-feed,.versions-list{grid-template-columns:1fr}}
+    @media(max-width:650px){.online-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.online-control label{flex-basis:100%;margin-top:4px}.online-control .filter{flex:1;width:100%}}
+    @media print{#online,#versoes{display:none!important}}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -210,6 +240,8 @@
     <div class="aside-caption">Workspace</div>
     <nav class="nav">
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
+      <a href="#online"><span class="sym">◉</span><span class="nav-label">Acompanhamento online</span></a>
+      <a href="#versoes"><span class="sym">▤</span><span class="nav-label">Versões e releases</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
       <a href="#fila"><span class="sym">☷</span><span class="nav-label">Próximas entregas</span></a>
       <a href="#gates"><span class="sym">▣</span><span class="nav-label">Homologação</span></a>
@@ -253,6 +285,43 @@
     <section aria-label="Indicadores de qualidade" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 24px;background:#15283b;border:1px solid var(--line);border-radius:16px;margin-top:26px">
       <div><strong style="font-size:16px">PRs e testes — evidências consultáveis</strong><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Última PR e GitHub Actions na main, separados do progresso dos marcos.</p></div>
       <a href="./qualidade.html" style="font-weight:800;color:var(--accent);white-space:nowrap">Abrir painel de qualidade ↗</a>
+    </section>
+    <section id="online" class="section" aria-labelledby="online-heading">
+      <div class="section-header">
+        <div><h2 id="online-heading">Acompanhamento online do desenvolvimento</h2>
+          <p>PRs em andamento, commits e última CI diretamente dos repositórios públicos do GitHub.</p></div>
+        <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer" class="refresh-btn">Ver repositórios ↗</a>
+      </div>
+      <div class="online-control">
+        <label for="online-project">Projeto</label><select id="online-project" class="filter" aria-label="Projeto em acompanhamento"><option value="all">Todos os projetos</option></select>
+        <label for="online-type">Mostrar</label><select id="online-type" class="filter" aria-label="Tipo de atividade">
+          <option value="all">Todas as atividades</option><option value="pr">PRs abertas</option><option value="commit">Commits</option><option value="ci">Execuções CI</option>
+        </select>
+        <button type="button" id="online-direct" class="refresh-btn" title="Consultar diretamente quatro endpoints públicos do GitHub para o projeto escolhido">↻ Consultar GitHub agora</button>
+        <button type="button" id="online-snapshot" class="refresh-btn" title="Recarregar a fotografia publicada">↻ Atualizar painel</button>
+      </div>
+      <p class="history-status" id="online-status" role="status" aria-live="polite">Aguardando fotografia pública. Selecione um projeto para uma consulta direta.</p>
+      <div id="online-metrics" class="online-metrics"></div>
+      <div id="online-feed" class="online-feed"></div>
+      <p class="history-status">Atualização automática: use Manual, 15 s, 30 s ou Online na barra superior. Esses intervalos verificam a fotografia gerada a cada ~5 minutos. O botão “Consultar GitHub agora” faz uma consulta direta, sob demanda, de um único projeto. Mostramos somente atividades públicas; nenhuma atividade significa ausência de registros observados, não ausência de trabalho.</p>
+    </section>
+    <section id="versoes" class="section" aria-labelledby="versions-heading">
+      <div class="section-header">
+        <div><h2 id="versions-heading">Histórico de versões e releases</h2>
+          <p>Versionamento auditável por projeto, com identificação da versão, origem e data confirmada.</p></div>
+        <a href="https://github.com/jeffaxe81?tab=repositories" target="_blank" rel="noopener noreferrer" class="refresh-btn">Consultar GitHub ↗</a>
+      </div>
+      <div class="online-control">
+        <label for="versions-project">Projeto</label><select id="versions-project" class="filter" aria-label="Filtrar versões por projeto"><option value="all">Todos os projetos</option></select>
+        <label for="versions-kind">Categoria</label><select id="versions-kind" class="filter" aria-label="Filtrar versões por tipo">
+          <option value="all">Releases e tags</option><option value="release">Releases publicadas</option><option value="tag">Tags sem release</option>
+        </select>
+        <button type="button" id="versions-export" class="refresh-btn">↓ Histórico CSV</button>
+      </div>
+      <p id="versions-status" class="history-status" role="status" aria-live="polite">Histórico de versões será carregado da última coleta.</p>
+      <div id="versions-summary" class="online-metrics"></div>
+      <div id="versions-list" class="versions-list"></div>
+      <p class="history-status">Uma <strong>tag</strong> é uma referência de código e não atesta publicação nem homologação. Só é classificada como <strong>release publicada</strong> quando o GitHub Releases a registra. Para tags, a data mostrada é da primeira observação pelo coletor, não a data de criação original. O registro de versões persiste no histórico do site mesmo quando uma versão sai da janela das últimas tags consultadas.</p>
     </section>
     <section id="projetos" class="section">
       <div class="section-header"><div><h2>Projetos em destaque</h2><p>Consulte entregas realizadas, pendências e rastreabilidade por iniciativa.</p></div><span class="section-note" id="visible-count"></span></div>
@@ -909,6 +978,9 @@ function goodCommit(e){
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
+ onlineSnapshotAt=data.generated_at||null;
+ versionHistory=data.version_history&&typeof data.version_history==="object"?data.version_history:{};
+ renderOnline();renderVersions();
  releaseControl=data.release_control&&typeof data.release_control==="object"?data.release_control:null;
  renderReleases();
  renderGateMatrix();
@@ -1040,6 +1112,7 @@ async function pollSnapshot(){
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    refreshProjectHealth();
+   renderOnline();renderVersions();
    renderReleases();
    renderGateMatrix();
    renderTracking();
@@ -1274,6 +1347,161 @@ function exportGatesCsv(){
 gateFilter.addEventListener("change",renderGateMatrix);
 document.getElementById("gate-export").addEventListener("click",exportGatesCsv);
 
+
+/* GitHub online activity — public, bounded collection and explicit direct lookup. */
+let onlineSnapshotAt=null,versionHistory={},onlineOverrides={},onlineDirectBusy=false;
+const onlineProject=document.getElementById("online-project");
+const onlineType=document.getElementById("online-type");
+const versionProject=document.getElementById("versions-project");
+const versionKind=document.getElementById("versions-kind");
+PROJECTS.forEach(p=>{
+ for(const select of [onlineProject,versionProject]){
+  const option=document.createElement("option");option.value=p.id;option.textContent=p.name;select.appendChild(option);
+ }
+});
+const safeGithubActivityUrl=(id,type,token)=>"https://github.com/jeffaxe81/"+encodeURIComponent(id)+"/"+type+"/"+encodeURIComponent(token);
+function validOnlineDate(value){return typeof value==="string"&&Number.isFinite(Date.parse(value))}
+function onlineEvents(){
+ const result=[];
+ const allowed=PROJECTS.filter(p=>onlineProject.value==="all"||onlineProject.value===p.id);
+ for(const p of allowed){
+  const overrides=onlineOverrides[p.id],record=overrides?.data||sourceRecords[p.id];
+  if(!record)continue;
+  if(Array.isArray(record.prs?.active))for(const pr of record.prs.active.slice(0,12)){
+   if(!Number.isSafeInteger(pr.number)||pr.number<1||!validOnlineDate(pr.updated_at))continue;
+   result.push({id:p.id,project:p.name,type:"pr",label:pr.draft?"PR em rascunho":"PR aberta",title:String(pr.title||"PR sem título").slice(0,150),
+    url:safeGithubActivityUrl(p.id,"pull",pr.number),date:pr.updated_at,stamp:Date.parse(pr.updated_at),detail:"#"+pr.number+(pr.draft?" · Draft":"")});
+  }
+  if(Array.isArray(record.commits))for(const c of record.commits.slice(0,8)){
+   if(!/^[0-9a-f]{40}$/i.test(c?.sha||"")||!/^\d{4}-\d\d-\d\d$/.test(c?.date||""))continue;
+   result.push({id:p.id,project:p.name,type:"commit",label:"Commit registrado",title:String(c.title||"Commit").slice(0,150),
+    url:safeGithubActivityUrl(p.id,"commit",c.sha),date:c.date,stamp:Date.parse(c.date+"T00:00:00Z"),detail:c.sha.slice(0,7)+" · dia registrado"});
+  }
+  const ci=record.ci;
+  if(ci&&Number.isSafeInteger(ci.id)&&ci.id>0&&validOnlineDate(ci.updated_at)){
+   result.push({id:p.id,project:p.name,type:"ci",label:"Execução CI",title:String(ci.name||"Workflow").slice(0,120),
+    url:safeGithubActivityUrl(p.id,"actions/runs",ci.id),date:ci.updated_at,stamp:Date.parse(ci.updated_at),
+    detail:ci.status==="completed"?(ci.conclusion==="success"?"Concluída com sucesso":ci.conclusion==="failure"?"Falhou":String(ci.conclusion||"Concluída")):"Em andamento"});
+  }
+ }
+ return result.sort((a,b)=>b.stamp-a.stamp);
+}
+function renderOnline(){
+ const events=onlineEvents(),selected=onlineType.value==="all"?events:events.filter(e=>e.type===onlineType.value);
+ const repositories=onlineProject.value==="all"?PROJECTS:PROJECTS.filter(p=>p.id===onlineProject.value);
+ const collected=onlineSnapshotAt?new Date(onlineSnapshotAt).toLocaleString("pt-BR"):"não disponível";
+ const direct=onlineProject.value!=="all"?onlineOverrides[onlineProject.value]:null;
+ document.getElementById("online-status").textContent=
+  (direct?"Consulta direta do GitHub em "+new Date(direct.at).toLocaleString("pt-BR")+"; ":
+  "Fotografia GitHub publicada em "+collected+"; ")+
+  "número de PRs abertas refere-se à amostra de até 12 por repositório. Consultas de origem podem ficar indisponíveis.";
+ const entries=[["Repositórios",repositories.length],["PRs abertas (amostra)",events.filter(e=>e.type==="pr").length],
+  ["Commits listados",events.filter(e=>e.type==="commit").length],["Últimas CI localizadas",events.filter(e=>e.type==="ci").length]];
+ document.getElementById("online-metrics").innerHTML=entries.map(([name,n])=>'<div class="online-stat"><b>'+n+'</b><span>'+esc(name)+'</span></div>').join("");
+ document.getElementById("online-feed").innerHTML=selected.length?selected.slice(0,24).map(e=>
+  '<article class="online-event"><div class="online-event-top"><span class="online-event-type '+e.type+'">'+esc(e.label)+'</span><span class="online-event-project">'+esc(e.project)+'</span></div>'+
+  '<h3><a href="'+e.url+'" target="_blank" rel="noopener noreferrer">'+esc(e.title)+' ↗</a></h3>'+
+  '<div class="online-event-meta"><span>'+esc(e.detail)+'</span><span>'+esc(e.date.startsWith("20")?e.date.slice(0,19).replace("T"," "):e.date)+'</span></div></article>').join(""):
+  '<div class="online-empty">Nenhuma atividade pública encontrada neste filtro ou os dados ainda não foram coletados.</div>';
+ document.getElementById("online-direct").disabled=onlineProject.value==="all"||onlineDirectBusy;
+}
+function safeVersionUrl(p,version,kind){
+ if(typeof version!=="string"||!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/.test(version)||version.includes(".."))return null;
+ return safeGithubActivityUrl(p.id,kind==="release"?"releases/tag":"tree",version);
+}
+function versionsForProject(p){
+ const stored=Array.isArray(versionHistory[p.id])?versionHistory[p.id]:[];
+ const extra=onlineOverrides[p.id]?.versions||[];
+ const seen=new Map();
+ for(const v of stored)if(v&&["tag","release"].includes(v.kind)&&safeVersionUrl(p,v.version,v.kind))seen.set(v.version,{...v,source:"Histórico registrado"});
+ for(const v of extra)if(v&&v.kind==="release"&&safeVersionUrl(p,v.version,v.kind)){
+  const old=seen.get(v.version)||{};
+  seen.set(v.version,{...old,...v,source:"Consulta direta · aguarda registro no snapshot"});
+ }
+ return [...seen.values()].sort((a,b)=>String(b.published_at||b.first_seen_at||"").localeCompare(String(a.published_at||a.first_seen_at||""))).slice(0,60);
+}
+function allVersions(){
+ return PROJECTS.filter(p=>versionProject.value==="all"||versionProject.value===p.id).flatMap(p=>
+  versionsForProject(p).map(v=>({...v,project:p}))).sort((a,b)=>
+  String(b.published_at||b.first_seen_at||"").localeCompare(String(a.published_at||a.first_seen_at||"")));
+}
+function renderVersions(){
+ const all=allVersions(),filtered=all.filter(v=>versionKind.value==="all"||v.kind===versionKind.value);
+ const stats=[["Versões registradas",all.length],["Releases publicadas",all.filter(x=>x.kind==="release").length],
+  ["Tags sem release",all.filter(x=>x.kind==="tag").length],["Projetos com versões",new Set(all.map(x=>x.project.id)).size]];
+ document.getElementById("versions-summary").innerHTML=stats.map(([name,n])=>'<div class="online-stat"><b>'+n+'</b><span>'+esc(name)+'</span></div>').join("");
+ document.getElementById("versions-status").textContent=filtered.length+" registros exibidos · releases e tags coletadas no GitHub, com histórico preservado nas coletas seguintes. "+
+  (onlineSnapshotAt?"Snapshot "+new Date(onlineSnapshotAt).toLocaleString("pt-BR")+".":"Aguardando primeiro snapshot com versões.");
+ document.getElementById("versions-list").innerHTML=filtered.length?filtered.slice(0,50).map(v=>{
+  const url=safeVersionUrl(v.project,v.version,v.kind);
+  const kind=v.kind==="release"?(v.prerelease?"Pré-release publicada":"Release publicada"):"Tag de código";
+  const date=v.kind==="release"&&validOnlineDate(v.published_at)?"Publicação: "+new Date(v.published_at).toLocaleString("pt-BR"):
+    "Primeira observação: "+(validOnlineDate(v.first_seen_at)?new Date(v.first_seen_at).toLocaleString("pt-BR"):"não informada");
+  return '<article class="version-row"><div class="version-row-top"><span class="online-event-project">'+esc(v.project.name)+'</span>'+
+   '<span class="version-type '+(v.kind==="tag"?"tag":v.prerelease?"pre":"")+'">'+esc(kind)+'</span></div>'+
+   '<h3><a href="'+url+'" target="_blank" rel="noopener noreferrer">'+esc(v.version)+' ↗</a></h3>'+
+   '<div class="version-details"><span>'+esc(date)+'</span><span>'+esc(v.source||"GitHub")+'</span></div>'+
+   (v.notes?'<p class="version-notes">'+esc(String(v.notes).slice(0,220))+'</p>':"")+'</article>';
+ }).join(""):'<div class="online-empty">Nenhuma versão pública encontrada para este filtro. Projetos sem tags ou releases são exibidos como sem versionamento publicado.</div>';
+}
+function exportVersionsCsv(){
+ const data=[["Projeto","Versão","Tipo","Nome","Data de publicação","Primeira observação","Origem","Link"]];
+ for(const v of allVersions())data.push([v.project.name,v.version,v.kind,v.name||"",v.published_at||"",v.first_seen_at||"",v.source||"",safeVersionUrl(v.project,v.version,v.kind)]);
+ const csv="\ufeff"+data.map(cols=>cols.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const obj=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=obj;a.download="axe-historico-de-releases.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(obj),1000);
+}
+async function consultGitHubNow(){
+ const id=onlineProject.value;
+ if(onlineDirectBusy||!PROJECTS.some(p=>p.id===id))return;
+ if(!onlineAvailable()){document.getElementById("online-status").textContent="Sem conexão, consulta direta indisponível.";return}
+ const prior=onlineOverrides[id];
+ if(prior&&Date.now()-prior.at<90000){
+  document.getElementById("online-status").textContent="Consulta realizada há menos de 90 s; resultados já exibidos. Evitando limite da API pública.";
+  renderOnline();return;
+ }
+ onlineDirectBusy=true;renderOnline();
+ const base="https://api.github.com/repos/jeffaxe81/"+encodeURIComponent(id);
+ const queries=[
+  base+"/commits?sha=main&per_page=8",
+  base+"/pulls?state=open&sort=updated&direction=desc&per_page=12",
+  base+"/actions/runs?branch=main&per_page=1",
+  base+"/releases?per_page=8"
+ ];
+ try{
+  const result=await Promise.allSettled(queries.map(url=>fetchGithubJson(url)));
+  const previous=sourceRecords[id]||{};
+  const good=result.map(x=>x.status==="fulfilled"?x.value:null);
+  if(result.every(x=>x.status==="rejected"))throw Error("GitHub não respondeu às consultas");
+  const data={...previous};
+  if(Array.isArray(good[0]))data.commits=good[0].filter(c=>/^[0-9a-f]{40}$/i.test(c?.sha||"")&&
+    /^\d{4}-\d{2}-\d{2}/.test(c?.commit?.committer?.date||"")).map(c=>({
+    sha:c.sha,date:c.commit.committer.date.slice(0,10),title:String(c.commit.message||"").split("\n")[0].slice(0,150)}));
+  if(Array.isArray(good[1]))data.prs={...(data.prs||{}),active:good[1].filter(p=>p?.state==="open"&&Number.isSafeInteger(p.number)).map(p=>({
+    number:p.number,title:String(p.title||"").slice(0,150),draft:!!p.draft,updated_at:p.updated_at}))};
+  if(Array.isArray(good[2]?.workflow_runs))data.ci=good[2].workflow_runs[0]?{
+    id:good[2].workflow_runs[0].id,name:String(good[2].workflow_runs[0].name||"Workflow").slice(0,120),
+    status:good[2].workflow_runs[0].status,conclusion:good[2].workflow_runs[0].conclusion,
+    updated_at:good[2].workflow_runs[0].updated_at}:null;
+  const versions=Array.isArray(good[3])?good[3].filter(v=>!v.draft&&validOnlineDate(v.published_at)).map(v=>({
+    kind:"release",version:String(v.tag_name||"").slice(0,100),name:String(v.name||v.tag_name||"").slice(0,100),
+    published_at:v.published_at,prerelease:!!v.prerelease,notes:String(v.body||"").split("\n")[0].slice(0,220)})):[];
+  onlineOverrides[id]={data,versions,at:Date.now()};
+  renderOnline();renderVersions();
+  document.getElementById("online-status").textContent="Consulta direta de "+id+" às "+
+   new Date().toLocaleTimeString("pt-BR")+". "+result.filter(x=>x.status==="fulfilled").length+
+   " de 4 fontes responderam; falhas preservaram os dados da última coleta.";
+ }catch(error){document.getElementById("online-status").textContent="Consulta direta falhou. Veja o snapshot público ou tente após o limite da API ser renovado.";}
+ finally{onlineDirectBusy=false;document.getElementById("online-direct").disabled=onlineProject.value==="all";}
+}
+onlineProject.addEventListener("change",()=>{renderOnline();document.getElementById("online-direct").disabled=onlineProject.value==="all"});
+onlineType.addEventListener("change",renderOnline);
+versionProject.addEventListener("change",renderVersions);
+versionKind.addEventListener("change",renderVersions);
+document.getElementById("versions-export").addEventListener("click",exportVersionsCsv);
+document.getElementById("online-direct").addEventListener("click",consultGitHubNow);
+document.getElementById("online-snapshot").addEventListener("click",pollSnapshot);
+
 /* Fila operacional: interpreta evidências, sem equiparar commit/PR a entrega homologada. */
 const queueFilter=document.getElementById("queue-filter");
 const queueSort=document.getElementById("queue-sort");
@@ -1358,7 +1586,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();startSnapshotPolling();
 </script>
 </body>
 </html>
