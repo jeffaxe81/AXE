@@ -144,7 +144,7 @@
       </select>
       <span id="sync-label" role="status" aria-live="polite"> · verificando preferência…</span>
       <button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button>
-      <small class="sync-explain">Online verifica ao voltar à aba ou reconectar e a cada 15 s. Os dados só mudam após nova coleta do GitHub (agendada a cada ~5 min).</small>
+      <small class="sync-explain">Verificar agora relê o snapshot. Para consultar diretamente o GitHub, use os botões de Histórico ou Evidências. Online verifica a cada 15 s, ao retornar à aba ou reconectar; a coleta automática ocorre a cada ~5 min.</small>
     </div>
     <div class="source-summary" id="source-summary" role="status" aria-live="polite">Fontes dos projetos: aguardando primeira coleta verificada.</div>
     <section class="hero" aria-label="Introdução">
@@ -707,8 +707,7 @@ document.getElementById("export-consolidated").addEventListener("click",download
 document.getElementById("print-consolidated").addEventListener("click",()=>window.print());
 renderInsights();
 
-refreshEvidence(false);
-
+/* Fetching the GitHub API directly is opt-in via its existing button. */
 
 /* Refresh interval is a browser preference; GitHub Actions collects source evidence ~every five minutes. */
 const SNAPSHOT_RAW_URL="https://raw.githubusercontent.com/jeffaxe81/AXE/gh-pages/portfolio-status.json";
