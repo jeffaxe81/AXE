@@ -309,5 +309,47 @@ class PortfolioTests(unittest.TestCase):
         self.assertIsNone(missed["passed"])
 
 
+    def test_hourly_progress_requires_a_real_hour_old_baseline(self):
+        import datetime as dt
+        current={repo:{"completed":3, "total":5} for repo in p.REPOS}
+        t="2026-10-23T20:00:00Z"
+        first=p.append_progress_samples({},current,t)
+        self.assertEqual(len(first),1)
+        self.assertEqual(p.hourly_progress(first,t)["status"],"insufficient_history")
+        at_30="2026-10-23T20:30:00Z"
+        mid=p.append_progress_samples({"progress_samples":first},current,at_30)
+        self.assertEqual(p.hourly_progress(mid,at_30)["status"],"insufficient_history")
+        progressed={name:dict(row) for name,row in current.items()}
+        progressed["crm-vendas"]["completed"]=4
+        hour="2026-10-23T21:00:00Z"
+        last=p.append_progress_samples({"progress_samples":mid},progressed,hour)
+        self.assertEqual(p.hourly_progress(last,hour)["status"],"measured")
+        result=p.hourly_progress(last,hour)
+        self.assertEqual(result["baseline_at"],t)
+        self.assertEqual(result["projects"]["crm-vendas"]["delta_points"],20)
+        self.assertEqual(result["projects"]["dispatch"]["delta_points"],0)
+        self.assertEqual(result["portfolio"]["delta_milestones"],1)
+        self.assertEqual(result["portfolio"]["delta_points"],round(100/45,2))
+        self.assertEqual(p.append_progress_samples({"progress_samples":last},progressed,hour),last)
+        late="2026-10-23T23:00:00Z"
+        no_baseline=p.append_progress_samples({"progress_samples":first},progressed,late)
+        self.assertEqual(p.hourly_progress(no_baseline,late)["status"],"insufficient_history")
+        reduced={name:dict(row) for name,row in progressed.items()}
+        reduced["crm-vendas"]["completed"]=2
+        falling=p.append_progress_samples({"progress_samples":last},reduced,"2026-10-23T22:00:00Z")
+        self.assertLess(p.hourly_progress(falling,"2026-10-23T22:00:00Z")["portfolio"]["delta_points"],0)
+
+    def test_progress_samples_drop_invalid_or_very_old_evidence(self):
+        base={repo:{"completed":1,"total":3} for repo in p.REPOS}
+        old=[{"observed_at":"2026-10-20T00:00:00Z","projects":base},
+             {"observed_at":"yesterday","projects":base},
+             {"observed_at":"2026-10-23T19:05:00Z","projects":base},
+             {"observed_at":"2026-10-23T20:10:00Z","projects":base}]
+        samples=p.append_progress_samples({"progress_samples":old},base,"2026-10-23T20:00:00Z")
+        self.assertEqual(len(samples),2)
+        self.assertEqual(samples[-1]["observed_at"],"2026-10-23T20:00:00Z")
+        self.assertEqual(p.hourly_progress(samples,"2026-10-23T20:00:00Z")["status"],"insufficient_history")
+
+
 if __name__ == "__main__":
     unittest.main()
