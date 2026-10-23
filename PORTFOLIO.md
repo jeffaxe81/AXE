@@ -224,3 +224,9 @@ A branch `gh-pages` também possui testes e uma validação dedicada de páginas
 ## Segurança e privacidade
 
 Não incluir no HTML, JSON público ou histórico IPs internos, chaves, certificados privados, credenciais SIP, nomes de clientes não públicos ou dados pessoais. Todos os links gerados usam repositórios públicos conhecidos e URLs do GitHub.
+
+## Checklist de pendências de liberação (v11)
+
+No painel **GO / NO-GO**, cada projeto oferece um item expansível **Pendências para liberação**, calculado exclusivamente a partir do cadastro público já existente. Ele lista os critérios documentais ainda não registrados, os marcos de homologação e liberação ainda não concluídos ou não mapeados e a ausência de decisão formal ou uma decisão que precisa ser revisada.
+
+A lista também integra a exportação `axe-go-no-go.csv`. Ela é um **roteiro de verificação**, não um resultado de testes e nem prova de que o projeto está apto para produção. A lista pode estar vazia no cadastro e ainda haver dependências externas. Nenhuma pendência é concluída automaticamente por commit, PR ou CI, e nenhuma liberação é presumida.

@@ -160,6 +160,10 @@
     .release-symbol{width:15px;text-align:center;color:#ffceae;font-weight:900}
     .release-check.verified .release-symbol{color:var(--accent)}
     .release-check a{font-size:10px;color:var(--accent);font-weight:850}
+    .release-blockers{margin:10px 0 15px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#132135;color:#b4c7da;font-size:12px}
+    .release-blockers summary{cursor:pointer;font-weight:750;color:var(--ink)}
+    .release-blockers ul{margin:10px 0 0;padding-left:19px;line-height:1.65;overflow-wrap:anywhere}
+    .release-blockers li{margin:4px 0}
     .release-decision{font-size:11px;color:#b4c6d9;border-top:1px solid var(--line);padding-top:13px;line-height:1.65;overflow-wrap:anywhere}
     .release-decision a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
     .release-empty{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted);grid-column:1/-1}
@@ -1425,6 +1429,28 @@ function releaseState(project){
  const state=decision?.outcome==="NO_GO"&&formal?"no_go":decision?.outcome==="GO"?(ok?"go":"invalid"):"unrecorded";
  return {project,entries,checked,state,decision:formal?decision:null,historyLength:decisions.length,mapped,complete};
 }
+function releasePending(row){
+ const pending=[];
+ for(const entry of row.entries){
+  if(!entry.verified)pending.push("Documentar critério: "+entry.label);
+ }
+ const groups=GATE_MATRIX[row.project.id];
+ for(const [key,label] of [["homolog","homologação"],["release","liberação"]]){
+  if(!groups[key].length){
+   pending.push("Cadastrar marco de "+label+" no plano");
+  }else{
+   for(const index of groups[key]){
+    if(row.project.milestones[index][1]!==true){
+     pending.push("Concluir marco de "+label+": "+row.project.milestones[index][0]);
+    }
+   }
+  }
+ }
+ if(row.state==="invalid")pending.push("Revisar GO inconsistente com as evidências");
+ else if(row.state==="unrecorded")pending.push("Registrar decisão formal após a revisão dos requisitos");
+ else if(row.state==="no_go")pending.push("Resolver o NO-GO antes de uma nova decisão");
+ return pending;
+}
 function renderReleases(){
  const all=PROJECTS.map(releaseState);
  const stats=[["Projetos",all.length],["Critérios documentados",all.reduce((n,p)=>n+p.checked,0)+" / "+(all.length*RELEASE_CRITERIA.length)],
@@ -1441,6 +1467,10 @@ function renderReleases(){
   const checks=row.entries.map(x=>'<div class="release-check '+(x.verified?"verified":"")+'"><span class="release-symbol">'+(x.verified?"✓":"○")+
    '</span><div><strong>'+esc(x.label)+'</strong>'+(x.verified?'<span class="trace-label">'+esc(x.detail)+'</span>':"")+'</div>'+
    (x.verified?'<a href="'+esc(x.evidence)+'" target="_blank" rel="noopener noreferrer">Evidência ↗</a>':'<span class="trace-label">Não registrada</span>')+'</div>').join("");
+  const pending=releasePending(row);
+  const blockerHtml='<details class="release-blockers"><summary>Pendências para liberação ('+pending.length+')</summary>'+
+   (pending.length?'<ul>'+pending.map(text=>'<li>'+esc(text)+'</li>').join("")+'</ul>':
+    '<p>Sem pendências documentais identificadas no cadastro. A operação real ainda exige validação.</p>')+'</details>';
   const d=row.decision;
   const event=d?'<strong>'+esc(d.outcome)+"</strong> por "+esc(d.reviewer)+" em "+esc(d.recorded_at)+
    ' · <a href="'+esc(d.reference)+'" target="_blank" rel="noopener noreferrer">Ver decisão ↗</a>'+
@@ -1449,13 +1479,13 @@ function renderReleases(){
   return '<article class="release-card"><div class="release-title"><h3>'+esc(row.project.name)+'</h3><span class="release-state '+esc(row.state)+'">'+esc(label)+'</span></div>'+
    '<p class="release-sub">'+row.checked+' de '+RELEASE_CRITERIA.length+' critérios documentados · homologação/liberação '+
    (row.complete?"com marcos concluídos":row.mapped?"com marcos pendentes":"não totalmente mapeadas")+'</p>'+
-   '<div class="release-evidence">'+checks+'</div><div class="release-decision">'+event+'</div></article>';
+   '<div class="release-evidence">'+checks+'</div>'+blockerHtml+'<div class="release-decision">'+event+'</div></article>';
  }).join(""):'<div class="release-empty">Nenhum projeto corresponde ao filtro atual.</div>';
 }
 function exportReleaseCsv(){
- const rows=[["Projeto","Situação GO/NO-GO","Critério","Evidência documentada","URL","Última decisão","Responsável","SHA","Referência da decisão"]];
+ const rows=[["Projeto","Situação GO/NO-GO","Critério","Evidência documentada","URL","Última decisão","Responsável","SHA","Referência da decisão","Pendências para liberação"]];
  PROJECTS.map(releaseState).forEach(x=>x.entries.forEach(e=>rows.push([x.project.name,x.state,e.label,e.verified?"Sim":"Não",e.evidence||"",
-  x.decision?.outcome||"",x.decision?.reviewer||"",x.decision?.sha||"",x.decision?.reference||""])));
+  x.decision?.outcome||"",x.decision?.reviewer||"",x.decision?.sha||"",x.decision?.reference||"",releasePending(x).join(" | ")])));
  const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
  const a=document.createElement("a");a.href=url;a.download="axe-go-no-go.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
