@@ -186,6 +186,29 @@ assert.ok(p.elements.get("release-cards").innerHTML.includes("NO-GO registrado")
 assert.ok(p.elements.get("release-cards").innerHTML.includes("Aceite formal"));
 assert.equal(p.fn("PROJECTS.reduce((n,x)=>n+x.milestones.filter(m=>m[1]).length,0)"),releaseBefore,
  "Formal decisions never alter the editorial milestone progress");
+
+const sampleOnline=JSON.stringify({"crm-vendas":{"prs:{active:[
+  {number:17,title:"Homologar painel",updated_at:"2026-10-23T12:00:00Z",draft:false}]},
+ commits:[{sha:"f".repeat(40),date:"2026-10-23",title:"Add dashboard"}],
+ ci:{id:123,updated_at:"2026-10-23T11:30:00Z",status:"completed",conclusion:"failure",name:"CI"}}});
+p.fn("sourceRecords="+sampleOnline);
+p.fn("onlineProject.value='crm-vendas';onlineType.value='all';renderOnline()");
+assert.equal(p.fn("onlineEvents().length"),3,"One PR, one commit and one CI should appear");
+assert.ok(p.elements.get("online-feed").innerHTML.includes("Homologar painel"));
+assert.ok(p.elements.get("online-feed").innerHTML.includes("pull/17"));
+assert.ok(p.elements.get("online-feed").innerHTML.includes("commit/"));
+assert.equal(p.fn("safeVersionUrl(PROJECTS[0],'../../bad','tag')"),null);
+p.fn("versionHistory="+JSON.stringify({"crm-vendas":[
+ {version:"v0.6.1",kind:"release",name:"Stable",published_at:"2026-10-20T12:00:00Z",first_seen_at:"2026-10-21T00:00:00Z"},
+ {version:"checkpoint/safe",kind:"tag",first_seen_at:"2026-10-19T00:00:00Z"}]}));
+p.fn("versionProject.value='crm-vendas';versionKind.value='all';renderVersions()");
+assert.equal(p.fn("allVersions().length"),2);
+assert.ok(p.elements.get("versions-list").innerHTML.includes("Release publicada"));
+assert.ok(p.elements.get("versions-list").innerHTML.includes("Tag de código"));
+assert.ok(p.elements.get("versions-list").innerHTML.includes("checkpoint%2Fsafe"));
+p.fn("versionKind.value='release';renderVersions()");
+assert.ok(!p.elements.get("versions-list").innerHTML.includes("checkpoint%2Fsafe"));
+console.log("PASS: Online PR, commits, CI, tags and independently published Releases");
 console.log("PASS: fail-closed GO/NO-GO controls, CSV structure, and separate milestone progress");
 console.log("PASS: nine stage-gate matrices, explicit milestones, independent CI and release status");
 console.log("PASS: fila de próximas entregas, 9 projetos, nulidade de PR/CI desatualizadas e evidências verificadas");
