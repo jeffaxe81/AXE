@@ -59,5 +59,16 @@ jobs:
             exit 0
           fi
           git commit -m 'chore(portfolio): atualizar snapshot de projetos [skip ci]'
-          git pull --rebase origin gh-pages
-          git push origin HEAD:gh-pages
+          # Reconcile parallel Pages writes from docs edits and the scheduler.
+          for attempt in 1 2 3 4; do
+            git fetch origin gh-pages
+            git rebase origin/gh-pages
+            if git push origin HEAD:gh-pages; then
+              echo 'Snapshot publicado com sucesso.'
+              exit 0
+            fi
+            echo "Push simultâneo; repetindo tentativa ${attempt}/4."
+            sleep "${attempt}"
+          done
+          echo 'Falha ao publicar snapshot após quatro tentativas.' >&2
+          exit 1
