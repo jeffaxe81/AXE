@@ -138,65 +138,8 @@ def append_progress_history(old, progress):
 
 
 def extract_milestone_links(html, progress):
-    """Only explicit, reviewed GitHub references; no fuzzy auto-matching."""
-    m = re.search(r'^const MILESTONE_LINKS = (\{[^\n]+\});
-    old = {}
-    saved = {}
-    if output.is_file():
-        try:
-            saved = json.loads(output.read_text(encoding="utf-8"))
-            if saved.get("schema_version") == 1:
-                old = saved.get("projects") or {}
-            else:
-                saved = {}
-        except (OSError, ValueError, TypeError):
-            pass
-    result = {}
-    failures = []
-    for repo in REPOS:
-        prev = old.get(repo, {}) if isinstance(old.get(repo), dict) else {}
-        item = {"errors": {}, "verified_at": {}}
-        for key, getter in (("commits", commits), ("prs", prs), ("ci", ci)):
-            try:
-                item[key] = getter(repo)
-                item["verified_at"][key] = NOW
-            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, KeyError, TypeError) as exc:
-                item[key] = prev.get(key)
-                item["verified_at"][key] = (prev.get("verified_at") or {}).get(key)
-                item["errors"][key] = type(exc).__name__
-                failures.append(repo + ":" + key)
-        result[repo] = item
-    # Prevent an empty successful-looking collection when every source is down.
-    if not any(
-        item.get("commits") is not None or item.get("prs") is not None or item.get("verified_at", {}).get("ci")
-        for item in result.values()
-    ):
-        raise RuntimeError("All sources failed; keeping the previous snapshot")
-    progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
-    history = append_progress_history(saved, progress)
-    links = extract_milestone_links(html_file.read_text(encoding="utf-8"), progress)
-    tracking = collect_tracking(links, saved.get("tracking", {}))
-    # Public audit trail: numeric run ID only, no tokens or runner secrets.
-    run_id = os.environ.get("GITHUB_RUN_ID", "")
-    collector = {
-        "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
-        "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
-    }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking}
-    output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
-    print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
-    if failures:
-        print("Unavailable:", ", ".join(failures), file=sys.stderr)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--output", required=True, type=pathlib.Path)
-    parser.add_argument("--html", required=True, type=pathlib.Path)
-    args = parser.parse_args()
-    generate(args.output, args.html)
-, html, re.M)
+    """Read strictly typed, explicit references from the reviewed page."""
+    m = re.search(r'^const MILESTONE_LINKS = (\{[^\n]+\});$', html, re.M)
     if not m:
         raise ValueError("MILESTONE_LINKS literal missing")
     links = json.loads(m.group(1))
@@ -209,7 +152,7 @@ if __name__ == "__main__":
         for key, refs in items.items():
             if not isinstance(key, str) or not key.isdecimal() or str(int(key)) != key or int(key) >= progress[repo]["total"]:
                 raise ValueError("Invalid milestone index")
-            if not isinstance(refs, list) or len(refs) not in (1, 2, 3):
+            if not isinstance(refs, list) or not 1 <= len(refs) <= 3:
                 raise ValueError("Invalid milestone references")
             seen = set()
             for ref in refs:
@@ -298,13 +241,15 @@ def generate(output, html_file):
         raise RuntimeError("All sources failed; keeping the previous snapshot")
     progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
     history = append_progress_history(saved, progress)
+    links = extract_milestone_links(html_file.read_text(encoding="utf-8"), progress)
+    tracking = collect_tracking(links, saved.get("tracking", {}))
     # Public audit trail: numeric run ID only, no tokens or runner secrets.
     run_id = os.environ.get("GITHUB_RUN_ID", "")
     collector = {
         "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
         "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
     }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector}
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
