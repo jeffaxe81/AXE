@@ -206,6 +206,106 @@ def collect_tracking(mapping, previous):
     return results
 
 
+RELEASE_CHECKS = ("functional", "security", "data", "rollback", "approval")
+EVIDENCE_URL_RE = re.compile(
+    r"^https://github\.com/jeffaxe81/([A-Za-z0-9_-]+)/"
+    r"(?:pull/[1-9][0-9]*|issues/[1-9][0-9]*|commit/[a-fA-F0-9]{40}|actions/runs/[1-9][0-9]*)$"
+)
+
+
+def safe_public_reference(repo, value):
+    if not isinstance(value, str) or len(value) > 300:
+        return False
+    m = EVIDENCE_URL_RE.fullmatch(value)
+    return bool(m and m.group(1) == repo)
+
+
+def iso_timestamp(value):
+    if not isinstance(value, str) or len(value) != 20 or not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", value):
+        raise ValueError("Evidence and decision timestamps must be UTC ISO-8601")
+    try:
+        parsed = dt.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=dt.timezone.utc)
+    except ValueError as exc:
+        raise ValueError("Invalid ISO timestamp") from exc
+    if parsed > dt.datetime.now(dt.timezone.utc) + dt.timedelta(minutes=5):
+        raise ValueError("Future-dated evidence is forbidden")
+    return parsed
+
+
+def load_release_control(path, html, progress):
+    """Validate public decision ledger before publishing. Missing/invalid data fails closed."""
+    source = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(source, dict) or set(source) != {"schema_version", "owner", "purpose", "projects"}:
+        raise ValueError("Unexpected release ledger schema")
+    if type(source["schema_version"]) is not int or source["schema_version"] != 1 or source["owner"] != OWNER:
+        raise ValueError("Invalid release ledger owner or version")
+    if not isinstance(source["purpose"], str) or len(source["purpose"]) > 180:
+        raise ValueError("Invalid ledger description")
+    projects = source["projects"]
+    if not isinstance(projects, dict) or set(projects) != set(REPOS):
+        raise ValueError("Release ledger must enumerate exactly monitored repositories")
+    gate_match = re.search(r'^const GATE_MATRIX = (\{[^\n]+\});$', html, re.M)
+    if not gate_match:
+        raise ValueError("Reviewed stage gate map required")
+    gates = json.loads(gate_match.group(1))
+    if set(gates) != set(REPOS):
+        raise ValueError("Stage gate and release ledger project mismatch")
+    for repo, row in projects.items():
+        if not isinstance(row, dict) or set(row) != {"checks", "decisions"}:
+            raise ValueError("Unexpected project release fields")
+        checks = row["checks"]
+        if not isinstance(checks, dict) or set(checks) != set(RELEASE_CHECKS):
+            raise ValueError("Missing or unexpected release criterion")
+        for key, entry in checks.items():
+            if not isinstance(entry, dict) or set(entry) != {"status", "evidence", "note", "verified_at"}:
+                raise ValueError("Invalid release check payload")
+            status = entry["status"]
+            if status == "not_recorded":
+                if any(entry[field] is not None for field in ("evidence", "note", "verified_at")):
+                    raise ValueError("Unverified release criterion cannot show evidence")
+            elif status == "verified":
+                if not safe_public_reference(repo, entry["evidence"]):
+                    raise ValueError("Verified criterion requires a canonical same-repo GitHub reference")
+                note = entry["note"]
+                if not isinstance(note, str) or not 8 <= len(note.strip()) <= 400 or "\n" in note:
+                    raise ValueError("Verified criterion requires a useful public note")
+                iso_timestamp(entry["verified_at"])
+            else:
+                raise ValueError("Invalid release check status")
+        events = row["decisions"]
+        if not isinstance(events, list) or len(events) > 30:
+            raise ValueError("Decision history must be a bounded array")
+        previous = None
+        for event in events:
+            if not isinstance(event, dict) or set(event) != {"outcome", "reviewer", "recorded_at", "sha", "reference", "reason"}:
+                raise ValueError("Invalid decision event fields")
+            if event["outcome"] not in ("GO", "NO_GO"):
+                raise ValueError("Decision must explicitly be GO or NO_GO")
+            if not isinstance(event["reviewer"], str) or not re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})", event["reviewer"]):
+                raise ValueError("Decision reviewer must be a GitHub handle")
+            if not isinstance(event["sha"], str) or not re.fullmatch(r"[a-f0-9]{40}", event["sha"]):
+                raise ValueError("Decision must reference a specific code SHA")
+            if not safe_public_reference(repo, event["reference"]):
+                raise ValueError("Decision requires same-repo public GitHub evidence")
+            if not isinstance(event["reason"], str) or not 15 <= len(event["reason"].strip()) <= 400 or "\n" in event["reason"]:
+                raise ValueError("Decision needs an explicit, concise rationale")
+            stamp = iso_timestamp(event["recorded_at"])
+            if previous is not None and stamp <= previous:
+                raise ValueError("Decision events must be strictly chronological")
+            previous = stamp
+            if event["outcome"] == "GO":
+                if any(v["status"] != "verified" for v in checks.values()):
+                    raise ValueError("GO requires all five documented evidence checks")
+                for key in ("homolog", "release"):
+                    indices = gates[repo].get(key)
+                    if not isinstance(indices, list) or not indices or any(type(i) is not int or i >= progress[repo]["total"] or i < 0 for i in indices):
+                        raise ValueError("GO requires mapped homologation and release milestones")
+                # Completed milestone booleans are checked below without JavaScript execution.
+                if not all(iso_timestamp(v["verified_at"]) <= stamp for v in checks.values()):
+                    raise ValueError("GO must postdate all release evidence")
+    return source
+
+
 def generate(output, html_file):
     old = {}
     saved = {}
@@ -241,6 +341,7 @@ def generate(output, html_file):
         raise RuntimeError("All sources failed; keeping the previous snapshot")
     progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
     history = append_progress_history(saved, progress)
+    release_control = load_release_control(output.with_name("release-approvals.json"), html_file.read_text(encoding="utf-8"), progress)
     links = extract_milestone_links(html_file.read_text(encoding="utf-8"), progress)
     tracking = collect_tracking(links, saved.get("tracking", {}))
     # Public audit trail: numeric run ID only, no tokens or runner secrets.
@@ -249,7 +350,7 @@ def generate(output, html_file):
         "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
         "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
     }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking}
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking, "release_control": release_control}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
