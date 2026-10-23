@@ -166,6 +166,27 @@ assert.ok(p.elements.get("gate-table").innerHTML.includes("Homologação"));
 assert.ok(p.elements.get("gate-table").innerHTML.includes("Não mapeado"));
 assert.ok(p.elements.get("gate-summary").innerHTML.includes("Liberação pendente"));
 p.fn("sourceRecords={}");
+
+const releaseBefore=p.fn("PROJECTS.reduce((n,x)=>n+x.milestones.filter(m=>m[1]).length,0)");
+assert.equal(releaseBefore,30);
+assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded","Unknown is not GO");
+const notReady=JSON.stringify({schema_version:1,owner:"jeffaxe81",projects:{
+  "crm-vendas":{checks:{},decisions:[{outcome:"GO",reviewer:"release-reviewer",
+   recorded_at:"2026-10-23T15:40:00Z",sha:"a".repeat(40),
+   reference:"https://github.com/jeffaxe81/crm-vendas/pull/281",
+   reason:"Test approval must not bypass missing evidence"}]}
+}});
+p.fn("releaseControl="+notReady);
+assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"invalid","A GO without all controls stays invalid");
+p.fn("releaseControl.projects['crm-vendas'].decisions[0].outcome='NO_GO'");
+assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"no_go");
+p.fn("document.getElementById('release-filter').value='all'; renderReleases()");
+assert.ok(p.elements.get("release-summary").innerHTML.includes("Critérios documentados"));
+assert.ok(p.elements.get("release-cards").innerHTML.includes("NO-GO registrado"));
+assert.ok(p.elements.get("release-cards").innerHTML.includes("Aceite formal"));
+assert.equal(p.fn("PROJECTS.reduce((n,x)=>n+x.milestones.filter(m=>m[1]).length,0)"),releaseBefore,
+ "Formal decisions never alter the editorial milestone progress");
+console.log("PASS: fail-closed GO/NO-GO controls, CSV structure, and separate milestone progress");
 console.log("PASS: nine stage-gate matrices, explicit milestones, independent CI and release status");
 console.log("PASS: fila de próximas entregas, 9 projetos, nulidade de PR/CI desatualizadas e evidências verificadas");
 console.log("PASS: HTML JavaScript, manual/15s/30s/online timers and 10 freshness scenarios");
