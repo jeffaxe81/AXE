@@ -50,6 +50,57 @@ O cadastro inicial da matriz cobre os nove projetos e os 50 marcos listados. Par
 
 A rastreabilidade agora contempla **15 vínculos**. Além dos já verificados para CRM, AXE Dispatch, AXE Voice, Gestão de Convites e Central de Alertas, foram adicionadas referências públicas para validação SIP e mídia SRTP do PABX (PRs #53/#54), para a base SIP e homologação LAB do AXE Voice (PRs #70/#76) e para a homologação diferencial do Dispatch (PR #166). PR aberta indica trabalho ainda sujeito a revisão; **não** equivale a homologação concluída.
 
+## Controle documental de GO / NO-GO (v5)
+
+A seção **GO / NO-GO** do site oferece uma trilha de evidências obrigatórias e um histórico de decisões por projeto. A fonte canônica é [`release-approvals.json`](https://github.com/jeffaxe81/AXE/blob/gh-pages/release-approvals.json), na branch `gh-pages`. Ela começa deliberadamente **sem aprovações** para os nove projetos. "Sem decisão registrada" **não** equivale a NO-GO formal; significa apenas ausência de um GO ou NO-GO documentado.
+
+Os cinco critérios explícitos são:
+
+1. `functional` — testes funcionais e de integração documentados.
+2. `security` — revisão de segurança e privacidade.
+3. `data` — tratamento de dados, continuidade e recuperação, quando aplicáveis.
+4. `rollback` — implantação e retorno seguro, quando aplicáveis.
+5. `approval` — aceite ou aprovação formal registrada.
+
+Cada critério deve ficar como `not_recorded` com `evidence`, `note` e `verified_at` nulos, ou `verified` com URL pública do **mesmo repositório**, uma nota útil (8–400 caracteres) e data UTC `YYYY-MM-DDTHH:MM:SSZ`. Não existe aprovação implícita nem critério automaticamente concluído porque uma PR foi integrada ou um workflow passou.
+
+### Histórico de decisões
+
+O campo `decisions` é uma lista ordenada, inicialmente vazia, de eventos declarativos. Um evento exige todos os campos abaixo; exemplos dos tipos, não de uma aprovação real:
+
+```json
+{
+  "outcome": "NO_GO",
+  "reviewer": "github-reviewer",
+  "recorded_at": "2026-10-23T15:40:00Z",
+  "sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "reference": "https://github.com/jeffaxe81/crm-vendas/issues/159",
+  "reason": "Pendentes testes de ambiente e aprovação documentada antes da liberação."
+}
+```
+
+O exemplo acima é **fictício**: nunca deve ser copiado como decisão real. `reviewer` identifica um perfil declarado, não é uma assinatura criptográfica. Para decisões reais, registre quem aprovou, a evidência original e o SHA efetivo da versão avaliada. Mantenha os eventos anteriores para consulta, não os substitua.
+
+Para aceitar `GO`, o coletor exige simultaneamente:
+
+- os **cinco critérios** no estado `verified`, cada um com evidência pública, nota e data;
+- marco(s) de **homologação e liberação** explicitamente mapeados e marcados concluídos no `GATE_MATRIX` e `PROJECTS`;
+- data da decisão posterior às datas das evidências;
+- responsável declarado, justificativa, URL pública do GitHub e SHA específico.
+
+Qualquer violação interrompe a geração de um novo snapshot, preservando o snapshot anterior; a interface deve falhar para a posição **sem liberação presumida**. Uma declaração `NO_GO` explícita pode ser registrada sem essas aprovações, com justificativa e referência. O painel diferencia `GO documentado`, `NO-GO registrado`, `Sem decisão registrada` e `GO sem requisitos válidos`.
+
+> **Atenção:** o controle é declarativo e auditável pelo histórico do GitHub, mas não constitui verificação externa independente de que o serviço foi implantado, homologado ou está em operação. Os responsáveis, as evidências e a conformidade de cada decisão ainda exigem revisão humana.
+
+### Publicação e segurança
+
+- Edite `release-approvals.json` em uma alteração revisada da branch do site, sem inserir credenciais, segredos, nomes de clientes privados ou dados sensíveis.
+- O coletor valida o arquivo e republica a seção no próximo ciclo agendado (~5 minutos), caso os dados estejam consistentes.
+- As evidências aceitas têm URLs HTTPS canônicas de `pull/N`, `issues/N`, `commit/SHA` ou `actions/runs/N` dentro do **mesmo repositório público**.
+- A interface oferece filtros por situação e exportação `axe-go-no-go.csv` com critérios, evidências e última decisão.
+- Os percentuais de desenvolvimento e os estados de CI/PR permanecem independentes do histórico de liberação.
+- Consulte o [histórico de alterações do arquivo](https://github.com/jeffaxe81/AXE/commits/gh-pages/release-approvals.json) para rastrear revisões.
+
 ## Atualização automática
 
 O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
