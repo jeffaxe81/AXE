@@ -166,6 +166,26 @@ O painel [Última hora](https://jeffaxe81.github.io/AXE/#ultima-hora) mostra **q
 
 Este indicador acompanha os **marcos editoriais de entrega**, não o volume de código, PRs, testes, homologação ou autorização GO/NO-GO. Nem um commit nem uma CI bem-sucedida alteram automaticamente a conclusão de um marco.
 
+## Comparativo 1h, 6h, 24h e atividade pública (v10)
+
+A seção [Avanço e atividade recente](https://jeffaxe81.github.io/AXE/#ultima-hora) dispõe de seletor de período **última hora, últimas seis horas, últimas 24 horas**.
+
+### Avanço comprovável de marcos
+
+O coletor publica `progress_windows` com chaves `60`, `360` e `1440` (minutos), calculado sobre `progress_samples`. Para cada período, exige uma fotografia anterior **pelo menos** N minutos antes e **no máximo** N+20 minutos antes; se a primeira medição ainda não existe ou o GitHub Actions ficou muito tempo sem coletar, o quadro mostra **sem histórico suficiente** e não finge zero. O indicador de 1h mantém `progress_hourly` por compatibilidade. Cada cartão exibe a diferença entre percentuais anteriores e atuais, em **pontos percentuais** (p.p.), o saldo dos marcos e a hora efetivamente observada. Com snapshot mais antigo que 20 minutos, esconde os números como obsoletos.
+
+### Atividade de desenvolvimento — separada do avanço
+
+Na mesma seção, o coletor reúne *eventos públicos*, incluindo a hora original de cada commit na `main` e os horários de atualização das últimas 20 PRs (abertas, fechadas ou mescladas) na ordem de atualização. A área de atividade apresenta por período:
+
+- **Commits na main**, dos últimos 100 commits consultados por repositório, respeitando o horário UTC original.
+- **PRs atualizadas**, das últimas 20 PRs consultadas, independentemente de estarem abertas ou mescladas; atualizar uma PR não prova que foi implementada, revisada ou integrada.
+- **Última CI recente**, que indica se a execução de CI mais recente retornada na branch `main` foi atualizada no período. Não é o total de CIs executadas.
+
+Os indicadores mostram disponibilidade por repositório e deixam como `—` fontes sem coleta recente. Se a janela das últimas 100 commits ou 20 PRs estiver cheia e o evento mais antigo ainda estiver dentro do período, o cartão do projeto mostra **≥N**, pois o número real pode ser maior. As atividades não alteram os percentuais dos marcos, nem significam GO / homologação.
+
+**Precisão:** os dados de atividade são exibidos com base na última coleta da API, com verificação de hora UTC e atualização nos intervalos de snapshot. O seletor de 15/30 segundos da interface consulta a fotografia publicada, não solicita a API pública inteira nesse ritmo.
+
 ## Atualização automática
 
 O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
