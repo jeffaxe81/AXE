@@ -33,6 +33,9 @@ jobs:
       - name: Validar parser de marcos e regressões
         run: python3 -m unittest discover -s source/tests -p 'test_portfolio.py' -v
 
+      - name: Validar interface e modos de atualização
+        run: node source/tests/test_dashboard.cjs pages/index.html pages/qualidade.html
+
       - name: Coletar dados públicos dos projetos
         env:
           GITHUB_TOKEN: ${{ github.token }}
