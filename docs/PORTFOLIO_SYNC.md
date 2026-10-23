@@ -1,3 +1,19 @@
+## Opções de atualização (interface)
+
+O seletor está presente tanto no portfólio quanto em "PRs & CI", usa a mesma preferência salva no navegador (`localStorage`) e oferece:
+
+| Opção | Funcionamento |
+| --- | --- |
+| **Manual** | Não agenda consultas. Use **Verificar agora** para ler o snapshot; na página de qualidade, **Consultar API manualmente** permite verificar diretamente o GitHub. |
+| **Automático · 15 s** | A página lê o snapshot a cada 15 segundos enquanto estiver visível. |
+| **Automático · 30 s** | A página lê o snapshot a cada 30 segundos enquanto estiver visível. |
+| **Online · acompanhar** | Lê o snapshot a cada 15 segundos e imediatamente ao retornar à aba ou recuperar a conexão. Não é um fluxo instantâneo do servidor. |
+
+A alteração de modo cancela o timer anterior (não acumula vários agendamentos); o botão **Verificar agora** continua disponível em todos os modos. Caso não haja internet, os dados exibidos anteriormente são preservados e a verificação retorna quando a conexão se restabelece. Guias em segundo plano não executam as checagens periodicamente.
+
+**Importante:** os 15/30 segundos e o modo Online são intervalos de **consulta da página**. A coleta de novos dados dos repositórios continua agendada no GitHub Actions a cada aproximadamente **cinco minutos** e pode atrasar por limitações do GitHub ou de cache. Para atualização realmente instantânea seria necessário um serviço de backend/webhooks, fora da arquitetura estática atual.
+
+
 # AXE Delivery Hub — sincronização automática
 
 ## Frequências
