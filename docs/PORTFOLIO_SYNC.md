@@ -19,14 +19,14 @@ A alteração de modo cancela o timer anterior (não acumula vários agendamento
 ## Frequências
 
 - **15 segundos:** páginas index.html e qualidade.html consultam o arquivo bruto público da branch gh-pages pelo domínio raw.githubusercontent.com, com cache-busting. Isso dispensa novos builds do Pages apenas para atualizar o JSON enquanto a guia estiver ativa. Uma guia suspensa é sincronizada ao voltar.
-- **Aproximadamente 5 minutos:** o GitHub Actions do repositório AXE consulta os nove repositórios públicos e grava um novo JSON na branch gh-pages.
+- **Aproximadamente 5 minutos:** o GitHub Actions do repositório AXE consulta os nove repositórios públicos e grava um novo JSON na branch gh-pages; o gatilho de push em main roda o coletor quando código, testes ou workflow são modificados.
 - Agendamentos do GitHub podem atrasar e a implantação do Pages pode levar mais tempo. O site avisa quando a coleta está há mais de 20 minutos sem atualização.
 - **15 segundos não significa dados novos a cada 15 segundos.** O navegador checa a origem; novas evidências dependem da coleta agendada e da publicação.
 
 ## Ativação e operação
 
 1. Verifique Settings → Actions → General → Workflow permissions. Para publicar automaticamente na gh-pages, o token do Actions precisa de permissão de escrita no conteúdo.
-2. Em Actions → Atualizar portfólio AXE, execute Run workflow na branch main para iniciar a primeira coleta, se o acionamento manual estiver habilitado.
+2. Em Actions → Atualizar portfólio AXE, use Run workflow na branch main para uma coleta sob demanda, se o acionamento manual estiver habilitado. O workflow também executa por mudanças no código na main e por cron `3-58/5 * * * *` (UTC, aprox. a cada 5 minutos).
 3. Verifique o arquivo portfolio-status.json atualizado na gh-pages e, em Settings → Pages, confirme Deploy from a branch → gh-pages / (root), para servir as páginas HTML. O JSON atualizado é lido diretamente do GitHub Raw, independentemente da recompilação do Pages.
 4. O botão Verificar agora lê o arquivo público; ele não aciona uma nova execução do workflow.
 
@@ -44,7 +44,7 @@ A alteração de modo cancela o timer anterior (não acumula vários agendamento
 
 - O coletor extrai apenas listas literais de marcos de `gh-pages/index.html` (não executa JavaScript). A estrutura é validada por testes; um formato incompatível interrompe a publicação para evitar números inventados.
 - O arquivo público `portfolio-status.json` contém `progress` e `progress_history`. Uma nova fotografia é gravada **somente quando** o total ou a quantidade concluída de algum projeto muda.
-- A linha de base revisada em **22/10/2026** possui 9 projetos e 30 de 50 marcos concluídos (60%). O campo `generated_at` permanece nulo até a primeira coleta automática bem-sucedida: a linha de base não comprova sincronização.
+- A linha de base revisada em **22/10/2026** possui 9 projetos e 30 de 50 marcos concluídos (60%). A coleta foi executada com sucesso em **22/10/2026 às 22h07, horário de Brasília**, na [execução GitHub Actions #39882141685](https://github.com/jeffaxe81/AXE/actions/runs/39882141685). O campo `generated_at` indica a coleta mais recente; não representa homologação dos projetos.
 - O gráfico de evolução mostra somente os pontos históricos efetivamente registrados, sem interpolar progresso de datas antigas. O histórico tem um limite de 365 mudanças, não 365 dias.
 - O site consulta o JSON a cada 15 segundos, mas **não há garantia de dado novo** nesse intervalo; o GitHub Actions é agendado a cada cinco minutos, sujeito a atrasos e às permissões do repositório.
 
@@ -62,6 +62,7 @@ A alteração de modo cancela o timer anterior (não acumula vários agendamento
 - main: .github/workflows/portfolio-refresh.yml e scripts/refresh_portfolio.py
 - gh-pages: index.html, qualidade.html e portfolio-status.json
 - JSON consumido: https://raw.githubusercontent.com/jeffaxe81/AXE/gh-pages/portfolio-status.json
+- O JSON agora inclui `collector.run_url` (link da execução que produziu o snapshot) e `collector.trigger` (`push`, `schedule` ou `workflow_dispatch`). Esse link aparece nos dois painéis quando validado.
 - Commits enviados por GitHub Actions com GITHUB_TOKEN não disparam build de Pages; por isso o navegador consulta o JSON bruto. A CDN pode introduzir algum atraso.
 
-Se o GitHub Actions estiver desativado ou não tiver permissão para escrita, o JSON inicial permanece com generated_at nulo. A interface avisa e mantém botões para verificação manual.
+Caso GitHub Actions seja desativado ou perca a permissão de escrita, as verificações continuam mostrando o último snapshot, com aviso de dados antigos após 20 minutos. A validação de continuidade depende da observação de execuções **schedule** concluídas, não apenas de execuções disparadas por **push**.
