@@ -34,5 +34,42 @@ class PortfolioTests(unittest.TestCase):
             p.extract_milestone_progress('const PROJECTS = [{id:"broken", milestones:[["fake",true]]}];')
 
 
+    def test_curated_evidence_links_are_bounded(self):
+        page = pathlib.Path(__file__).resolve().parents[2] / "pages" / "index.html"
+        html = page.read_text(encoding="utf-8")
+        progress = p.extract_milestone_progress(html)
+        links = p.extract_milestone_links(html, progress)
+        self.assertEqual(sum(len(refs) for m in links.values() for refs in m.values()), 10)
+        self.assertEqual(links["crm-vendas"]["2"], [{"kind": "pr", "number": 281}])
+        self.assertEqual(links["axe-gestao-convites"]["2"], [{"kind": "pr", "number": 1}])
+
+    def test_curated_evidence_link_validation_rejects_bad_data(self):
+        progress = {"crm-vendas": {"completed": 0, "total": 2}}
+        for payload in (
+            '{"crm-vendas":{"2":[{"kind":"pr","number":1}]}}',
+            '{"crm-vendas":{"1":[{"kind":"pr","number":0}]}}',
+            '{"crm-vendas":{"1":[{"kind":"url","number":5}]}}',
+            '{"other":{"0":[{"kind":"pr","number":1}]}}',
+            '{"crm-vendas":{"1":[{"kind":"pr","number":1,"url":"https://evil.invalid"}]}}'
+        ):
+            with self.subTest(payload=payload):
+                with self.assertRaises(ValueError):
+                    p.extract_milestone_links("const MILESTONE_LINKS = " + payload + ";", progress)
+
+    def test_curated_evidence_state_not_equivalent_to_milestone(self):
+        from unittest.mock import patch
+        mapping = {"crm-vendas": {"0": [{"kind": "pr", "number": 123}]}}
+        with patch.object(p, "fetch_tracking", return_value={"kind": "pr", "number": 123,
+                    "state": "merged", "verified_at": p.NOW, "error": None}):
+            recorded = p.collect_tracking(mapping, {})
+            self.assertEqual(recorded["crm-vendas"]["0"][0]["state"], "merged")
+        # Tracking enrichment never edits the reviewed percentage.
+        self.assertEqual(mapping["crm-vendas"]["0"][0]["kind"], "pr")
+        with patch.object(p, "fetch_tracking", side_effect=ValueError("broken")):
+            failed = p.collect_tracking(mapping, recorded)
+            self.assertEqual(failed["crm-vendas"]["0"][0]["state"], "merged")
+            self.assertEqual(failed["crm-vendas"]["0"][0]["error"], "ValueError")
+
+
 if __name__ == "__main__":
     unittest.main()
