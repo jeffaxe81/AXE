@@ -147,5 +147,54 @@ class PortfolioTests(unittest.TestCase):
                 validate(unknown)
 
 
+    def test_version_history_distinguishes_release_from_tag(self):
+        previous={"version_history":{"crm-vendas":[{"version":"v1.0.0","kind":"tag",
+            "name":"v1.0.0","sha":"a"*40,"url":"https://github.com/jeffaxe81/crm-vendas/tree/v1.0.0",
+            "published_at":None,"prerelease":False,"notes":None,
+            "first_seen_at":"2026-09-01T00:00:00Z"}]}}
+        versions=[{"version":"v1.0.0","kind":"release","name":"Released v1.0.0",
+            "sha":"a"*40,"url":"https://github.com/jeffaxe81/crm-vendas/releases/tag/v1.0.0",
+            "published_at":"2026-10-20T12:00:00Z","prerelease":False,"notes":"Shipping"}]
+        projects={"crm-vendas":{"versions":versions,"errors":{}}}
+        result=p.merge_version_history(previous,projects)
+        one=[x for x in result["crm-vendas"] if x["version"]=="v1.0.0"]
+        self.assertEqual(len(one),1)
+        self.assertEqual(one[0]["kind"],"release")
+        self.assertEqual(one[0]["first_seen_at"],"2026-09-01T00:00:00Z")
+        stale=p.merge_version_history({"version_history":result},{"crm-vendas":{"versions":[],"errors":{"versions":"HTTPError"}}})
+        self.assertEqual(stale["crm-vendas"][0]["version"],"v1.0.0")
+
+    def test_repo_versions_never_publish_drafts_or_invent_release_from_tag(self):
+        from unittest.mock import patch
+        sample_tags=[{"name":"v0.2.0","commit":{"sha":"a"*40}},
+                     {"name":"checkpoint/safe","commit":{"sha":"b"*40}},
+                     {"name":"../../private","commit":{"sha":"b"*40}}]
+        sample_releases=[{"tag_name":"v0.2.0","name":"Stable","draft":False,"prerelease":False,
+                          "html_url":"https://github.com/jeffaxe81/crm-vendas/releases/tag/v0.2.0",
+                          "published_at":"2026-10-22T10:30:00Z","body":"Reviewed notes"},
+                         {"tag_name":"v3.0.0","name":"Draft","draft":True,"prerelease":False}]
+        with patch.object(p,"api", side_effect=[sample_releases,sample_tags]) as api:
+            result=p.repo_versions("crm-vendas")
+            self.assertEqual(len(result),2)
+            self.assertEqual({x["version"]:x["kind"] for x in result},
+                             {"v0.2.0":"release","checkpoint/safe":"tag"})
+            self.assertIsNone(next(x for x in result if x["kind"]=="tag")["published_at"])
+            self.assertTrue(next(x for x in result if x["kind"]=="tag")["url"].endswith("checkpoint%2Fsafe"))
+            self.assertEqual(api.call_count,2)
+
+    def test_active_prs_sample_is_bounded_and_validated(self):
+        from unittest.mock import patch
+        repo="crm-vendas"
+        valid={"number":25,"title":"Test feature","state":"open","updated_at":"2026-10-22T12:00:00Z",
+               "html_url":"https://github.com/jeffaxe81/crm-vendas/pull/25","draft":False}
+        malformed=dict(valid,number=26,html_url="https://evil.invalid/pull/26")
+        with patch.object(p,"api",side_effect=[[],[valid,malformed]]) as mock:
+            result=p.prs(repo)
+            self.assertEqual(result["active_sample_size"],1)
+            self.assertEqual(result["active"][0]["number"],25)
+            self.assertEqual(result["open"],0)
+            self.assertEqual(mock.call_count,2)
+
+
 if __name__ == "__main__":
     unittest.main()
