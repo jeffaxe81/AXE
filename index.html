@@ -811,13 +811,13 @@ function setSyncMode(value,save=true){
   return;
  }
  if(!onlineAvailable()){
-  showSync("aguardando conexão para consultar o GitHub",false);
-  return;
+  showSync("aguardando conexão; retomará automaticamente ao reconectar",false);
+ }else{
+  showSync(syncMode==="online"
+   ?"acompanhamento ativo na aba visível; verificação no retorno ou reconexão"
+   :"verificação periódica enquanto a aba estiver visível",null);
+  pollSnapshot();
  }
- showSync(syncMode==="online"
-  ?"acompanhamento ativo na aba visível; verificação no retorno ou reconexão"
-  :"verificação periódica enquanto a aba estiver visível",null);
- pollSnapshot();
  syncTimer=setInterval(pollSnapshot,SYNC_PERIODS[syncMode]);
 }
 function startSnapshotPolling(){
