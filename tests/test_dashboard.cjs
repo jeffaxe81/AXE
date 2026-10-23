@@ -268,6 +268,27 @@ assert.equal(q.fn("testReleasesObserved()[0].runs.length"),0,"Mismatched SHA can
 q.fn("qualityTests['crm-vendas'].categories.unit.passed=16;renderTestCounts()");
 assert.equal(q.fn("testCategoriesOverview().known"),0,"Inconsistent category totals must not render");
 console.log("PASS: explicit test suite categories reconcile, unknown stays unknown, release matching requires exact commit SHA");
+
+const hourlyNow=Date.parse("2026-10-23T21:00:00Z");
+const sampleHour={status:"measured",baseline_at:"2026-10-23T20:00:00Z",measured_at:"2026-10-23T21:00:00Z",
+ portfolio:{before_percent:60,after_percent:62,delta_points:2,delta_milestones:1},
+ projects:{"crm-vendas":{before_percent:57.14,after_percent:71.43,delta_points:14.29,delta_milestones:1},
+ "dispatch":{before_percent:66.67,after_percent:66.67,delta_points:0,delta_milestones:0}}};
+p.fn("hourlyEvidence="+JSON.stringify(sampleHour));
+assert.equal(p.fn("hourlyDisplay(null,"+hourlyNow+").label"),"+2 p.p.");
+assert.equal(p.fn("hourlyDisplay('crm-vendas',"+hourlyNow+").label"),"+14,29 p.p.");
+assert.equal(p.fn("hourlyDisplay('dispatch',"+hourlyNow+").label"),"0 p.p.");
+assert.equal(p.fn("hourlyDisplay(null,"+(hourlyNow+25*60000)+").kind"),"stale");
+p.fn("renderHourlyProgress()");
+assert.ok(p.elements.get("hour-summary").innerHTML.includes("Avanço consolidado"));
+assert.ok(p.elements.get("hour-projects").innerHTML.includes("CRM Vendas"));
+assert.ok(p.elements.get("projects").innerHTML.includes("CRM Vendas"));
+p.fn("hourlyEvidence={status:'insufficient_history',baseline_at:null,measured_at:'2026-10-23T21:00:00Z',portfolio:null,projects:{}};renderHourlyProgress()");
+assert.equal(p.fn("hourlyDisplay(null,"+hourlyNow+").delta"),null);
+assert.ok(p.elements.get("hour-detail").textContent.includes("Aguardando"));
+assert.ok(!p.elements.get("hour-summary").innerHTML.includes("0 p.p."));
+console.log("PASS: last-hour progress uses real baseline, displays percentage points and refuses missing/stale evidence");
+
 console.log("PASS: verified counts, partial flag, distinct CI history, no inferred zero or mismatch");
 console.log("PASS: Online PR, commits, CI, tags and independently published Releases");
 console.log("PASS: fail-closed GO/NO-GO controls, CSV structure, and separate milestone progress");
