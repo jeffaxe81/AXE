@@ -201,6 +201,8 @@
     .project-version span{color:var(--muted)}
     .project-version a{color:var(--accent);font-weight:790}
     .project-version a:hover{text-decoration:underline;text-underline-offset:2px}
+    .hour-period-label{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12px;font-weight:800}
+    .hour-activity-heading{font-size:16px;margin:25px 0 7px}
     .hour-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
     .hour-stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px}
     .hour-stat b{display:block;font-variant-numeric:tabular-nums;font-size:27px;letter-spacing:-.02em}
@@ -308,11 +310,19 @@
       <a href="./qualidade.html" style="font-weight:800;color:var(--accent);white-space:nowrap">Abrir painel de qualidade ↗</a>
     </section>
     <section class="section" id="ultima-hora" aria-labelledby="hour-title">
-      <div class="section-header"><div><h2 id="hour-title">Avanço na última hora</h2><p>Variação real dos marcos concluídos, em pontos percentuais (p.p.). Commits, testes e PRs não alteram esse indicador.</p></div>
-      <a href="#projetos" class="refresh-btn">Por projeto ↓</a></div>
+      <div class="section-header"><div><h2 id="hour-title">Avanço e atividade recente</h2><p>Compare marcos concluídos e, separadamente, a atividade pública do GitHub. Commit, PR ou CI não equivale a avanço da entrega.</p></div>
+      <label class="hour-period-label" for="hour-period">Período
+       <select id="hour-period" class="filter" aria-label="Período para comparar avanço e atividade">
+        <option value="60">Última hora</option><option value="360">Últimas 6 horas</option><option value="1440">Últimas 24 horas</option>
+       </select>
+      </label></div>
       <div class="hour-summary" id="hour-summary" aria-live="polite"></div>
       <p class="history-status" id="hour-detail" role="status" aria-live="polite">Aguardando referência de uma hora atrás.</p>
       <div class="hour-projects" id="hour-projects"></div>
+      <h3 class="hour-activity-heading">Atividade observada no GitHub</h3>
+      <div class="hour-summary" id="hour-activity-summary"></div>
+      <p class="history-status" id="hour-activity-detail" role="status" aria-live="polite">Aguardando uma coleta de atividade.</p>
+      <div class="hour-projects" id="hour-activity-projects"></div>
     </section>
     <section id="testes" class="section" aria-labelledby="test-heading">
       <div class="section-header">
@@ -602,13 +612,18 @@ function projectVersionSnippet(p){
   '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+esc(entry.version)+' ↗</a></div>';
 }
 
-let hourlyEvidence=null;
+let hourlyEvidence=null,progressWindows={},progressPeriod=60;
+const progressPeriodSelect=document.getElementById("hour-period");
+function selectedProgressEvidence(){
+ return progressWindows[String(progressPeriod)]|| (progressPeriod===60?hourlyEvidence:null);
+}
 function hourlyDisplay(projectId=null,now=Date.now()){
- const ev=hourlyEvidence,unknown={kind:"unknown",label:"Aguardando 1 hora de medições",delta:null};
- if(!ev||ev.status!=="measured"||!ev.measured_at||!ev.baseline_at)return unknown;
+ const ev=selectedProgressEvidence(),period=progressPeriod;
+ const unknown={kind:"unknown",label:"Aguardando histórico de "+(period===60?"1 hora":period===360?"6 horas":"24 horas"),delta:null};
+ if(!ev||ev.status!=="measured"||ev.window_minutes!==period||!ev.measured_at||!ev.baseline_at)return unknown;
  const measured=Date.parse(ev.measured_at),base=Date.parse(ev.baseline_at);
- if(!Number.isFinite(measured)||!Number.isFinite(base)||measured-base<60*60000||
-    measured-base>80*60000||measured>now+5*60000)return unknown;
+ if(!Number.isFinite(measured)||!Number.isFinite(base)||measured-base<period*60000||
+    measured-base>(period+20)*60000||measured>now+5*60000)return unknown;
  if(now-measured>20*60000)return {kind:"stale",label:"Medição antiga",delta:null};
  const entry=projectId?ev.projects?.[projectId]:ev.portfolio;
  if(!entry||!["before_percent","after_percent","delta_points","delta_milestones"].every(k=>
@@ -620,6 +635,32 @@ function hourlyDisplay(projectId=null,now=Date.now()){
   delta:diff,marcos:entry.delta_milestones,before:entry.before_percent,after:entry.after_percent,
   from:ev.baseline_at,to:ev.measured_at};
 }
+function periodLabel(){return progressPeriod===60?"1 hora":progressPeriod===360?"6 horas":"24 horas"}
+function validatedRecentDate(stamp,start,end){
+ if(typeof stamp!=="string"||! /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$/.test(stamp))return false;
+ const time=Date.parse(stamp);
+ return Number.isFinite(time)&&time>=start&&time<=end+5*60000;
+}
+function activityForProject(project,now=Date.now()){
+ const rec=sourceRecords[project.id];
+ const missing={available:false,commits:null,prs:null,ci:null,partial:false};
+ if(!rec||!onlineSnapshotAt)return missing;
+ const generated=Date.parse(onlineSnapshotAt);
+ if(!Number.isFinite(generated)||generated>now+5*60000||now-generated>20*60000)return missing;
+ const start=generated-progressPeriod*60000,allowed=key=>
+  !rec.errors?.[key]&&Number.isFinite(Date.parse(rec.verified_at?.[key]||""))&&
+  Math.abs(Date.parse(rec.verified_at[key])-generated)<=20*60000;
+ const commits=allowed("commits")&&Array.isArray(rec.commits)?rec.commits:null;
+ const prs=allowed("prs")&&Array.isArray(rec.prs?.recent)?rec.prs.recent:null;
+ const ci=allowed("ci")&&Object.prototype.hasOwnProperty.call(rec,"ci")?rec.ci:undefined;
+ const c=commits?commits.filter(x=>validatedRecentDate(x?.committed_at,start,generated)).length:null;
+ const p=prs?prs.filter(x=>validatedRecentDate(x?.updated_at,start,generated)).length:null;
+ const ciRecent=ci!==undefined?(ci&&validatedRecentDate(ci.updated_at,start,generated)?1:0):null;
+ const cPartial=commits&&commits.length>=100&&validatedRecentDate(commits[commits.length-1]?.committed_at,start,generated);
+ const pPartial=prs&&prs.length>=20&&validatedRecentDate(prs[prs.length-1]?.updated_at,start,generated);
+ return {available:c!==null||p!==null||ciRecent!==null,commits:c,prs:p,ci:ciRecent,
+  partial:!!(cPartial||pPartial),commitsPartial:!!cPartial,prsPartial:!!pPartial};
+}
 function renderHourlyProgress(){
  const all=hourlyDisplay(),items=PROJECTS.map(project=>({project,result:hourlyDisplay(project.id)}));
  const growing=items.filter(x=>x.result.delta!==null&&x.result.delta>0).length;
@@ -629,26 +670,59 @@ function renderHourlyProgress(){
  document.getElementById("hour-summary").innerHTML=values.map(([label,v])=>
  '<div class="hour-stat"><b>'+esc(v)+'</b><span>'+esc(label)+'</span></div>').join("");
  document.getElementById("hour-detail").textContent=all.kind==="stale"?
- "Última coleta com mais de 20 minutos: não é possível confirmar o avanço da hora atual.":
- all.delta===null?"Aguardando a primeira referência horária válida. O coletor salva medições a cada execução (~5 min); sem 60 minutos de histórico, o painel não inventa 0%.":
- "Intervalo medido: "+new Date(all.from).toLocaleString("pt-BR")+" até "+
+ "Última coleta com mais de 20 minutos: não é possível confirmar o avanço deste período.":
+ all.delta===null?"Sem histórico confiável de "+periodLabel()+". O coletor registra medições a cada execução (~5 min), sem inventar crescimento zero.":
+ "Comparação de "+periodLabel()+": "+new Date(all.from).toLocaleString("pt-BR")+" até "+
  new Date(all.to).toLocaleString("pt-BR")+" · "+all.before.toLocaleString("pt-BR")+
  "% → "+all.after.toLocaleString("pt-BR")+"%. "+
- (all.delta<0?"Queda indica marco reaberto ou revisão editorial.":"Variação exclusiva dos marcos documentados.");
+ (all.delta<0?"Queda indica marco reaberto ou revisão editorial.":"Mudanças apenas de marcos registrados.");
  document.getElementById("hour-projects").innerHTML=items.map(({project,result})=>
  '<article class="hour-project"><strong>'+esc(project.name)+'</strong>'+
  '<b class="hour-'+esc(result.kind)+'">'+esc(result.delta===null?"—":result.label)+'</b>'+
  '<span>'+esc(result.delta===null?result.label:
  (result.marcos>0?"+":"")+result.marcos+" marcos · "+result.before.toLocaleString("pt-BR")+
  "% → "+result.after.toLocaleString("pt-BR")+"%")+'</span></article>').join("");
+ const activity=PROJECTS.map(project=>({project,data:activityForProject(project)}));
+ const numbers=key=>activity.filter(x=>x.data[key]!==null);
+ const cRows=numbers("commits"),pRows=numbers("prs"),ciRows=numbers("ci");
+ const totals=[["Commits na main",cRows.length?cRows.reduce((n,x)=>n+x.data.commits,0):null],
+ ["PRs atualizadas",pRows.length?pRows.reduce((n,x)=>n+x.data.prs,0):null],
+ ["Últimas CI recentes",ciRows.length?ciRows.reduce((n,x)=>n+x.data.ci,0):null]];
+ document.getElementById("hour-activity-summary").innerHTML=totals.map(([name,value])=>
+ '<div class="hour-stat"><b>'+esc(value===null?"—":value.toLocaleString("pt-BR"))+
+ '</b><span>'+esc(name)+'</span></div>').join("");
+ const partiallyLimited=activity.filter(x=>x.data.partial).length;
+ document.getElementById("hour-activity-detail").textContent=
+ "Atividade pública identificada em "+periodLabel()+" até a última coleta. "+
+ cRows.length+"/9 projetos com commits consultados; "+pRows.length+"/9 com PRs consultadas. "+
+ (partiallyLimited?"Amostra truncada em "+partiallyLimited+" projetos; totais podem ser mínimos. ":"")+
+ "PR atualizada não implica PR integrada; CI recente significa apenas que a última execução retornada teve atualização no período.";
+ document.getElementById("hour-activity-projects").innerHTML=activity.map(({project,data})=>{
+  const value=(n,partial)=>n===null?"—":(partial?"≥":"")+n;
+  return '<article class="hour-project"><strong>'+esc(project.name)+'</strong>'+
+   '<b>'+esc(data.available?"Atividade consultada":"Sem dados recentes")+'</b>'+
+   '<span>Commits: '+esc(value(data.commits,data.commitsPartial))+' · PRs: '+
+   esc(value(data.prs,data.prsPartial))+' · Última CI recente: '+
+   esc(data.ci===null?"—":data.ci?"Sim":"Não")+'</span></article>';
+ }).join("");
 }
 function projectHourlyMarkup(project){
- const record=hourlyDisplay(project.id);
- return '<div class="project-hourly">Última hora: <strong class="hour-'+
- esc(record.kind)+'">'+esc(record.delta===null?"—":record.label)+
- '</strong> · '+esc(record.delta===null?record.label:
- (record.marcos>0?"+":"")+record.marcos+" marcos")+'</div>';
+ const result=hourlyDisplay(project.id),activity=activityForProject(project);
+ const signal=activity.available?
+  " · Commits: "+(activity.commits===null?"—":activity.commits)+
+  " · PRs: "+(activity.prs===null?"—":activity.prs):"";
+ return '<div class="project-hourly">Avanço '+periodLabel()+': <strong class="hour-'+
+ esc(result.kind)+'">'+esc(result.delta===null?"—":result.label)+
+ '</strong> · '+esc(result.delta===null?result.label:
+ (result.marcos>0?"+":"")+result.marcos+" marcos")+esc(signal)+'</div>';
 }
+function setProgressPeriod(next){
+ const value=Number(next);
+ progressPeriod=[60,360,1440].includes(value)?value:60;
+ progressPeriodSelect.value=String(progressPeriod);
+ renderHourlyProgress();renderProjects();
+}
+progressPeriodSelect.addEventListener("change",value=>setProgressPeriod(progressPeriodSelect.value));
 function renderProjects(){
  const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
  const order=document.getElementById("sort").value;
@@ -1088,6 +1162,7 @@ function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
  hourlyEvidence=data.progress_hourly&&typeof data.progress_hourly==="object"?data.progress_hourly:null;
+ progressWindows=data.progress_windows&&typeof data.progress_windows==="object"?data.progress_windows:{};
  renderHourlyProgress();
  renderTestOverview();
  onlineSnapshotAt=data.generated_at||null;
