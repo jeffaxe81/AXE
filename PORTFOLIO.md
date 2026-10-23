@@ -20,6 +20,18 @@ O site usa a branch `gh-pages` com diretório `/(root)`. Se a publicação for d
 - **Relatório:** visão consolidada, CSV e impressão/PDF pelo navegador.
 - **Qualidade:** página separada com dados das PRs recentes e da última CI por repositório.
 
+## Rastreabilidade de marcos e PRs (v3)
+
+A seção **Rastreabilidade** associa **10 referências públicas revisadas** (issues e pull requests) a marcos definidos no `index.html`. Essas associações são cadastradas em `MILESTONE_LINKS` por índice do marco, em um literal JSON (não há associação automática por palavras parecidas). O coletor valida o cadastro e busca o status oficial no repositório de origem.
+
+- `PR integrada`: prova de integração de código, **não** de homologação.
+- `Issue aberta`: pendência ou discussão identificada, não um prazo ou impedimento automaticamente comprovado.
+- `Não verificado`: a informação tem mais de 20 minutos, não existe ou houve erro na leitura. A aplicação não apresenta status antigo como atual.
+- **O percentual só muda** quando o marco é revisado explicitamente no cadastro. A leitura de PR ou issue jamais conclui um marco sozinha.
+- Exportação de evidências em CSV com URL pública de cada associação.
+
+Como atualizar a lista: identifique o marco em `PROJECTS[...].milestones` usando índice começando em zero; depois insira em `MILESTONE_LINKS` um objeto como `{"crm-vendas":{"2":[{"kind":"pr","number":281}]}}` (mesclado à configuração existente, sem substituir todo o objeto). Confira título, URL, projeto e pertinência antes de publicar. O script `scripts/refresh_portfolio.py` limita e valida os vínculos; falhas preservam o dado anterior somente para auditoria e o frontend o sinaliza como não verificado.
+
 ## Atualização automática
 
 O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
