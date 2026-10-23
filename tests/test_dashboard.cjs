@@ -204,6 +204,9 @@ p.fn("versionHistory="+JSON.stringify({"crm-vendas":[
 p.fn("versionProject.value='crm-vendas';versionKind.value='all';renderVersions()");
 assert.equal(p.fn("allVersions().length"),2);
 assert.ok(p.elements.get("versions-list").innerHTML.includes("Release publicada"));
+p.fn("renderProjects()");
+assert.ok(p.elements.get("projects").innerHTML.includes("Release publicada: "),"Project card should surface reviewed published release");
+assert.ok(p.elements.get("projects").innerHTML.includes("v0.6.1"),"Project card must expose the version number");
 assert.ok(p.elements.get("versions-list").innerHTML.includes("Tag de código"));
 assert.ok(p.elements.get("versions-list").innerHTML.includes("checkpoint%2Fsafe"));
 p.fn("versionKind.value='release';renderVersions()");
