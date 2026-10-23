@@ -285,7 +285,7 @@ assert.ok(p.elements.get("hour-projects").innerHTML.includes("CRM Vendas"));
 assert.ok(p.elements.get("projects").innerHTML.includes("CRM Vendas"));
 p.fn("hourlyEvidence={status:'insufficient_history',baseline_at:null,measured_at:'2026-10-23T21:00:00Z',portfolio:null,projects:{}};renderHourlyProgress()");
 assert.equal(p.fn("hourlyDisplay(null,"+hourlyNow+").delta"),null);
-assert.ok(p.elements.get("hour-detail").textContent.includes("Aguardando"));
+assert.ok(p.elements.get("hour-detail").textContent.includes("Sem histórico"));
 assert.ok(!p.elements.get("hour-summary").innerHTML.includes("0 p.p."));
 
 const period6={...sampleHour,window_minutes:360,baseline_at:"2026-10-23T15:00:00Z",
