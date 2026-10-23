@@ -211,6 +211,40 @@ assert.ok(p.elements.get("versions-list").innerHTML.includes("Tag de código"));
 assert.ok(p.elements.get("versions-list").innerHTML.includes("checkpoint%2Fsafe"));
 p.fn("versionKind.value='release';renderVersions()");
 assert.ok(!p.elements.get("versions-list").innerHTML.includes("checkpoint%2Fsafe"));
+
+const qualityTestsData={
+  "crm-vendas":{tests:{status:"available",run_id:42,passed:60,failed:2,skipped:1,
+    parsed_jobs:2,scanned_jobs:3,partial:true,run_conclusion:"failure"},
+    ci:{id:42,status:"completed",conclusion:"failure"},
+    verified_at:{ci:"2026-10-23T12:00:00Z",tests:"2026-10-23T12:00:00Z"},errors:{}},
+  "dispatch":{tests:{status:"no_summary",run_id:100,passed:null,failed:null,skipped:null},
+    ci:{id:100,status:"completed",conclusion:"success"},errors:{}},
+  "pabx-mvp":{tests:{status:"available",run_id:22,passed:900,failed:0,skipped:3},
+    ci:{id:23,status:"completed",conclusion:"success"},errors:{}}
+};
+p.fn("sourceRecords="+JSON.stringify(qualityTestsData)+";renderTestOverview()");
+assert.equal(p.fn("testOverviewStats().count"),63);
+assert.equal(p.fn("testOverviewStats().passed"),60);
+assert.equal(p.fn("testOverviewStats().projectsCount"),1);
+assert.ok(p.elements.get("test-overview").innerHTML.includes("63"));
+assert.ok(p.elements.get("test-overview-detail").textContent.includes("parcial"));
+q.fn("qualityTests="+JSON.stringify(Object.fromEntries(Object.entries(qualityTestsData).map(([id,v])=>[id,v.tests])))+
+ ";records="+JSON.stringify(Object.fromEntries(Object.entries(qualityTestsData).map(([id,v])=>[id,{ci:{id:v.ci.id}}])))+
+ ";qualitySourceMeta={};renderTestCounts()");
+assert.equal(q.fn("testsFor('crm-vendas').total"),63);
+assert.equal(q.fn("testsFor('pabx-mvp')"),null,"Different run IDs must hide old counts");
+assert.equal(q.fn("testsFor('dispatch')"),null,"Missing summary must not be reported as zero");
+assert.equal(q.elements.get("test-total").textContent,"63");
+assert.equal(q.elements.get("test-failed").textContent,"2");
+assert.equal(q.fn("testsHistoryFor('crm-vendas').length"),0);
+q.fn("qualityTestHistory="+JSON.stringify({"crm-vendas":[
+  {run_id:42,status:"available",passed:60,failed:2,skipped:1},
+  {run_id:42,status:"available",passed:60,failed:2,skipped:1},
+  {run_id:43,status:"available",passed:61,failed:0,skipped:1}
+]})+";renderTestCounts()");
+assert.equal(q.fn("testsHistoryFor('crm-vendas').length"),2,"Same run cannot be counted twice");
+assert.ok(q.elements.get("test-history-summary").textContent.includes("2 execuções"));
+console.log("PASS: verified counts, partial flag, distinct CI history, no inferred zero or mismatch");
 console.log("PASS: Online PR, commits, CI, tags and independently published Releases");
 console.log("PASS: fail-closed GO/NO-GO controls, CSV structure, and separate milestone progress");
 console.log("PASS: nine stage-gate matrices, explicit milestones, independent CI and release status");
