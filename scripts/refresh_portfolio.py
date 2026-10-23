@@ -137,6 +137,132 @@ def append_progress_history(old, progress):
     return history[-365:]
 
 
+def extract_milestone_links(html, progress):
+    """Only explicit, reviewed GitHub references; no fuzzy auto-matching."""
+    m = re.search(r'^const MILESTONE_LINKS = (\{[^\n]+\});
+    old = {}
+    saved = {}
+    if output.is_file():
+        try:
+            saved = json.loads(output.read_text(encoding="utf-8"))
+            if saved.get("schema_version") == 1:
+                old = saved.get("projects") or {}
+            else:
+                saved = {}
+        except (OSError, ValueError, TypeError):
+            pass
+    result = {}
+    failures = []
+    for repo in REPOS:
+        prev = old.get(repo, {}) if isinstance(old.get(repo), dict) else {}
+        item = {"errors": {}, "verified_at": {}}
+        for key, getter in (("commits", commits), ("prs", prs), ("ci", ci)):
+            try:
+                item[key] = getter(repo)
+                item["verified_at"][key] = NOW
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, KeyError, TypeError) as exc:
+                item[key] = prev.get(key)
+                item["verified_at"][key] = (prev.get("verified_at") or {}).get(key)
+                item["errors"][key] = type(exc).__name__
+                failures.append(repo + ":" + key)
+        result[repo] = item
+    # Prevent an empty successful-looking collection when every source is down.
+    if not any(
+        item.get("commits") is not None or item.get("prs") is not None or item.get("verified_at", {}).get("ci")
+        for item in result.values()
+    ):
+        raise RuntimeError("All sources failed; keeping the previous snapshot")
+    progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
+    history = append_progress_history(saved, progress)
+    links = extract_milestone_links(html_file.read_text(encoding="utf-8"), progress)
+    tracking = collect_tracking(links, saved.get("tracking", {}))
+    # Public audit trail: numeric run ID only, no tokens or runner secrets.
+    run_id = os.environ.get("GITHUB_RUN_ID", "")
+    collector = {
+        "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
+        "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
+    }
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking}
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
+    if failures:
+        print("Unavailable:", ", ".join(failures), file=sys.stderr)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", required=True, type=pathlib.Path)
+    parser.add_argument("--html", required=True, type=pathlib.Path)
+    args = parser.parse_args()
+    generate(args.output, args.html)
+, html, re.M)
+    if not m:
+        raise ValueError("MILESTONE_LINKS literal missing")
+    links = json.loads(m.group(1))
+    if not isinstance(links, dict):
+        raise ValueError("MILESTONE_LINKS must be an object")
+    count = 0
+    for repo, items in links.items():
+        if repo not in progress or not isinstance(items, dict):
+            raise ValueError("Unknown project in MILESTONE_LINKS")
+        for key, refs in items.items():
+            if not isinstance(key, str) or not key.isdecimal() or str(int(key)) != key or int(key) >= progress[repo]["total"]:
+                raise ValueError("Invalid milestone index")
+            if not isinstance(refs, list) or len(refs) not in (1, 2, 3):
+                raise ValueError("Invalid milestone references")
+            seen = set()
+            for ref in refs:
+                if not isinstance(ref, dict) or set(ref.keys()) != {"kind", "number"}:
+                    raise ValueError("Unexpected milestone reference fields")
+                kind, number = ref["kind"], ref["number"]
+                if kind not in ("pr", "issue") or type(number) is not int or not 1 <= number <= 100000 or (kind, number) in seen:
+                    raise ValueError("Invalid or duplicate reference")
+                seen.add((kind, number))
+                count += 1
+    if count > 30:
+        raise ValueError("Too many remote lookups")
+    return links
+
+
+def fetch_tracking(repo, kind, number):
+    path = ("pulls/" if kind == "pr" else "issues/") + str(number)
+    obj = api(repo, path)
+    if not isinstance(obj, dict) or obj.get("number") != number:
+        raise ValueError("GitHub returned unrelated reference")
+    if kind == "issue" and obj.get("pull_request"):
+        raise ValueError("This issue number belongs to a pull request")
+    state = "merged" if kind == "pr" and obj.get("merged_at") else obj.get("state")
+    if state not in ("open", "closed", "merged"):
+        raise ValueError("Invalid reference state")
+    url = "https://github.com/" + OWNER + "/" + repo + "/" + ("pull/" if kind == "pr" else "issues/") + str(number)
+    return {"kind": kind, "number": number, "state": state, "title": short(obj.get("title"), 150),
+            "url": url, "verified_at": NOW, "error": None}
+
+
+def collect_tracking(mapping, previous):
+    previous = previous if isinstance(previous, dict) else {}
+    results = {}
+    for repo, items in mapping.items():
+        results[repo] = {}
+        for index, refs in items.items():
+            old_rows = previous.get(repo, {}).get(index, [])
+            old_rows = old_rows if isinstance(old_rows, list) else []
+            old = {(x.get("kind"), x.get("number")): x for x in old_rows if isinstance(x, dict)}
+            results[repo][index] = []
+            for ref in refs:
+                kind, number = ref["kind"], ref["number"]
+                try:
+                    results[repo][index].append(fetch_tracking(repo, kind, number))
+                except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, KeyError, TypeError) as exc:
+                    prev = old.get((kind, number), {})
+                    results[repo][index].append({
+                        "kind": kind, "number": number, "state": prev.get("state"),
+                        "title": prev.get("title"), "url": None,
+                        "verified_at": prev.get("verified_at"), "error": type(exc).__name__})
+    return results
+
+
 def generate(output, html_file):
     old = {}
     saved = {}
