@@ -57,8 +57,10 @@ jobs:
               raise SystemExit("Site publicado sem seções previstas: " + ", ".join(missing))
           if 'id="rows"' not in quality or 'id="test-rows"' not in quality:
               raise SystemExit("Painel de qualidade sem tabela de testes")
-          if 'id="test-history-rows"' not in quality:
-              raise SystemExit("Página de qualidade incompleta")
+          if ('id="test-history-rows"' not in quality or
+              'id="test-category-rows"' not in quality or
+              'id="test-release-rows"' not in quality):
+              raise SystemExit("Painel de qualidade sem classificação ou validação por release")
           if snapshot.get("schema_version") != 1 or snapshot.get("owner") != "jeffaxe81":
               raise SystemExit("Snapshot público com identificação inválida")
           projects = snapshot.get("projects")
@@ -70,6 +72,20 @@ jobs:
               raise SystemExit("Histórico de versões ausente/incompleto")
           if not isinstance(test_history, dict) or set(test_history) != set(projects):
               raise SystemExit("Histórico de execuções de testes ausente/incompleto")
+          for id, record in projects.items():
+              tests = record.get("tests")
+              if not isinstance(tests, dict) or tests.get("status") != "available":
+                  continue
+              categories = tests.get("categories")
+              if not isinstance(categories, dict) or set(categories) != {
+                      "unit", "integration", "e2e", "security", "unclassified"}:
+                  raise SystemExit("Classificação de testes inválida para " + id)
+              for field in ("passed", "failed", "skipped"):
+                  if sum(group[field] for group in categories.values()) != tests[field]:
+                      raise SystemExit("Totais de teste não conciliam com as categorias: " + id)
+              head = tests.get("head_sha")
+              if not isinstance(head, str) or len(head) != 40:
+                  raise SystemExit("SHA da CI ausente para " + id)
           if not isinstance(snapshot.get("release_control", {}).get("projects"), dict):
               raise SystemExit("Matriz GO / NO-GO ausente")
           at = snapshot.get("generated_at")
