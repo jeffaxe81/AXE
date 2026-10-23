@@ -310,6 +310,27 @@ def collect_test_counts(repo, ci_record, previous):
     }
 
 
+
+def append_test_history(saved, rows):
+    """Append distinct observed workflow runs; no synthetic results or duplicate polling."""
+    old = saved.get("test_history", {}) if isinstance(saved, dict) else {}
+    old = old if isinstance(old, dict) else {}
+    history = {}
+    for repo in REPOS:
+        previous = old.get(repo, [])
+        previous = previous if isinstance(previous, list) else []
+        output = [row for row in previous[-99:] if isinstance(row, dict)
+                  and type(row.get("run_id")) is int and row.get("run_id") > 0
+                  and row.get("status") == "available"]
+        test = rows.get(repo, {}).get("tests")
+        if isinstance(test, dict) and test.get("status") == "available" and not rows[repo].get("errors", {}).get("tests"):
+            rid = test.get("run_id")
+            if type(rid) is int and rid > 0 and rid not in {x["run_id"] for x in output}:
+                output.append({**test, "first_seen_at": NOW})
+        history[repo] = output[-100:]
+    return history
+
+
 def extract_milestone_progress(html):
     """Read only literal milestone lists from the reviewed page (no JS execution)."""
     pattern = re.compile(
@@ -576,6 +597,7 @@ def generate(output, html_file):
     progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
     history = append_progress_history(saved, progress)
     version_history = merge_version_history(saved, result)
+    test_history = append_test_history(saved, result)
     release_control = load_release_control(output.with_name("release-approvals.json"), html_file.read_text(encoding="utf-8"), progress)
     links = extract_milestone_links(html_file.read_text(encoding="utf-8"), progress)
     tracking = collect_tracking(links, saved.get("tracking", {}))
@@ -585,7 +607,7 @@ def generate(output, html_file):
         "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
         "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
     }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history}
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history, "test_history": test_history}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
