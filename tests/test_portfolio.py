@@ -39,7 +39,7 @@ class PortfolioTests(unittest.TestCase):
         html = page.read_text(encoding="utf-8")
         progress = p.extract_milestone_progress(html)
         links = p.extract_milestone_links(html, progress)
-        self.assertEqual(sum(len(refs) for m in links.values() for refs in m.values()), 10)
+        self.assertEqual(sum(len(refs) for m in links.values() for refs in m.values()), 15)
         self.assertEqual(links["crm-vendas"]["2"], [{"kind": "pr", "number": 281}])
         self.assertEqual(links["axe-gestao-convites"]["2"], [{"kind": "pr", "number": 1}])
 
@@ -69,6 +69,27 @@ class PortfolioTests(unittest.TestCase):
             failed = p.collect_tracking(mapping, recorded)
             self.assertEqual(failed["crm-vendas"]["0"][0]["state"], "merged")
             self.assertEqual(failed["crm-vendas"]["0"][0]["error"], "ValueError")
+
+
+    def test_stage_gate_mapping_covers_each_milestone_once(self):
+        import re
+        source = pathlib.Path(__file__).resolve().parents[2] / "pages" / "index.html"
+        html = source.read_text(encoding="utf-8")
+        match = re.search(r'^const GATE_MATRIX = (\{[^\n]+\});$', html, re.M)
+        self.assertIsNotNone(match, "Explicit gate mapping is required")
+        stages = json.loads(match.group(1))
+        progress = p.extract_milestone_progress(html)
+        self.assertEqual(set(stages), set(progress))
+        for repo, config in stages.items():
+            self.assertEqual(set(config), {"dev", "tests", "homolog", "release"})
+            all_indices = []
+            for category in ("dev", "tests", "homolog", "release"):
+                values = config[category]
+                self.assertIsInstance(values, list)
+                self.assertTrue(all(type(v) is int for v in values))
+                all_indices.extend(values)
+            self.assertEqual(len(all_indices), progress[repo]["total"])
+            self.assertEqual(set(all_indices), set(range(progress[repo]["total"])))
 
 
 if __name__ == "__main__":
