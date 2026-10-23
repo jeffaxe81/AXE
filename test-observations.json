@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "owner": "jeffaxe81",
-  "method": "Revisao de resumos terminais em logs oficiais de jobs CI pelo conector GitHub; nao equivale a homologacao. Categoria atribuida somente quando identificada explicitamente no nome do runner: unittest Python e Playwright E2E; demais nao classificados.",
+  "method": "Contagens revisadas nos logs CI GitHub. Categorias somente quando runner explicito: unittest Python=unit; Playwright E2E=e2e. Outros sem classificacao; nao e homologacao.",
   "observed_at": "2026-10-23T19:22:08Z",
   "projects": {
     "crm-vendas": {
