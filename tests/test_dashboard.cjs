@@ -129,5 +129,17 @@ assert.ok(p.elements.get("queue-list").innerHTML.includes("PRs ↗"));
 assert.ok(checked.ciRunUrl===null,"Without a verified CI run ID no link may be invented");
 assert.ok(p.elements.get("queue-summary").innerHTML.includes("Pendências mapeadas"));
 assert.ok(p.elements.get("queue-list").innerHTML.includes("sem leitura recente"));
+// Evidências só afetam a rastreabilidade, não a conclusão editorial.
+assert.equal(p.fn("trackedRows().length"),10,"Exactly ten reviewed GitHub links");
+assert.equal(p.fn("PROJECTS[0].milestones.filter(m=>m[1]).length"),4);
+const trace=JSON.stringify({"crm-vendas":{"2":[{"kind":"pr","number":281,"state":"merged","verified_at":"2026-10-23T15:20:00Z"}]}});
+p.fn("trackingData="+trace);
+const activeTrace=p.fn("trackedRows().find(x=>x.p.id==='crm-vendas'&&x.index===2)");
+assert.equal(activeTrace.ref.number,281);
+assert.equal(p.fn("PROJECTS[0].milestones.filter(m=>m[1]).length"),4);
+p.fn("document.getElementById('tracking-filter').value='all'; renderTracking()");
+assert.ok(p.elements.get("tracking-rows").innerHTML.includes("pull/281"));
+assert.ok(p.elements.get("tracking-rows").innerHTML.includes("Não verificado"));
+assert.ok(p.elements.get("tracking-summary").innerHTML.includes("Vínculos revisados"));
 console.log("PASS: fila de próximas entregas, 9 projetos, nulidade de PR/CI desatualizadas e evidências verificadas");
 console.log("PASS: HTML JavaScript, manual/15s/30s/online timers and 10 freshness scenarios");
