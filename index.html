@@ -842,8 +842,13 @@ function asCsvCell(value){
  return '"'+s.replace(/"/g,'""')+'"';
 }
 document.getElementById("export-marcos").addEventListener("click",()=>{
- const rows=[["Projeto","Categoria","Fase","Marco","Situacao","Progresso_mapeado_percentual","Atualizacao"]];
- for(const p of PROJECTS)for(const m of p.milestones)rows.push([p.name,p.kind,p.stage,m[0],m[1]?"Concluido":"Pendente",pct(p),p.updated]);
+ const rows=[["Projeto","Categoria","Fase","Marco","Situacao","Progresso_mapeado_percentual","Avanco_ultima_hora_pp","Marcos_ultima_hora","Medicao_ultima_hora","Atualizacao"]];
+ for(const p of PROJECTS){
+  const change=hourlyDisplay(p.id);
+  for(const m of p.milestones)rows.push([p.name,p.kind,p.stage,m[0],m[1]?"Concluido":"Pendente",
+   pct(p),change.delta===null?"":change.delta,change.delta===null?"":change.marcos,
+   change.delta===null?change.label:change.to,p.updated]);
+ }
  const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
  const url=URL.createObjectURL(blob);
