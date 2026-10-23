@@ -1,32 +1,60 @@
 # Portfólio de Entregas AXE
 
-Painel estático, responsivo e sem backend para apresentar os projetos públicos, marcos acompanhados, percentual de conclusão dos marcos e histórico de commits com links para evidências.
+Dashboard público hospedado no GitHub Pages para acompanhar projetos AXE, marcos documentados, histórico de entregas, próximas pendências, gráficos, amostras de PRs e status da última CI.
 
-## Publicação no GitHub Pages
+**Site:** https://jeffaxe81.github.io/AXE/  
+**Código:** https://github.com/jeffaxe81/AXE/tree/gh-pages  
+**Qualidade:** https://jeffaxe81.github.io/AXE/qualidade.html
 
-1. Abra [Settings → Pages](https://github.com/jeffaxe81/AXE/settings/pages).
-2. Em **Build and deployment**, selecione **Deploy from a branch**.
-3. Em Branch, escolha **gh-pages**, diretório **/(root)** e clique em **Save**.
-4. Depois que o GitHub finalizar a implantação, o endereço esperado será **https://jeffaxe81.github.io/AXE/**.
+## Publicação
 
-> Criar a branch não habilita o Pages automaticamente em todos os repositórios. Confirme o endereço em Settings → Pages antes de compartilhar.
+O site usa a branch `gh-pages` com diretório `/(root)`. Se a publicação for desabilitada, reconfigure em [Settings → Pages](https://github.com/jeffaxe81/AXE/settings/pages), com **Deploy from a branch**, branch **gh-pages**, pasta **/(root)**.
 
-## Como atualizar
+## Seções
 
-Edite o arquivo `index.html` nesta branch. No bloco JavaScript `PROJECTS`, cada projeto possui:
-- `milestones`: pares `["Descrição do marco", true/false]`; o valor `true` significa marco documentado como concluído.
-- `history`: pares de data, descrição e SHA de commits públicos.
-- `updated`: data da atividade indicada no cartão.
+- **Visão geral:** resumo dos projetos e avanço de marcos.
+- **Projetos:** barras de avanço, marcos concluídos e pendentes e links aos repositórios.
+- **Próximas entregas:** lista de marcos ainda pendentes, filtrável por PR aberta, última CI em falha verificada ou ausência de commit registrado há 30 dias. A lista respeita a ordem editorial do plano, sem declarar prioridade ou prazo.
+- **Evolução:** atividade recente de commits e fotografias históricas de percentuais alterados.
+- **Histórico:** commits com links de evidências.
+- **Relatório:** visão consolidada, CSV e impressão/PDF pelo navegador.
+- **Qualidade:** página separada com dados das PRs recentes e da última CI por repositório.
 
-O percentual de cada cartão é calculado com a fórmula:
-`100 × número de marcos concluídos / número de marcos mapeados`.
+## Atualização automática
 
-**Interpretação:** percentual de **marcos escolhidos para monitoramento**, não de esforço executado, backlog total, estabilidade, aceite, SLA ou homologação de produção. O percentual consolidado é ponderado pela quantidade de marcos monitorados em cada projeto.
+O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
 
-## Privacidade e fontes
+O painel oferece **Manual**, **15 s**, **30 s** e **Online**. Esses intervalos são consultas ao snapshot publicado, **não** representam coleta em tempo real do GitHub a cada segundo. O botão de atualização manual consulta a mesma fonte. A área de fontes informa quando os dados estão antigos ou indisponíveis. Verifique a [última execução do coletor](https://github.com/jeffaxe81/AXE/actions/workflows/portfolio-refresh.yml) em caso de falha.
 
-Somente repositórios **públicos** são listados. Não cadastrar credenciais, IPs internos, dados de clientes, incidentes, segredos ou informações restritas no painel. Cada item do histórico aponta para um commit rastreável. Dados e marcos iniciais: 22 de outubro de 2026.
+## Cálculo de percentuais
 
-## Observações
+Edite a declaração `PROJECTS` no `index.html` da branch `gh-pages`. Cada `milestones` contém itens no formato `["Descrição", true/false]`.
 
-O painel não tem coleta de dados, login ou chamadas de API: é inteiramente estático e pode ser usado diretamente pelo navegador. A lista inicial é editorial e pode ser expandida para outros repositórios.
+```text
+Avanço do projeto = 100 × marcos marcados true / marcos mapeados
+```
+
+A métrica **não** mede horas trabalhadas, esforço real, percentual do backlog completo, aceite, homologação nem prontidão para produção. A ordem da lista determina o "próximo marco listado" na seção de pendências. **Commits ou PRs não concluem marcos automaticamente.** Uma mudança de percentual é registrada no `progress_history` somente quando o próprio cadastro de marcos é revisado e a próxima coleta acontece.
+
+## Regras para evidências e filtros
+
+- PRs abertas: contagem limitada às **20 PRs mais recentemente atualizadas**, nunca total histórico.
+- CI: considera a última execução identificada na branch `main`; uma execução concluída com sucesso não equivale a homologação do produto.
+- Filtros de PR/CI da fila exigem uma leitura sem erro e verificada há no máximo **20 minutos**; sem confirmação recente, a informação é tratada como **desconhecida**, não como zero ou sucesso.
+- Ausência de commits registrados há 30 dias significa apenas isso: **não é atraso**.
+- Projetos e marcos publicados são uma seleção curada; repositórios privados e informações confidenciais ficam de fora.
+
+## Testes
+
+O pipeline de `main` roda:
+
+```bash
+python3 -m unittest discover -s tests -p 'test_portfolio.py' -v
+node tests/test_dashboard.cjs path/to/gh-pages/index.html path/to/gh-pages/qualidade.html
+```
+
+A branch `gh-pages` também possui testes e uma validação dedicada de páginas. O site é totalmente estático, sem servidor próprio, autenticação, tokens ou credenciais expostas ao navegador.
+
+## Segurança e privacidade
+
+Não incluir no HTML, JSON público ou histórico IPs internos, chaves, certificados privados, credenciais SIP, nomes de clientes não públicos ou dados pessoais. Todos os links gerados usam repositórios públicos conhecidos e URLs do GitHub.
