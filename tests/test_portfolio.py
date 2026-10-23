@@ -351,5 +351,46 @@ class PortfolioTests(unittest.TestCase):
         self.assertEqual(p.hourly_progress(samples,"2026-10-23T20:00:00Z")["status"],"insufficient_history")
 
 
+    def test_progress_window_variants_6h_and_24h_are_observed_not_guessed(self):
+        base={repo:{"completed":2,"total":5} for repo in p.REPOS}
+        fresh={repo:dict(value) for repo,value in base.items()}
+        fresh["crm-vendas"]["completed"]=3
+        timestamps=["2026-10-22T21:00:00Z","2026-10-23T15:00:00Z","2026-10-23T21:00:00Z"]
+        records=[]
+        for stamp,progress in zip(timestamps,[base,base,fresh]):
+            records=p.append_progress_samples({"progress_samples":records},progress,stamp)
+        hourly=p.progress_for_window(records,60,timestamps[-1])
+        six=p.progress_for_window(records,360,timestamps[-1])
+        day=p.progress_for_window(records,1440,timestamps[-1])
+        self.assertEqual(hourly["status"],"insufficient_history")
+        self.assertEqual(six["status"],"measured")
+        self.assertEqual(six["window_minutes"],360)
+        self.assertEqual(six["portfolio"]["delta_milestones"],1)
+        self.assertEqual(day["status"],"measured")
+        self.assertEqual(day["baseline_at"],timestamps[0])
+        for period in (0,30,180,3000):
+            with self.subTest(period=period),self.assertRaises(ValueError):
+                p.progress_for_window(records,period,timestamps[-1])
+
+    def test_precise_activity_records_are_canonical_and_bounded(self):
+        from unittest.mock import patch
+        valid_sha="f"*40
+        commit={"sha":valid_sha,"commit":{"committer":{"date":"2026-10-23T20:45:00Z"},
+                                         "message":"feat: real observable event"}}
+        missing={"sha":"f"*40,"commit":{"committer":{"date":"2026-10-23"}}}
+        with patch.object(p,"api",return_value=[commit,missing]):
+            rows=p.commits("crm-vendas")
+            self.assertEqual(len(rows),1)
+            self.assertEqual(rows[0]["committed_at"],"2026-10-23T20:45:00Z")
+        recent_pr={"number":99,"state":"open","updated_at":"2026-10-23T20:40:00Z",
+                   "html_url":"https://github.com/jeffaxe81/crm-vendas/pull/99"}
+        with patch.object(p,"api",side_effect=[[recent_pr],[recent_pr]]):
+            report=p.prs("crm-vendas")
+            self.assertEqual(report["recent_limit"],20)
+            self.assertEqual(len(report["recent"]),1)
+            self.assertEqual(report["recent"][0]["url"],
+                             "https://github.com/jeffaxe81/crm-vendas/pull/99")
+
+
 if __name__ == "__main__":
     unittest.main()
