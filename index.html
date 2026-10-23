@@ -96,6 +96,7 @@
     }
     .sync-panel{display:flex;align-items:center;flex-wrap:wrap;gap:9px;padding:13px 16px;margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--muted);font-size:12px}
     .sync-panel strong{color:var(--ink)}.sync-panel button{margin-left:auto}
+    .sync-panel .refresh-btn[href]{font-size:11px;font-weight:750;color:var(--accent);white-space:nowrap}
     .sync-select{background:#192a40;color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:9px 11px;min-height:39px;max-width:100%;font-size:12px}
     .sync-explain{flex-basis:100%;color:var(--muted);font-size:11px;line-height:1.55}
     .sync-panel #sync-label{flex:1;min-width:170px}.sync-led{height:9px;width:9px;border-radius:50%;background:var(--warm);box-shadow:0 0 0 4px #ffc18420}
@@ -143,7 +144,7 @@
         <option value="online">Online · acompanhar</option>
       </select>
       <span id="sync-label" role="status" aria-live="polite"> · verificando preferência…</span>
-      <button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button>
+      <button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button><a id="sync-audit-link" class="refresh-btn" href="https://github.com/jeffaxe81/AXE/actions/workflows/portfolio-refresh.yml" target="_blank" rel="noopener noreferrer">Ver automação ↗</a>
       <small class="sync-explain">Verificar agora relê o snapshot. Para consultar diretamente o GitHub, use os botões de Histórico ou Evidências. Online verifica a cada 15 s, ao retornar à aba ou reconectar; a coleta automática ocorre a cada ~5 min.</small>
     </div>
     <div class="source-summary" id="source-summary" role="status" aria-live="polite">Fontes dos projetos: aguardando primeira coleta verificada.</div>
@@ -732,6 +733,14 @@ function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
  refreshProjectHealth();
+ const audit=document.getElementById("sync-audit-link");
+ const url=data.collector?.run_url;
+ if(typeof url==="string"&&/^https:\/\/github\.com\/jeffaxe81\/AXE\/actions\/runs\/\d{1,20}$/.test(url)){
+  audit.href=url;audit.textContent="Ver última coleta ↗";
+ }else{
+  audit.href="https://github.com/jeffaxe81/AXE/actions/workflows/portfolio-refresh.yml";
+  audit.textContent="Ver automação ↗";
+ }
  if(Array.isArray(data.progress_history)){
   progressHistory=data.progress_history.filter(entry=>entry&&typeof entry.observed_at==="string"&&Number.isFinite(Date.parse(entry.observed_at))&&
    entry.projects&&typeof entry.projects==="object").slice(-365);
