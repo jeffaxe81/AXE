@@ -1,8 +1,15 @@
 name: Atualizar portfólio AXE
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '3-58/5 * * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/portfolio-refresh.yml'
+      - 'scripts/refresh_portfolio.py'
+      - 'tests/test_portfolio.py'
+      - 'tests/test_dashboard.cjs'
 
 permissions:
   contents: write
