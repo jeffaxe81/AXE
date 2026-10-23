@@ -259,7 +259,54 @@ def fetch_job_text(repo, job_id):
     return data.decode("utf-8", errors="replace")
 
 
-def collect_test_counts(repo, ci_record, previous):
+
+def load_verified_test_observations(path):
+    """Manual backfill from original GitHub job logs, strictly tied to CI run IDs."""
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict) or set(data) != {"schema_version", "owner", "method", "observed_at", "projects"}:
+        raise ValueError("Unexpected test observation schema")
+    if data["schema_version"] != 1 or data["owner"] != OWNER or not isinstance(data["projects"], dict):
+        raise ValueError("Invalid test observation schema")
+    if not isinstance(data["method"], str) or len(data["method"]) > 200:
+        raise ValueError("Test evidence method missing")
+    iso_timestamp(data["observed_at"])
+    if not set(data["projects"]).issubset(set(REPOS)):
+        raise ValueError("Unknown project in test observations")
+    for repo, item in data["projects"].items():
+        if not isinstance(item, dict) or set(item) != {
+            "run_id", "run_url", "observed_at", "run_conclusion", "source",
+            "partial", "counts", "breakdown"
+        }:
+            raise ValueError("Invalid documented test observation")
+        run_id = item["run_id"]
+        if type(run_id) is not int or run_id <= 0 or item["run_url"] != (
+            "https://github.com/" + OWNER + "/" + repo + "/actions/runs/" + str(run_id)
+        ):
+            raise ValueError("Test observation must link to a canonical CI run")
+        if item["source"] != "github_job_logs_verified" or item["run_conclusion"] not in (
+            "success", "failure", "timed_out", "cancelled"
+        ) or type(item["partial"]) is not bool:
+            raise ValueError("Invalid test observation provenance")
+        iso_timestamp(item["observed_at"])
+        rows = item["breakdown"]
+        if not isinstance(rows, list) or not 1 <= len(rows) <= 12:
+            raise ValueError("Test observations require a bounded job breakdown")
+        counts = {"passed": 0, "failed": 0, "skipped": 0}
+        for entry in rows:
+            if not isinstance(entry, dict) or set(entry) != {"name", "passed", "failed", "skipped"}:
+                raise ValueError("Unexpected breakdown fields")
+            if not isinstance(entry["name"], str) or not 3 <= len(entry["name"]) <= 90:
+                raise ValueError("Invalid test breakdown name")
+            for key in counts:
+                if type(entry[key]) is not int or not 0 <= entry[key] <= 1000000:
+                    raise ValueError("Invalid verified test count")
+                counts[key] += entry[key]
+        if counts != item["counts"] or sum(counts.values()) <= 0:
+            raise ValueError("Test totals do not reconcile with job reports")
+    return data["projects"]
+
+
+def collect_test_counts(repo, ci_record, previous, verified_record=None):
     """Only latest completed main CI. Cache by workflow run to limit GitHub traffic."""
     if ci_record is None:
         return None
@@ -268,6 +315,20 @@ def collect_test_counts(repo, ci_record, previous):
         raise ValueError("CI run ID missing")
     if ci_record.get("status") != "completed":
         return {"run_id": run_id, "status": "running", "parser_version": TEST_PARSER_VERSION}
+    if isinstance(verified_record, dict) and verified_record.get("run_id") == run_id and verified_record.get("run_conclusion") == ci_record.get("conclusion"):
+        counts = verified_record["counts"]
+        return {"run_id": run_id, "status": "available",
+                "parser_version": TEST_PARSER_VERSION, "checked_at": NOW,
+                "observed_at": verified_record["observed_at"],
+                "method": "reviewed_job_logs",
+                "run_url": verified_record["run_url"],
+                "run_name": short(ci_record.get("name"), 120),
+                "run_updated_at": short(ci_record.get("updated_at"), 35),
+                "run_conclusion": ci_record["conclusion"],
+                "parsed_jobs": len(verified_record["breakdown"]),
+                "scanned_jobs": len(verified_record["breakdown"]),
+                "missing_logs": 0, "partial": verified_record["partial"],
+                **counts}
     if isinstance(previous, dict) and previous.get("run_id") == run_id and previous.get("parser_version") == TEST_PARSER_VERSION and previous.get("status") in ("available", "no_summary"):
         return {**previous, "checked_at": NOW}
     data = api(repo, "actions/runs/" + str(run_id) + "/jobs?per_page=40")
@@ -567,6 +628,7 @@ def generate(output, html_file):
             pass
     result = {}
     failures = []
+    verified_tests = load_verified_test_observations(output.with_name("test-observations.json"))
     for repo in REPOS:
         prev = old.get(repo, {}) if isinstance(old.get(repo), dict) else {}
         item = {"errors": {}, "verified_at": {}}
@@ -580,7 +642,7 @@ def generate(output, html_file):
                 item["errors"][key] = type(exc).__name__
                 failures.append(repo + ":" + key)
         try:
-            item["tests"] = collect_test_counts(repo, item.get("ci"), prev.get("tests"))
+            item["tests"] = collect_test_counts(repo, item.get("ci"), prev.get("tests"), verified_tests.get(repo))
             item["verified_at"]["tests"] = NOW
         except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, OSError, KeyError, TypeError) as exc:
             item["tests"] = prev.get("tests")
