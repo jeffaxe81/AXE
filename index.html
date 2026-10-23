@@ -78,6 +78,35 @@
     .report-table a{color:var(--accent);font-weight:750}
     .report-table td{font-variant-numeric:tabular-nums}
     @media(max-width:850px){.insight-grid{grid-template-columns:1fr}.trend-controls,.report-actions{justify-content:flex-start}.milestone-entry{grid-template-columns:minmax(105px,1fr) 1fr 45px}}
+
+    /* Fila de próximos marcos: visão editorial, sustentada por dados públicos. */
+    .queue-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:17px}
+    .queue-stat{padding:17px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
+    .queue-stat b{font-size:27px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;display:block;line-height:1.1}
+    .queue-stat span{display:block;font-size:11px;color:var(--muted);margin-top:7px}
+    .queue-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+    .queue-toolbar label{color:var(--muted);font-size:12px}
+    .queue-toolbar select{max-width:none}
+    .queue-list{display:grid;gap:12px}
+    .queue-item{display:grid;grid-template-columns:minmax(180px,.78fr) minmax(0,1.9fr) auto;gap:18px;align-items:center;padding:18px 20px;background:linear-gradient(120deg,#142339,#101c2d);border:1px solid var(--line);border-radius:15px}
+    .queue-name{font-weight:800;font-size:15px;line-height:1.3;margin:0}
+    .queue-name a:hover,.queue-link:hover{text-decoration:underline}
+    .queue-pct{font-size:12px;color:var(--accent);font-weight:800;margin-top:7px;display:inline-block;font-variant-numeric:tabular-nums}
+    .queue-sub{font-size:11px;color:var(--muted);margin-top:4px}
+    .queue-next-label{color:#94a8bf;font-size:10px;text-transform:uppercase;letter-spacing:.11em;font-weight:800}
+    .queue-next-title{font-weight:720;margin:3px 0 8px;overflow-wrap:anywhere}
+    .queue-facts{display:flex;flex-wrap:wrap;gap:6px}
+    .queue-fact{font-size:10px;color:#b4c7d8;background:#233449;border:1px solid #30465e;border-radius:8px;padding:4px 7px}
+    .queue-fact.warning{color:#ffd6b0;border-color:#6a493d;background:#3d302e}
+    .queue-fact.good{color:#b6ec69;border-color:#446a47;background:#25402e}
+    .queue-more summary{cursor:pointer;color:var(--accent);font-size:12px;font-weight:800;white-space:nowrap}
+    .queue-more ul{padding-left:16px;margin:12px 0 0;font-size:12px;color:#a8bbcf}
+    .queue-more li{margin-bottom:5px}
+    .queue-link{font-size:12px;font-weight:800;color:var(--accent);white-space:nowrap;display:inline-block;margin-top:12px}
+    .queue-empty{padding:25px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+    @media(max-width:1100px){.queue-item{grid-template-columns:minmax(140px,.8fr) minmax(0,1.5fr)}.queue-more{grid-column:1/-1}.queue-more ul{columns:2}}
+    @media(max-width:650px){.queue-summary{grid-template-columns:1fr 1fr}.queue-stat:last-child{grid-column:1/-1}.queue-item{grid-template-columns:1fr;gap:8px}.queue-more{grid-column:auto}.queue-more ul{columns:1}.queue-toolbar select{width:100%}.queue-toolbar label{width:100%;margin-top:5px}}
+    @media print{#fila{display:none!important}}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -123,6 +152,7 @@
     <nav class="nav">
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
+      <a href="#fila"><span class="sym">☷</span><span class="nav-label">Próximas entregas</span></a>
       <a href="#evolucao"><span class="sym">▥</span><span class="nav-label">Evolução</span></a>
       <a href="#relatorio"><span class="sym">▤</span><span class="nav-label">Relatório</span></a>
       <a href="./qualidade.html"><span class="sym">✓</span><span class="nav-label">PRs & CI</span></a>
@@ -167,6 +197,32 @@
       <div class="tools"><label class="search"><input id="search" type="search" placeholder="Buscar projeto ou tecnologia…" aria-label="Buscar projetos"></label><select id="sort" class="filter" aria-label="Ordenar projetos"><option value="priority">Ordem do portfólio</option><option value="progress">Maior avanço</option><option value="recent">Atividade mais recente</option><option value="name">Nome A–Z</option></select><button type="button" class="refresh-btn" id="export-marcos" title="Exportar marcos e percentuais para CSV">↓ Exportar CSV</button></div>
       <div class="filters" role="group" aria-label="Filtrar categoria"><button class="chip selected" data-filter="all" aria-pressed="true">Todos</button><button class="chip" data-filter="produto" aria-pressed="false">Produtos</button><button class="chip" data-filter="plataforma" aria-pressed="false">Plataformas</button><button class="chip" data-filter="prototipo" aria-pressed="false">Protótipos</button></div>
       <div id="projects" class="projects"></div>
+    </section>
+    <section id="fila" class="section" aria-labelledby="queue-heading">
+      <div class="section-header">
+        <div><h2 id="queue-heading">Próximas entregas</h2><p>Marcos ainda pendentes, apresentados na ordem documentada de cada projeto — sem prazos ou prioridades presumidos.</p></div>
+        <button id="queue-export" type="button" class="refresh-btn">↓ Exportar pendências</button>
+      </div>
+      <div id="queue-summary" class="queue-summary" aria-live="polite"></div>
+      <div class="queue-toolbar">
+        <label for="queue-filter">Exibir</label>
+        <select id="queue-filter" class="filter">
+          <option value="all">Todos os projetos com pendências</option>
+          <option value="prs">Com PR aberta verificada</option>
+          <option value="ci">Com última CI em falha verificada</option>
+          <option value="quiet">Sem commit há 30 dias (registro)</option>
+        </select>
+        <label for="queue-sort">Ordenar</label>
+        <select id="queue-sort" class="filter">
+          <option value="pending">Mais marcos pendentes</option>
+          <option value="project">Projeto A–Z</option>
+          <option value="progress">Menor avanço documentado</option>
+          <option value="recent">Atividade registrada mais recente</option>
+        </select>
+      </div>
+      <p id="queue-meta" class="history-status" role="status" aria-live="polite"></p>
+      <div id="queue-list" class="queue-list"></div>
+      <p class="history-status">A próxima entrega é o primeiro marco ainda não concluído na lista editorial. PRs são contadas apenas entre as 20 mais recentemente atualizadas por repositório; CI e PRs exigem evidência recente. A ausência de commits por 30 dias não significa atraso. Percentuais mudam somente após revisão explícita dos marcos.</p>
     </section>
     <section id="evolucao" class="section">
       <div class="section-header">
@@ -437,7 +493,7 @@ function countRecentPrs(prs){
 }
 function applyEvidence(data,at,cached){
  if(!data||typeof data!=="object"||!evidenceProjects.some(p=>data[p.id]&&typeof data[p.id]==="object"))return false;
- evidenceData=data;renderEvidence();renderConsolidated();
+ evidenceData=data;renderEvidence();renderConsolidated();renderQueue();
  const when=new Date(at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
  const success=evidenceProjects.filter(p=>data[p.id]&&(data[p.id].prs||data[p.id].ci!==undefined)).length;
  evidenceStatus.textContent="Dados de "+success+" de "+evidenceProjects.length+" projetos; consulta de "+when+(cached?" (cache).":".")+" Resultados informativos, sem alterar o progresso dos marcos.";
@@ -733,6 +789,7 @@ function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
  refreshProjectHealth();
+ renderQueue();
  const audit=document.getElementById("sync-audit-link");
  const url=data.collector?.run_url;
  if(typeof url==="string"&&/^https:\/\/github\.com\/jeffaxe81\/AXE\/actions\/runs\/\d{1,20}$/.test(url)){
@@ -902,13 +959,91 @@ function startSnapshotPolling(){
   if(event.key===SYNC_SETTING_KEY)setSyncMode(event.newValue,false);
  });
 }
+
+/* Fila operacional: interpreta evidências, sem equiparar commit/PR a entrega homologada. */
+const queueFilter=document.getElementById("queue-filter");
+const queueSort=document.getElementById("queue-sort");
+const queueList=document.getElementById("queue-list");
+const queueSummary=document.getElementById("queue-summary");
+const queueMeta=document.getElementById("queue-meta");
+function validRecentEvidence(stamp,errors,key,nowMs){
+ const t=Date.parse(stamp||"");
+ return !errors?.[key]&&Number.isFinite(t)&&t<=nowMs+300000&&nowMs-t<=20*60000;
+}
+function nextStepInfo(project,record,nowMs=Date.now()){
+ const pending=project.milestones.filter(m=>m[1]===false).map(m=>m[0]);
+ const prsReliable=validRecentEvidence(record?.verified_at?.prs,record?.errors,"prs",nowMs);
+ const ciReliable=validRecentEvidence(record?.verified_at?.ci,record?.errors,"ci",nowMs);
+ const openPrs=prsReliable&&Number.isSafeInteger(record?.prs?.open)&&record.prs.open>=0?record.prs.open:null;
+ const ciResult=ciReliable&&record?.ci&&typeof record.ci.conclusion==="string"?record.ci.conclusion:null;
+ const latest=Array.isArray(record?.commits)&&!record.errors?.commits&&record.commits.length
+   ?record.commits.find(x=>/^\d{4}-\d{2}-\d{2}$/.test(x?.date||""))?.date:null;
+ const reference=latest||project.updated;
+ const age=Date.parse(reference+"T00:00:00Z");
+ const daysOld=Number.isFinite(age)&&nowMs>=age?Math.floor((nowMs-age)/86400000):null;
+ const quiet=daysOld!==null&&daysOld>=30;
+ return {id:project.id,project,pending,remaining:pending.length,openPrs,ciResult,quiet,daysOld,latestDate:reference,
+   recentActivityVerified:!!latest};
+}
+function queueItems(nowMs=Date.now()){
+ return PROJECTS.map(p=>nextStepInfo(p,sourceRecords[p.id],nowMs)).filter(item=>item.remaining>0);
+}
+function renderQueue(){
+ const all=queueItems();
+ const withPr=all.filter(item=>item.openPrs!==null&&item.openPrs>0).length;
+ const ciFail=all.filter(item=>item.ciResult==="failure"||item.ciResult==="timed_out").length;
+ const pending=all.reduce((n,item)=>n+item.remaining,0);
+ queueSummary.innerHTML=[
+  ["Pendências mapeadas",pending,"Sem prazo inferido"],
+  ["Projetos com PR aberta",withPr,"Amostra pública verificada"],
+  ["Última CI com falha",ciFail,"Somente evidência recente"]
+ ].map(([name,value,hint])=>'<div class="queue-stat"><b>'+value+'</b><span>'+esc(name)+' · '+esc(hint)+'</span></div>').join("");
+ let filtered=all.filter(item=>queueFilter.value==="all"||
+  (queueFilter.value==="prs"&&item.openPrs!==null&&item.openPrs>0)||
+  (queueFilter.value==="ci"&&(item.ciResult==="failure"||item.ciResult==="timed_out"))||
+  (queueFilter.value==="quiet"&&item.quiet));
+ if(queueSort.value==="pending")filtered.sort((a,b)=>b.remaining-a.remaining||a.project.name.localeCompare(b.project.name,"pt-BR"));
+ else if(queueSort.value==="project")filtered.sort((a,b)=>a.project.name.localeCompare(b.project.name,"pt-BR"));
+ else if(queueSort.value==="progress")filtered.sort((a,b)=>pct(a.project)-pct(b.project));
+ else if(queueSort.value==="recent")filtered.sort((a,b)=>b.latestDate.localeCompare(a.latestDate));
+ const sourceCount=all.filter(item=>item.openPrs!==null||item.ciResult!==null).length;
+ queueMeta.textContent=filtered.length+" de "+all.length+" projetos com pendências visíveis · "+sourceCount+
+  " com evidências recentes de PR ou CI. Se a coleta estiver indisponível, os dados de verificação não serão tratados como zero.";
+ queueList.innerHTML=filtered.length?filtered.map(item=>{
+  const p=item.project;
+  const facts=[
+   '<span class="queue-fact">'+item.remaining+' marcos pendentes</span>',
+   item.openPrs!==null?'<span class="queue-fact">'+item.openPrs+' PR(s) aberta(s) na amostra</span>':'<span class="queue-fact">PR: sem leitura recente</span>',
+   item.ciResult==="failure"||item.ciResult==="timed_out"?'<span class="queue-fact warning">Última CI: falha</span>':
+     item.ciResult==="success"?'<span class="queue-fact good">Última CI: sucesso</span>':
+     '<span class="queue-fact">CI: sem conclusão verificada</span>',
+   item.quiet?'<span class="queue-fact">Último commit registrado há '+item.daysOld+' dias</span>':''
+  ].filter(Boolean).join("");
+  return '<article class="queue-item"><div><h3 class="queue-name"><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">'+esc(p.name)+'</a></h3><span class="queue-pct">'+pct(p)+'% dos marcos mapeados</span><div class="queue-sub">Última atividade registrada: '+esc(formatDate(item.latestDate))+(item.recentActivityVerified?" · GitHub":" · cadastro")+'</div></div>'+
+   '<div><div class="queue-next-label">Próximo marco listado</div><div class="queue-next-title">'+esc(item.pending[0])+'</div><div class="queue-facts">'+facts+'</div></div>'+
+   '<div><details class="queue-more"><summary>Ver todos os marcos pendentes</summary><ul>'+item.pending.map(m=>'<li>'+esc(m)+'</li>').join("")+'</ul></details><a class="queue-link" href="'+repo(p)+'/issues" target="_blank" rel="noopener noreferrer">Abrir issues ↗</a></div></article>';
+ }).join(""):'<div class="queue-empty">Nenhum projeto corresponde a este filtro. Altere o filtro ou consulte os dados novamente.</div>';
+}
+function exportQueueCsv(){
+ const rows=[["Projeto","Progresso dos marcos (%)","Marco pendente","PRs abertas na amostra verificada","Última CI verificada","Último commit registrado","Fonte"]];
+ for(const item of queueItems())for(const step of item.pending)rows.push([
+  item.project.name,pct(item.project),step,item.openPrs===null?"":item.openPrs,
+  item.ciResult||"",item.latestDate,repo(item.project)]);
+ const body="\ufeff"+rows.map(cols=>cols.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const objectUrl=URL.createObjectURL(new Blob([body],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=objectUrl;a.download="axe-proximas-entregas.csv";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);
+}
+queueFilter.addEventListener("change",renderQueue);
+queueSort.addEventListener("change",renderQueue);
+document.getElementById("queue-export").addEventListener("click",exportQueueCsv);
 syncNow.addEventListener("click",pollSnapshot);
 
 document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();startSnapshotPolling();
 </script>
 </body>
 </html>
