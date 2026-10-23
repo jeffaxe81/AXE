@@ -196,5 +196,60 @@ class PortfolioTests(unittest.TestCase):
             self.assertEqual(mock.call_count,2)
 
 
+    def test_test_counter_parses_actual_runner_summaries(self):
+        cases = [
+            ("2026-10-23T06:14:37.8703874Z 393 passed in 2.79s", (393, 0, 0, 1)),
+            ("\x1b[2m      Tests \x1b[22m \x1b[32m1366 passed\x1b[39m (1366)", (1366, 0, 0, 1)),
+            ("Tests:       526 passed, 2 failed, 3 skipped, 531 total", (526, 2, 3, 1)),
+            ("  Tests 112 passed | 1 skipped (113)", (112, 0, 1, 1)),
+            ("  2 failed, 127 passed, 1 skipped in 0.55s", (127, 2, 1, 1)),
+            ("Ran 17 tests in 0.523s\n\nOK", (17, 0, 0, 1)),
+            ("Ran 9 tests in 0.004s\nFAILED (failures=1, errors=1)", (7, 2, 0, 1)),
+            (" Test Files 298 passed (298)\nTesting 7 passed tickets", (0, 0, 0, 0)),
+        ]
+        for log, expected in cases:
+            with self.subTest(log=log):
+                result = p.test_counts_from_log(log)
+                self.assertEqual((result["passed"], result["failed"], result["skipped"],
+                                  result["summaries"]), expected)
+
+    def test_test_counter_does_not_claim_success_without_evidence(self):
+        from unittest.mock import patch
+        ci = {"id": 765, "name": "Quality", "status": "completed",
+              "conclusion": "failure", "updated_at": "2026-10-23T06:14:37Z"}
+        with patch.object(p, "api", return_value={"jobs": [
+            {"name": "quality", "status": "completed", "id": 1234},
+            {"name": "deploy", "status": "completed", "id": 4567},
+        ]}), patch.object(p, "fetch_job_text", return_value="Tests: 12 passed, 2 failed, 14 total"):
+            measured = p.collect_test_counts("dispatch", ci, None)
+            self.assertEqual(measured["passed"], 12)
+            self.assertEqual(measured["failed"], 2)
+            self.assertEqual(measured["skipped"], 0)
+            self.assertEqual(measured["scanned_jobs"], 1)
+            self.assertEqual(measured["run_conclusion"], "failure")
+        with patch.object(p, "api", side_effect=AssertionError("Cached run must not hit network")):
+            self.assertEqual(p.collect_test_counts("dispatch", ci, measured)["run_id"], 765)
+        with patch.object(p, "api", return_value={"jobs": [
+            {"name": "pytest", "status": "completed", "id": 123}
+        ]}), patch.object(p, "fetch_job_text", side_effect=ValueError("Unavailable")):
+            empty = p.collect_test_counts("dispatch", ci, None)
+            self.assertEqual(empty["status"], "no_summary")
+            self.assertIsNone(empty["passed"])
+            self.assertTrue(empty["partial"])
+
+    def test_history_only_adds_distinct_verified_runs(self):
+        record = {"run_id": 123, "status": "available", "passed": 17,
+                  "failed": 0, "skipped": 0, "parser_version": p.TEST_PARSER_VERSION}
+        rows = {"crm-vendas": {"tests": record, "errors": {}}}
+        initial = p.append_test_history({}, rows)
+        self.assertEqual(len(initial["crm-vendas"]), 1)
+        repeat = p.append_test_history({"test_history": initial}, rows)
+        self.assertEqual(len(repeat["crm-vendas"]), 1)
+        self.assertEqual(repeat["crm-vendas"][0]["first_seen_at"], initial["crm-vendas"][0]["first_seen_at"])
+        rows["crm-vendas"]["errors"]["tests"] = "HTTPError"
+        errors = p.append_test_history({"test_history": initial}, rows)
+        self.assertEqual(len(errors["crm-vendas"]), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
