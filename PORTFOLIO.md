@@ -15,6 +15,7 @@ O site usa a branch `gh-pages` com diretório `/(root)`. Se a publicação for d
 - **Visão geral:** resumo dos projetos e avanço de marcos.
 - **Projetos:** barras de avanço, marcos concluídos e pendentes e links aos repositórios.
 - **Próximas entregas:** lista de marcos ainda pendentes, filtrável por PR aberta, última CI em falha verificada ou ausência de commit registrado há 30 dias. A lista respeita a ordem editorial do plano, sem declarar prioridade ou prazo.
+- **Matriz de homologação:** quatro grupos editoriais (desenvolvimento, testes, homologação e liberação/entrega) para os nove projetos. Exibe contagem de marcos concluídos em cada grupo e CI como sinal separado, com filtros e exportação CSV.
 - **Evolução:** atividade recente de commits e fotografias históricas de percentuais alterados.
 - **Histórico:** commits com links de evidências.
 - **Relatório:** visão consolidada, CSV e impressão/PDF pelo navegador.
@@ -22,7 +23,7 @@ O site usa a branch `gh-pages` com diretório `/(root)`. Se a publicação for d
 
 ## Rastreabilidade de marcos e PRs (v3)
 
-A seção **Rastreabilidade** associa **10 referências públicas revisadas** (issues e pull requests) a marcos definidos no `index.html`. Essas associações são cadastradas em `MILESTONE_LINKS` por índice do marco, em um literal JSON (não há associação automática por palavras parecidas). O coletor valida o cadastro e busca o status oficial no repositório de origem.
+A seção **Rastreabilidade** associa **15 referências públicas revisadas** (issues e pull requests) a marcos definidos no `index.html`. Essas associações são cadastradas em `MILESTONE_LINKS` por índice do marco, em um literal JSON (não há associação automática por palavras parecidas). O coletor valida o cadastro e busca o status oficial no repositório de origem.
 
 - `PR integrada`: prova de integração de código, **não** de homologação.
 - `Issue aberta`: pendência ou discussão identificada, não um prazo ou impedimento automaticamente comprovado.
@@ -31,6 +32,23 @@ A seção **Rastreabilidade** associa **10 referências públicas revisadas** (i
 - Exportação de evidências em CSV com URL pública de cada associação.
 
 Como atualizar a lista: identifique o marco em `PROJECTS[...].milestones` usando índice começando em zero; depois insira em `MILESTONE_LINKS` um objeto como `{"crm-vendas":{"2":[{"kind":"pr","number":281}]}}` (mesclado à configuração existente, sem substituir todo o objeto). Confira título, URL, projeto e pertinência antes de publicar. O script `scripts/refresh_portfolio.py` limita e valida os vínculos; falhas preservam o dado anterior somente para auditoria e o frontend o sinaliza como não verificado.
+
+## Matriz de homologação e liberação (v4)
+
+A matriz `GATE_MATRIX` dentro de `index.html` classifica cada marco editorial exatamente uma vez em `dev`, `tests`, `homolog` ou `release`:
+
+- **Desenvolvimento:** somente os marcos designados para essa etapa.
+- **Testes / verificação:** somente marcos explicitamente cadastrados. O resultado da última CI aparece ao lado, mas **não** conclui os marcos.
+- **Homologação:** somente marcos explícitos de homologação. Se nenhum estiver mapeado, a interface indica `Não mapeado`, nunca `Aprovado`.
+- **Liberação / entrega:** apenas marcos mapeados, como autorização de produção, publicação e empacotamento. `Concluído` significa somente registro editorial da etapa, não autorização automática de produção.
+
+A interface mantém em cada projeto seus percentuais originais de marcos e **não** cria um segundo percentual enganoso de homologação. As categorias oferecem listas de marcos concluídos/pendentes, filtros por homologação pendente, liberação pendente, última CI com falha confirmada ou ausência de homologação cadastrada. Há exportação de toda a matriz em `axe-matriz-homologacao.csv`.
+
+O cadastro inicial da matriz cobre os nove projetos e os 50 marcos listados. Para incluir um novo marco, atualize `PROJECTS` e a classificação correspondente em `GATE_MATRIX` no mesmo commit. Testes unitários rejeitam índices duplicados, ausentes ou fora do intervalo. Um resultado de CI só é apresentado como recente se a fonte foi verificada nos últimos 20 minutos e não houve erro na coleta.
+
+### Evidências ampliadas
+
+A rastreabilidade agora contempla **15 vínculos**. Além dos já verificados para CRM, AXE Dispatch, AXE Voice, Gestão de Convites e Central de Alertas, foram adicionadas referências públicas para validação SIP e mídia SRTP do PABX (PRs #53/#54), para a base SIP e homologação LAB do AXE Voice (PRs #70/#76) e para a homologação diferencial do Dispatch (PR #166). PR aberta indica trabalho ainda sujeito a revisão; **não** equivale a homologação concluída.
 
 ## Atualização automática
 
