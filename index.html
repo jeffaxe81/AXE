@@ -245,6 +245,7 @@
     <div class="aside-caption">Workspace</div>
     <nav class="nav">
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
+      <a href="#testes"><span class="sym">✓</span><span class="nav-label">Testes automatizados</span></a>
       <a href="#online"><span class="sym">◉</span><span class="nav-label">Acompanhamento online</span></a>
       <a href="#versoes"><span class="sym">▤</span><span class="nav-label">Versões e releases</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
@@ -290,6 +291,14 @@
     <section aria-label="Indicadores de qualidade" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 24px;background:#15283b;border:1px solid var(--line);border-radius:16px;margin-top:26px">
       <div><strong style="font-size:16px">PRs e testes — evidências consultáveis</strong><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Última PR e GitHub Actions na main, separados do progresso dos marcos.</p></div>
       <a href="./qualidade.html" style="font-weight:800;color:var(--accent);white-space:nowrap">Abrir painel de qualidade ↗</a>
+    </section>
+    <section id="testes" class="section" aria-labelledby="test-heading">
+      <div class="section-header">
+        <div><h2 id="test-heading">Testes automatizados observados</h2><p>Quantidade de casos identificada nos logs da última CI de cada projeto, com histórico de execuções distintas.</p></div>
+        <a href="./qualidade.html#testes" class="refresh-btn">Ver testes por projeto ↗</a>
+      </div>
+      <div id="test-overview" class="online-metrics"></div>
+      <p id="test-overview-detail" class="history-status" role="status" aria-live="polite">Aguardando contagens verificadas.</p>
     </section>
     <section id="online" class="section" aria-labelledby="online-heading">
       <div class="section-header">
@@ -995,6 +1004,7 @@ function goodCommit(e){
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
+ renderTestOverview();
  onlineSnapshotAt=data.generated_at||null;
  versionHistory=data.version_history&&typeof data.version_history==="object"?data.version_history:{};
  renderOnline();renderVersions();
@@ -1129,6 +1139,7 @@ async function pollSnapshot(){
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    refreshProjectHealth();
+   renderTestOverview();
    renderOnline();renderVersions();
    renderReleases();
    renderGateMatrix();
@@ -1364,6 +1375,31 @@ function exportGatesCsv(){
 gateFilter.addEventListener("change",renderGateMatrix);
 document.getElementById("gate-export").addEventListener("click",exportGatesCsv);
 
+
+
+function testOverviewStats(){
+ const keys=["passed","failed","skipped"],total={passed:0,failed:0,skipped:0};
+ let projectsCount=0,partialProjects=0;
+ for(const p of PROJECTS){
+  const record=sourceRecords[p.id];
+  const tests=record?.tests;
+  if(!tests||record?.errors?.tests||tests.status!=="available"||
+    tests.run_id!==record.ci?.id||!keys.every(key=>Number.isSafeInteger(tests[key])&&tests[key]>=0))continue;
+  projectsCount++;if(tests.partial)partialProjects++;
+  keys.forEach(key=>total[key]+=tests[key]);
+ }
+ return {...total,count:total.passed+total.failed+total.skipped,projectsCount,partialProjects};
+}
+function renderTestOverview(){
+ const stats=testOverviewStats();
+ const cards=[["Testes identificados",stats.count],["Aprovados",stats.passed],["Falharam",stats.failed],["Ignorados",stats.skipped]];
+ document.getElementById("test-overview").innerHTML=cards.map(([name,n])=>
+  '<div class="online-stat"><b>'+(stats.projectsCount?n.toLocaleString("pt-BR"):"—")+'</b><span>'+esc(name)+'</span></div>').join("");
+ document.getElementById("test-overview-detail").textContent=stats.projectsCount+
+  " de "+PROJECTS.length+" projetos com contagem reconhecida na última CI"+
+  (stats.partialProjects?"; "+stats.partialProjects+" coleta(s) parcial(is)":"")+
+  ". Contagem por resumo de testes, não total vitalício. Consulte a execução original no painel de qualidade.";
+}
 
 /* GitHub online activity — public, bounded collection and explicit direct lookup. */
 let onlineSnapshotAt=null,versionHistory={},onlineOverrides={},onlineDirectBusy=false;
@@ -1603,7 +1639,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();renderTestOverview();startSnapshotPolling();
 </script>
 </body>
 </html>
