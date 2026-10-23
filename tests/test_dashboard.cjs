@@ -244,6 +244,30 @@ q.fn("qualityTestHistory="+JSON.stringify({"crm-vendas":[
 ]})+";renderTestCounts()");
 assert.equal(q.fn("testsHistoryFor('crm-vendas').length"),2,"Same run cannot be counted twice");
 assert.ok(q.elements.get("test-history-summary").textContent.includes("2 execuções"));
+
+const classified={
+ "crm-vendas":{status:"available",run_id:42,passed:60,failed:2,skipped:1,
+  head_sha:"a".repeat(40),categories:{
+   unit:{passed:15,failed:0,skipped:0},integration:{passed:0,failed:0,skipped:0},
+   e2e:{passed:5,failed:1,skipped:0},security:{passed:0,failed:0,skipped:0},
+   unclassified:{passed:40,failed:1,skipped:1}
+  }}
+};
+q.fn("qualityTests="+JSON.stringify(classified)+";qualityTestHistory="+JSON.stringify({
+ "crm-vendas":[{...classified["crm-vendas"],run_id:42,head_sha:"a".repeat(40)}]})+
+ ";qualityVersions="+JSON.stringify({"crm-vendas":[{kind:"release",version:"v1.0.0",
+  published_at:"2026-10-23T12:00:00Z",sha:"a".repeat(40)}]})+";renderTestCounts()");
+assert.equal(q.fn("testCategoriesOverview().known"),1);
+assert.equal(q.fn("testCategoriesOverview().totals.unit.passed"),15);
+assert.equal(q.fn("testCategoriesOverview().totals.e2e.failed"),1);
+assert.equal(q.fn("testCategoriesOverview().totals.unclassified.passed"),40);
+assert.ok(q.elements.get("test-category-summary").innerHTML.includes("Integração"));
+assert.equal(q.fn("testReleasesObserved()[0].runs.length"),1,"Only exact SHA may connect a release");
+q.fn("qualityVersions['crm-vendas'][0].sha='b'.repeat(40);renderTestCounts()");
+assert.equal(q.fn("testReleasesObserved()[0].runs.length"),0,"Mismatched SHA cannot inherit tests");
+q.fn("qualityTests['crm-vendas'].categories.unit.passed=16;renderTestCounts()");
+assert.equal(q.fn("testCategoriesOverview().known"),0,"Inconsistent category totals must not render");
+console.log("PASS: explicit test suite categories reconcile, unknown stays unknown, release matching requires exact commit SHA");
 console.log("PASS: verified counts, partial flag, distinct CI history, no inferred zero or mismatch");
 console.log("PASS: Online PR, commits, CI, tags and independently published Releases");
 console.log("PASS: fail-closed GO/NO-GO controls, CSV structure, and separate milestone progress");
