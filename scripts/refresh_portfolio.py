@@ -111,6 +111,7 @@ def ci(repo):
         "id": r.get("id"), "name": short(r.get("name"), 120), "status": short(r.get("status"), 40),
         "conclusion": short(r.get("conclusion"), 40),
         "url": short(r.get("html_url"), 300), "updated_at": short(r.get("updated_at"), 35),
+        "head_sha": r.get("head_sha") if isinstance(r.get("head_sha"), str) and re.fullmatch(r"[0-9a-f]{40}", r["head_sha"]) else None,
     }
 
 
@@ -188,7 +189,12 @@ def merge_version_history(old, projects):
 
 
 # Only explicit test-runner summaries are counted, never CI job successes.
-TEST_PARSER_VERSION = 1
+TEST_PARSER_VERSION = 2
+TEST_CATEGORIES = ("unit", "integration", "e2e", "security", "unclassified")
+
+def empty_categories():
+    return {category: {"passed": 0, "failed": 0, "skipped": 0} for category in TEST_CATEGORIES}
+
 ANSI_ESC = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
 TEST_NUM = re.compile(r"(\d[\d,]*)\s+(passed|failed|skipped|pending)\b", re.I)
 TEST_JOBS = re.compile(r"pytest|test|qualidade|quality|verify|checks", re.I)
@@ -292,15 +298,20 @@ def load_verified_test_observations(path):
         if not isinstance(rows, list) or not 1 <= len(rows) <= 12:
             raise ValueError("Test observations require a bounded job breakdown")
         counts = {"passed": 0, "failed": 0, "skipped": 0}
+        categories = empty_categories()
         for entry in rows:
-            if not isinstance(entry, dict) or set(entry) != {"name", "passed", "failed", "skipped"}:
+            if not isinstance(entry, dict) or set(entry) != {"name", "category", "passed", "failed", "skipped"}:
                 raise ValueError("Unexpected breakdown fields")
             if not isinstance(entry["name"], str) or not 3 <= len(entry["name"]) <= 90:
                 raise ValueError("Invalid test breakdown name")
+            category = entry["category"]
+            if category not in TEST_CATEGORIES:
+                raise ValueError("Unrecognized or unjustified test category")
             for key in counts:
                 if type(entry[key]) is not int or not 0 <= entry[key] <= 1000000:
                     raise ValueError("Invalid verified test count")
                 counts[key] += entry[key]
+                categories[category][key] += entry[key]
         if counts != item["counts"] or sum(counts.values()) <= 0:
             raise ValueError("Test totals do not reconcile with job reports")
     return data["projects"]
@@ -317,6 +328,10 @@ def collect_test_counts(repo, ci_record, previous, verified_record=None):
         return {"run_id": run_id, "status": "running", "parser_version": TEST_PARSER_VERSION}
     if isinstance(verified_record, dict) and verified_record.get("run_id") == run_id and verified_record.get("run_conclusion") == ci_record.get("conclusion"):
         counts = verified_record["counts"]
+        categories = empty_categories()
+        for part in verified_record["breakdown"]:
+            for key in ("passed", "failed", "skipped"):
+                categories[part["category"]][key] += part[key]
         return {"run_id": run_id, "status": "available",
                 "parser_version": TEST_PARSER_VERSION, "checked_at": NOW,
                 "observed_at": verified_record["observed_at"],
@@ -328,6 +343,8 @@ def collect_test_counts(repo, ci_record, previous, verified_record=None):
                 "parsed_jobs": len(verified_record["breakdown"]),
                 "scanned_jobs": len(verified_record["breakdown"]),
                 "missing_logs": 0, "partial": verified_record["partial"],
+                "categories": categories,
+                "head_sha": ci_record.get("head_sha"),
                 **counts}
     if isinstance(previous, dict) and previous.get("run_id") == run_id and previous.get("parser_version") == TEST_PARSER_VERSION and previous.get("status") in ("available", "no_summary"):
         return {**previous, "checked_at": NOW}
@@ -339,6 +356,7 @@ def collect_test_counts(repo, ci_record, previous, verified_record=None):
     if len(jobs) > 12:
         jobs = jobs[:12]
     results = {"passed": 0, "failed": 0, "skipped": 0}
+    categories = empty_categories()
     parsed_jobs = 0
     missing_logs = 0
     for job in jobs:
@@ -356,6 +374,7 @@ def collect_test_counts(repo, ci_record, previous, verified_record=None):
         parsed_jobs += 1
         for key in results:
             results[key] += counts[key]
+            categories["unclassified"][key] += counts[key]
     available = parsed_jobs > 0
     return {
         "run_id": run_id, "run_url": "https://github.com/" + OWNER + "/" + repo + "/actions/runs/" + str(run_id),
@@ -363,6 +382,8 @@ def collect_test_counts(repo, ci_record, previous, verified_record=None):
         "run_conclusion": short(ci_record.get("conclusion"), 40),
         "status": "available" if available else "no_summary",
         "parser_version": TEST_PARSER_VERSION, "checked_at": NOW,
+        "head_sha": ci_record.get("head_sha"),
+        "categories": categories if available else None,
         "parsed_jobs": parsed_jobs, "scanned_jobs": len(jobs), "missing_logs": missing_logs,
         "partial": missing_logs > 0 or parsed_jobs < len(jobs) or len(data["jobs"]) >= 40,
         "passed": results["passed"] if available else None,
@@ -386,8 +407,12 @@ def append_test_history(saved, rows):
         test = rows.get(repo, {}).get("tests")
         if isinstance(test, dict) and test.get("status") == "available" and not rows[repo].get("errors", {}).get("tests"):
             rid = test.get("run_id")
-            if type(rid) is int and rid > 0 and rid not in {x["run_id"] for x in output}:
-                output.append({**test, "first_seen_at": NOW})
+            if type(rid) is int and rid > 0:
+                match = next((i for i, x in enumerate(output) if x["run_id"] == rid), None)
+                if match is None:
+                    output.append({**test, "first_seen_at": NOW})
+                elif isinstance(test.get("categories"), dict):
+                    output[match] = {**output[match], **test, "first_seen_at": output[match].get("first_seen_at") or NOW}
         history[repo] = output[-100:]
     return history
 
