@@ -41,7 +41,8 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 .test-table a{color:#9fe8c0;text-decoration:underline;text-underline-offset:3px}
 .test-table small{color:#9fb0c3;display:block;margin-top:5px}
 .test-table .partial{color:#ffd3a1}.test-table .missing{color:#a1b0c0}
-.test-history{margin-top:23px}.test-history h3{font-size:16px;margin:12px 0 8px}
+.test-history,.test-category,.test-release{margin-top:23px}
+.test-history h3,.test-category h3,.test-release h3{font-size:16px;margin:12px 0 8px}.test-history h3{font-size:16px;margin:12px 0 8px}
 @media(max-width:680px){.test-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{.test-section{display:none}}
 </style>
@@ -79,6 +80,18 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 <p class="dim" id="test-data-status" role="status" aria-live="polite">Aguardando dados de testes da coleta pública.</p>
 <div class="table-scroll"><table class="test-table"><thead><tr><th>Projeto</th><th>Executados</th><th>Aprovados</th><th>Falharam</th><th>Ignorados</th><th>Origem e cobertura</th></tr></thead><tbody id="test-rows"></tbody></table></div>
 <div class="test-history"><h3>Histórico acumulado de execuções observadas</h3><p id="test-history-summary" class="dim"></p><div class="table-scroll"><table class="test-table"><thead><tr><th>Projeto</th><th>Execuções contabilizadas</th><th>Casos identificados</th><th>Aprovados</th><th>Falharam</th><th>Ignorados</th></tr></thead><tbody id="test-history-rows"></tbody></table></div></div>
+<div class="test-category" id="categorias" aria-labelledby="test-category-title">
+ <h3 id="test-category-title">Tipos de teste identificados</h3>
+ <p class="dim">Classificação documentada por suíte. Os casos sem categoria comprovada permanecem em “Não classificados”.</p>
+ <div id="test-category-summary" class="stats test-stats"></div>
+ <div class="table-scroll"><table class="test-table"><thead><tr><th>Projeto</th><th>Categoria</th><th>Executados</th><th>Aprovados</th><th>Falharam</th><th>Ignorados</th></tr></thead><tbody id="test-category-rows"></tbody></table></div>
+</div>
+<div class="test-release" id="testes-release" aria-labelledby="test-release-title">
+ <h3 id="test-release-title">Validação por release</h3>
+ <p class="dim">Uma execução só é vinculada a uma release publicada quando o SHA do commit testado é exatamente o SHA da tag registrada no GitHub. Sem igualdade, não há associação.</p>
+ <p id="test-release-status" class="dim"></p>
+ <div class="table-scroll"><table class="test-table"><thead><tr><th>Projeto</th><th>Release publicada</th><th>Data</th><th>Testes da versão</th><th>Evidência</th></tr></thead><tbody id="test-release-rows"></tbody></table></div>
+</div>
 <p class="dim"><strong>Como interpretar:</strong> os números são obtidos apenas quando o runner de testes publica um resumo reconhecível (pytest, unittest, Vitest ou Jest). A contagem pode ser parcial e não representa todos os testes do repositório. CI aprovada não implica quantidade de testes conhecida; CI com falha pode conter testes aprovados. O histórico soma somente execuções diferentes observadas desde a ativação desta função, sem reconstruir execuções anteriores.</p>
 </section>
 <div class="notes"><p><strong>Critérios:</strong> “integrada” significa PR efetivamente mesclada; “sucesso” significa conclusão bem-sucedida apenas da última execução do Actions retornada na main. PR fechada sem merge, execução cancelada e CI indisponível são situações diferentes. Ausência de workflow não implica falha.</p>
@@ -130,7 +143,7 @@ function evaluateSourceMeta(meta,now=Date.now()){
 }
 
 
-let qualityTests={},qualityTestHistory={},qualityTestsSnapshot=null;
+let qualityTests={},qualityTestHistory={},qualityVersions={},qualityTestsSnapshot=null;
 function boundedCount(value){
  return Number.isSafeInteger(value)&&value>=0&&value<=100000000?value:null;
 }
@@ -156,6 +169,96 @@ function testsHistoryFor(id){
 function safeQualityTestUrl(id,runId){
  return "https://github.com/jeffaxe81/"+encodeURIComponent(id)+"/actions/runs/"+runId;
 }
+
+const TEST_TYPES=[
+ ["unit","Unitários"],["integration","Integração"],["e2e","Ponta a ponta"],
+ ["security","Segurança"],["unclassified","Não classificados"]
+];
+const TEST_STATUS_FIELDS=["passed","failed","skipped"];
+function validatedCategories(test){
+ if(!test||!test.categories||typeof test.categories!=="object")return null;
+ const cats={};
+ const totals={passed:0,failed:0,skipped:0};
+ for(const [key] of TEST_TYPES){
+  const group=test.categories[key];
+  if(!group||!TEST_STATUS_FIELDS.every(k=>boundedCount(group[k])!==null))return null;
+  cats[key]={};
+  for(const k of TEST_STATUS_FIELDS){cats[key][k]=group[k];totals[k]+=group[k]}
+ }
+ if(!TEST_STATUS_FIELDS.every(k=>totals[k]===test[k]))return null;
+ return cats;
+}
+function testCategoriesOverview(){
+ const totals=Object.fromEntries(TEST_TYPES.map(([key])=>[key,{passed:0,failed:0,skipped:0}]));
+ let known=0,withoutCategories=0;
+ const entries=[];
+ for(const [id,name] of projects){
+  const test=testsFor(id);
+  if(!test)continue;
+  const groups=validatedCategories(test.source);
+  if(!groups){withoutCategories++;continue}
+  known++;
+  for(const [key,label] of TEST_TYPES){
+   const group=groups[key];for(const field of TEST_STATUS_FIELDS)totals[key][field]+=group[field];
+   entries.push({id,name,category:key,label,...group});
+  }
+ }
+ return {totals,known,withoutCategories,entries};
+}
+function testReleasesObserved(){
+ const entries=[];
+ for(const [id,name] of projects){
+  const releases=(Array.isArray(qualityVersions[id])?qualityVersions[id]:[]).filter(
+   v=>v?.kind==="release"&&/^[0-9a-f]{40}$/.test(v.sha||"")&&
+    typeof v.version==="string"&&/^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/.test(v.version)&&!v.version.includes(".."));
+  for(const release of releases){
+   const runs=testsHistoryFor(id).filter(t=>t.head_sha===release.sha);
+   entries.push({id,name,release,runs});
+  }
+ }
+ return entries.sort((a,b)=>String(b.release.published_at||"").localeCompare(String(a.release.published_at||"")));
+}
+function renderTestCategories(){
+ const summary=testCategoriesOverview();
+ document.getElementById("test-category-summary").innerHTML=TEST_TYPES.map(([key,label])=>{
+  const c=summary.totals[key],total=c.passed+c.failed+c.skipped;
+  return '<div class="stat"><label>'+label+'</label><strong>'+total.toLocaleString("pt-BR")+
+   '</strong><small>casos identificados nesta categoria</small></div>';
+ }).join("");
+ const rows=document.getElementById("test-category-rows");
+ rows.replaceChildren();
+ for(const x of summary.entries){
+  if(x.passed+x.failed+x.skipped===0)continue;
+  const tr=document.createElement("tr");cellText(tr,x.name);cellText(tr,x.label);
+  for(const v of [x.passed+x.failed+x.skipped,x.passed,x.failed,x.skipped])cellText(tr,v.toLocaleString("pt-BR"));
+  rows.appendChild(tr);
+ }
+ document.getElementById("test-release-status").textContent=summary.known+
+  " projeto(s) com classificação verificável; "+summary.withoutCategories+
+  " contagem(ns) sem detalhamento classificável. Nenhum zero comprova que uma categoria foi testada.";
+ const releases=testReleasesObserved(),releaseRows=document.getElementById("test-release-rows");
+ releaseRows.replaceChildren();
+ for(const x of releases){
+  const tr=document.createElement("tr");
+  cellText(tr,x.name);
+  const rel=cellText(tr,"");
+  if(!/^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$/.test(x.release.version))rel.textContent="Não verificada";
+  else link(rel,base(x.id)+"/releases/tag/"+encodeURIComponent(x.release.version),x.release.version+" ↗");
+  cellText(tr,validDate(x.release.published_at)?prettyDate(validDate(x.release.published_at)):"—");
+  const passed=x.runs.reduce((n,v)=>n+v.passed,0),failed=x.runs.reduce((n,v)=>n+v.failed,0),skipped=x.runs.reduce((n,v)=>n+v.skipped,0);
+  cellText(tr,x.runs.length?(passed+failed+skipped).toLocaleString("pt-BR")+
+   " ("+passed+" aprovados, "+failed+" falharam, "+skipped+" ignorados)":"Não vinculados por SHA");
+  const origin=cellText(tr,"");
+  if(x.runs.length){
+   x.runs.forEach(t=>{if(!Number.isSafeInteger(t.run_id)||t.run_id<1)return;link(origin,safeQualityTestUrl(x.id,t.run_id),"CI #"+t.run_id+" ↗")});
+  }else origin.textContent="Sem CI observada no mesmo commit";
+  releaseRows.appendChild(tr);
+ }
+ if(!releases.length){
+  const tr=document.createElement("tr");const td=cellText(tr,"Nenhuma release pública com SHA verificável");td.colSpan=5;releaseRows.appendChild(tr);
+ }
+}
+
 function renderTestCounts(){
  const table=document.getElementById("test-rows"),historical=document.getElementById("test-history-rows");
  table.replaceChildren();historical.replaceChildren();
@@ -206,6 +309,7 @@ function renderTestCounts(){
   " casos identificados ("+historyTotals.passed.toLocaleString("pt-BR")+
   " aprovados, "+historyTotals.failed.toLocaleString("pt-BR")+" falhas, "+
   historyTotals.skipped.toLocaleString("pt-BR")+" ignorados). Contagem histórica observada, não total vitalício.";
+ renderTestCategories();
 }
 function exportTestCounts(){
  const rows=[["Projeto","Execução","Executados","Aprovados","Falharam","Ignorados","Jobs lidos","Jobs com contagem","Parcial","Status CI","Fonte"]];
@@ -337,6 +441,7 @@ function readQualitySnapshot(data){
  const next={...records},nextMeta={...qualitySourceMeta};
  qualityTestsSnapshot=data.generated_at;
  qualityTestHistory=data.test_history&&typeof data.test_history==="object"?data.test_history:{};
+ qualityVersions=data.version_history&&typeof data.version_history==="object"?data.version_history:{};
  qualityTests={};
  for(const [id] of projects){
   if(data.projects[id]&&Object.prototype.hasOwnProperty.call(data.projects[id],"tests")){
