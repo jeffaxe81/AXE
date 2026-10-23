@@ -100,6 +100,13 @@
     .sync-explain{flex-basis:100%;color:var(--muted);font-size:11px;line-height:1.55}
     .sync-panel #sync-label{flex:1;min-width:170px}.sync-led{height:9px;width:9px;border-radius:50%;background:var(--warm);box-shadow:0 0 0 4px #ffc18420}
     .sync-led.ok{background:var(--accent)}.sync-led.error{background:#ff9a84}
+    .source-summary{font-size:12px;color:var(--muted);border-left:3px solid var(--accent2);padding:8px 13px;margin:8px 0 0}
+    .project-health{font-size:11px;margin-top:11px;display:flex;align-items:center;gap:7px;color:var(--muted)}
+    .health-dot{width:8px;height:8px;border-radius:99px;background:#90a1b7;flex:none}
+    .project-health.fresh .health-dot{background:var(--accent)}
+    .project-health.partial .health-dot{background:#e8cc84}
+    .project-health.stale .health-dot,.project-health.error .health-dot{background:#ff987f}
+    .project-health.error,.project-health.stale{color:#ffb6a3}
     .latest-commit{font-size:11px;color:var(--muted);margin-top:10px}.latest-commit a{color:var(--accent2)}
     @media(max-width:1200px){.shell{grid-template-columns:205px minmax(0,1fr)}aside{padding:28px 16px}.projects{grid-template-columns:repeat(2,minmax(0,1fr))}.hero h1{font-size:48px}}
     @media(max-width:850px){.shell{display:block}aside{position:relative;height:auto;display:flex;flex-direction:row;align-items:center;justify-content:space-between;padding:14px 21px;border-right:0;border-bottom:1px solid var(--line)}.aside-caption,.side-bottom{display:none}.nav{display:flex;gap:3px}.nav a{padding:8px}.nav a .nav-label{display:none}main{padding:22px}.hero{margin-top:28px;grid-template-columns:1fr}.hero-feature{min-height:165px}.rings{height:40px}.rings::before{top:-80px}.rings::after{top:-44px}.metrics{grid-template-columns:repeat(2,1fr)}.timeline{grid-template-columns:1fr}}
@@ -139,6 +146,7 @@
       <button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button>
       <small class="sync-explain">Online verifica ao voltar à aba ou reconectar e a cada 15 s. Os dados só mudam após nova coleta do GitHub (agendada a cada ~5 min).</small>
     </div>
+    <div class="source-summary" id="source-summary" role="status" aria-live="polite">Fontes dos projetos: aguardando primeira coleta verificada.</div>
     <section class="hero" aria-label="Introdução">
       <div><div class="eyebrow">Engenharia • Produtos • Execução</div><h1>Projetos que saem do <span>papel.</span></h1><p class="lead">Um panorama transparente das iniciativas AXE: o que já foi entregue, o que segue em desenvolvimento e as evidências registradas no GitHub.</p></div>
       <div class="hero-feature"><div class="feature-top"><span>PORTFÓLIO / 2026</span><span>↗ 01</span></div><div class="rings" aria-hidden="true"></div><div><strong>Do planejamento à entrega.</strong><br><small>Marcos, execução e histórico em um só lugar.</small></div></div>
@@ -288,6 +296,7 @@ document.getElementById("m-progress").textContent=Math.round(100*done/total)+"%"
 document.getElementById("m-events").textContent=events;
 let currentFilter="all";
 const latestCommitsByProject={};
+let sourceRecords={};
 let progressHistory=[];
 function renderProjects(){
  const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
@@ -300,8 +309,9 @@ function renderProjects(){
  document.getElementById("projects").innerHTML=ps.length?ps.map(p=>{
    const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);const latest=latestCommitsByProject[p.id];
    const tasks=p.milestones.map(m=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span>'+esc(m[0])+'</li>').join("");
-   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
+   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><div class="project-health" data-health="'+esc(p.id)+'"><span class="health-dot" aria-hidden="true"></span><span class="health-label">Aguardando coleta</span></div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
  }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
+ refreshProjectHealth();
 }
 
 const STATIC_HISTORY=PROJECTS.flatMap(p=>p.history.map(h=>({project:p,date:h[0],title:h[1],sha:h[2]})));
@@ -721,6 +731,8 @@ function goodCommit(e){
 }
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
+ sourceRecords=data.projects;
+ refreshProjectHealth();
  if(Array.isArray(data.progress_history)){
   progressHistory=data.progress_history.filter(entry=>entry&&typeof entry.observed_at==="string"&&Number.isFinite(Date.parse(entry.observed_at))&&
    entry.projects&&typeof entry.projects==="object").slice(-365);
@@ -765,6 +777,51 @@ function importSnapshot(data){
  showSync("verificado "+syncTime(Date.now())+" · coleta "+stamp+" (até ~5 min)"+
   (errors?" · "+errors+" fontes indisponíveis":"")+(stale?" · coleta antiga":""),!stale&&errors===0);
 }
+
+const HEALTH_MAX_AGE_MS=20*60*1000;
+const HEALTH_FIELDS=["commits","prs","ci"];
+function sourceFreshness(record,now=Date.now()){
+ const unknown={kind:"unknown",label:"Ainda não verificado",details:"Nenhuma coleta confirmada para este projeto"};
+ if(!record||typeof record!=="object")return unknown;
+ const verified=record.verified_at||{},errors=record.errors||{};
+ const good=[],missing=[],failed=[];
+ for(const part of HEALTH_FIELDS){
+  const timestamp=Date.parse(verified[part]||"");
+  if(typeof errors[part]==="string"&&errors[part])failed.push(part);
+  if(Number.isFinite(timestamp)&&timestamp<=now+5*60*1000)good.push({part,time:timestamp});
+  else missing.push(part);
+ }
+ if(!good.length)return failed.length?
+  {kind:"error",label:"Falha na coleta",details:"Erros: "+failed.join(", ")+"; nenhuma verificação confirmada"}:unknown;
+ const last=Math.max(...good.map(e=>e.time));
+ const old=good.some(e=>now-e.time>HEALTH_MAX_AGE_MS);
+ const details="Fontes verificadas: "+good.map(e=>e.part+" "+new Date(e.time).toLocaleString("pt-BR")).join(" | ")+
+  (missing.length?" | Sem verificação: "+missing.join(", "):"")+
+  (failed.length?" | Falha atual: "+failed.join(", "):"");
+ if(failed.length)return {kind:"error",label:"Falha na coleta ("+failed.length+")",details};
+ if(old)return {kind:"stale",label:"Dados antigos",details};
+ if(missing.length)return {kind:"partial",label:"Verificação parcial",details};
+ return {kind:"fresh",label:"Fontes verificadas",details,checkedAt:last};
+}
+function refreshProjectHealth(){
+ const counts={fresh:0,partial:0,stale:0,error:0,unknown:0};
+ for(const p of PROJECTS){
+  const result=sourceFreshness(sourceRecords[p.id]);
+  counts[result.kind]++;
+  const node=document.querySelector('[data-health="'+p.id+'"]');
+  if(node){
+   node.className="project-health "+result.kind;
+   node.title=result.details;
+   const label=node.querySelector(".health-label");
+   if(label)label.textContent=result.label;
+  }
+ }
+ document.getElementById("source-summary").textContent=
+  "Fontes dos "+PROJECTS.length+" projetos: "+counts.fresh+" verificadas · "+
+  counts.partial+" parciais · "+counts.stale+" antigas · "+counts.error+" com falha · "+
+  counts.unknown+" sem primeira coleta. Dados de commits, PRs e CI; não indicam homologação.";
+}
+
 function onlineAvailable(){
  return typeof navigator==="undefined" || navigator.onLine!==false;
 }
@@ -790,6 +847,7 @@ async function pollSnapshot(){
   const result=await response.json();
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
+   refreshProjectHealth();
    const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
    showSync("verificado "+syncTime(Date.now())+" · sem mudanças desde "+syncTime(lastSnapshot)+
     " · coleta ~5 min"+(stale?" · coleta antiga":""),!stale);
