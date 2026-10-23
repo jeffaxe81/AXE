@@ -114,6 +114,78 @@ def ci(repo):
     }
 
 
+
+RELEASE_TAG_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
+
+
+def valid_tag_name(name):
+    return isinstance(name, str) and bool(RELEASE_TAG_PATTERN.fullmatch(name)) and ".." not in name
+
+
+def repo_versions(repo):
+    """GitHub Releases and git tags are different. Never equate tag to published release."""
+    releases = api(repo, "releases?per_page=20")
+    tags = api(repo, "tags?per_page=30")
+    if not isinstance(releases, list) or not isinstance(tags, list):
+        raise ValueError("GitHub version endpoints must return arrays")
+    rows = {}
+    for tag in tags:
+        name = tag.get("name")
+        sha = (tag.get("commit") or {}).get("sha")
+        if not valid_tag_name(name) or not isinstance(sha, str) or not re.fullmatch(r"[a-fA-F0-9]{40}", sha):
+            continue
+        rows[name] = {"version": name, "kind": "tag",
+                      "name": name, "sha": sha.lower(),
+                      "url": "https://github.com/" + OWNER + "/" + repo + "/tree/" +
+                        urllib.parse.quote(name, safe=""),
+                      "published_at": None, "prerelease": False,
+                      "notes": None}
+    for release in releases:
+        name = release.get("tag_name")
+        if release.get("draft") or not valid_tag_name(name):
+            continue
+        canonical = "https://github.com/" + OWNER + "/" + repo + "/releases/tag/" + urllib.parse.quote(name, safe="")
+        if release.get("html_url") != canonical or not isinstance(release.get("published_at"), str):
+            continue
+        rows[name] = {"version": name, "kind": "release",
+                      "name": short(release.get("name") or name, 100),
+                      "sha": rows.get(name, {}).get("sha"),
+                      "url": canonical, "published_at": short(release["published_at"], 35),
+                      "prerelease": bool(release.get("prerelease")),
+                      "notes": short(release.get("body"), 220) or None}
+    return list(rows.values())
+
+
+def merge_version_history(old, projects):
+    """Maintain first-observed version records across collection windows."""
+    historical = old.get("version_history", {}) if isinstance(old, dict) else {}
+    historical = historical if isinstance(historical, dict) else {}
+    result = {}
+    for repo in REPOS:
+        previous = historical.get(repo, [])
+        previous = previous if isinstance(previous, list) else []
+        by_tag = {}
+        for entry in previous[-100:]:
+            if (isinstance(entry, dict) and valid_tag_name(entry.get("version"))
+                    and entry.get("kind") in ("tag", "release")):
+                by_tag[entry["version"]] = entry
+        row = projects.get(repo, {})
+        versions = row.get("versions")
+        if isinstance(versions, list) and not row.get("errors", {}).get("versions"):
+            for entry in versions:
+                tag = entry["version"]
+                before = by_tag.get(tag, {})
+                if before.get("kind") == "release" and entry["kind"] == "tag":
+                    continue
+                by_tag[tag] = {**entry, "first_seen_at": before.get("first_seen_at") or NOW}
+        result[repo] = sorted(
+            by_tag.values(),
+            key=lambda entry: (entry.get("published_at") or entry.get("first_seen_at") or "", entry["version"]),
+            reverse=True,
+        )[:60]
+    return result
+
+
 def extract_milestone_progress(html):
     """Read only literal milestone lists from the reviewed page (no JS execution)."""
     pattern = re.compile(
@@ -353,7 +425,7 @@ def generate(output, html_file):
     for repo in REPOS:
         prev = old.get(repo, {}) if isinstance(old.get(repo), dict) else {}
         item = {"errors": {}, "verified_at": {}}
-        for key, getter in (("commits", commits), ("prs", prs), ("ci", ci)):
+        for key, getter in (("commits", commits), ("prs", prs), ("ci", ci), ("versions", repo_versions)):
             try:
                 item[key] = getter(repo)
                 item["verified_at"][key] = NOW
@@ -371,6 +443,7 @@ def generate(output, html_file):
         raise RuntimeError("All sources failed; keeping the previous snapshot")
     progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
     history = append_progress_history(saved, progress)
+    version_history = merge_version_history(saved, result)
     release_control = load_release_control(output.with_name("release-approvals.json"), html_file.read_text(encoding="utf-8"), progress)
     links = extract_milestone_links(html_file.read_text(encoding="utf-8"), progress)
     tracking = collect_tracking(links, saved.get("tracking", {}))
@@ -380,7 +453,7 @@ def generate(output, html_file):
         "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
         "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
     }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking, "release_control": release_control}
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
