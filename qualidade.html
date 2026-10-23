@@ -21,6 +21,7 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 .source-caption{display:block;color:var(--muted);font-size:10px;margin-top:5px}
 
 .notes{margin-top:25px;border-left:3px solid var(--accent);padding:1px 16px;color:var(--muted);font-size:13px;max-width:1050px}.notes strong{color:var(--text)}footer{font-size:12px;color:var(--muted);margin-top:45px}
+.audit-link{font-size:12px;align-self:center;white-space:nowrap;font-weight:750}
 .mode-label{font-size:12px;align-self:center;color:var(--muted);font-weight:700}
 .mode-select{border:1px solid var(--line);border-radius:10px;background:#1d3247;color:var(--text);padding:10px;font:inherit;font-size:12px;max-width:100%}
 .sync-help{font-size:12px;color:var(--muted);margin:-4px 0 16px}
@@ -43,7 +44,7 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 <option value="30s">Automático · 30 s</option>
 <option value="online">Online · acompanhar</option>
 </select>
-<button id="sync-now" type="button" class="primary">↻ Verificar agora</button>
+<button id="sync-now" type="button" class="primary">↻ Verificar agora</button><a id="quality-audit-link" class="audit-link" href="https://github.com/jeffaxe81/AXE/actions/workflows/portfolio-refresh.yml" target="_blank" rel="noopener noreferrer">Ver automação ↗</a>
 <button id="refresh" type="button">Consultar API manualmente</button>
 <button id="export" type="button">↓ Exportar CSV</button></div></div>
 <p class="sync-help">Modo Online: verifica ao voltar à aba ou reconectar e a cada 15 s. Os dados dependem da coleta do GitHub (~5 min); a consulta direta à API permanece disponível pelo botão manual.</p>
@@ -197,6 +198,14 @@ const syncNow=document.getElementById("sync-now");
 const qualityModeSelect=document.getElementById("quality-sync-mode");
 function readQualitySnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects)throw Error("Snapshot inválido");
+ const audit=document.getElementById("quality-audit-link");
+ const url=data.collector?.run_url;
+ if(typeof url==="string"&&/^https:\/\/github\.com\/jeffaxe81\/AXE\/actions\/runs\/\d{1,20}$/.test(url)){
+  audit.href=url;audit.textContent="Ver última coleta ↗";
+ }else{
+  audit.href="https://github.com/jeffaxe81/AXE/actions/workflows/portfolio-refresh.yml";
+  audit.textContent="Ver automação ↗";
+ }
  if(!data.generated_at){
   status.textContent="Aguardando a primeira coleta do GitHub Actions. Consulte a API manualmente, se necessário.";
   return;
