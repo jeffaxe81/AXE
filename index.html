@@ -366,7 +366,7 @@ const repo=p=>"https://github.com/jeffaxe81/"+encodeURIComponent(p.id);
 const commit=(p,sha)=>repo(p)+"/commit/"+encodeURIComponent(sha);
 const formatDate=s=>new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
 const EVIDENCE_IDS=["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop"];
-const MILESTONE_LINKS = {"crm-vendas":{"2":[{"kind":"pr","number":281}],"3":[{"kind":"pr","number":277}],"6":[{"kind":"issue","number":142},{"kind":"issue","number":159}]},"dispatch":{"0":[{"kind":"pr","number":118}],"1":[{"kind":"pr","number":119}],"2":[{"kind":"pr","number":115}]},"axe-gestao-convites":{"2":[{"kind":"pr","number":1}]},"axe-voice-desktop":{"0":[{"kind":"pr","number":1}]},"central-despacho-alertas-publicacao":{"1":[{"kind":"pr","number":9}]}};
+const MILESTONE_LINKS = {"crm-vendas":{"2":[{"kind":"pr","number":281}],"3":[{"kind":"pr","number":277}],"6":[{"kind":"issue","number":142},{"kind":"issue","number":159}]},"dispatch":{"0":[{"kind":"pr","number":118}],"1":[{"kind":"pr","number":119}],"2":[{"kind":"pr","number":115}],"4":[{"kind":"pr","number":166}]},"axe-gestao-convites":{"2":[{"kind":"pr","number":1}]},"axe-voice-desktop":{"0":[{"kind":"pr","number":1}],"4":[{"kind":"pr","number":70}],"5":[{"kind":"pr","number":76}]},"central-despacho-alertas-publicacao":{"1":[{"kind":"pr","number":9}]},"pabx-mvp":{"5":[{"kind":"pr","number":53},{"kind":"pr","number":54}]}};
 let trackingData={};
 const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
 document.getElementById("m-projects").textContent=PROJECTS.length;
