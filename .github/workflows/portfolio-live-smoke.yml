@@ -50,21 +50,26 @@ jobs:
           quality = Path("/tmp/axe-quality.html").read_text(encoding="utf-8")
           snapshot = json.loads(Path("/tmp/axe-status.json").read_text(encoding="utf-8"))
 
-          required = ('id="online"', 'id="versoes"', 'id="gates"',
+          required = ('id="testes"', 'id="online"', 'id="versoes"', 'id="gates"',
                       'id="liberacao"', 'id="rastreio"')
           missing = [marker for marker in required if marker not in site]
           if missing:
               raise SystemExit("Site publicado sem seções previstas: " + ", ".join(missing))
-          if 'id="rows"' not in quality:
+          if 'id="rows"' not in quality or 'id="test-rows"' not in quality:
+              raise SystemExit("Painel de qualidade sem tabela de testes")
+          if 'id="test-history-rows"' not in quality:
               raise SystemExit("Página de qualidade incompleta")
           if snapshot.get("schema_version") != 1 or snapshot.get("owner") != "jeffaxe81":
               raise SystemExit("Snapshot público com identificação inválida")
           projects = snapshot.get("projects")
           versions = snapshot.get("version_history")
+          test_history = snapshot.get("test_history")
           if not isinstance(projects, dict) or len(projects) != 9:
               raise SystemExit("Snapshot incompleto: esperado nove projetos")
           if not isinstance(versions, dict) or set(versions) != set(projects):
               raise SystemExit("Histórico de versões ausente/incompleto")
+          if not isinstance(test_history, dict) or set(test_history) != set(projects):
+              raise SystemExit("Histórico de execuções de testes ausente/incompleto")
           if not isinstance(snapshot.get("release_control", {}).get("projects"), dict):
               raise SystemExit("Matriz GO / NO-GO ausente")
           at = snapshot.get("generated_at")
