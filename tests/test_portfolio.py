@@ -251,5 +251,63 @@ class PortfolioTests(unittest.TestCase):
         self.assertEqual(len(errors["crm-vendas"]), 1)
 
 
+    def test_documented_test_categories_reconcile_and_do_not_infer_unknown(self):
+        import tempfile
+        root=pathlib.Path(__file__).resolve().parents[2] / "pages"
+        source=json.loads((root/"test-observations.json").read_text(encoding="utf-8"))
+        records=p.load_verified_test_observations(root/"test-observations.json")
+        self.assertEqual(set(records), {"crm-vendas", "dispatch", "pabx-mvp",
+                                         "central-despacho-alertas-publicacao"})
+        crm=records["crm-vendas"]
+        self.assertEqual(sum(x["passed"] for x in crm["breakdown"] if x["category"]=="unit"),17)
+        self.assertEqual(sum(x["passed"] for x in crm["breakdown"] if x["category"]=="e2e"),7)
+        with tempfile.TemporaryDirectory() as folder:
+            path=pathlib.Path(folder)/"test-observations.json"
+            bad=json.loads(json.dumps(source))
+            bad["projects"]["crm-vendas"]["breakdown"][0]["category"]="security"
+            # The schema may confirm a category syntactically but cannot prove that
+            # category by text. This is a manually reviewed manifest.
+            path.write_text(json.dumps(bad),encoding="utf-8")
+            self.assertEqual(p.load_verified_test_observations(path)["crm-vendas"]["run_id"],crm["run_id"])
+            bad["projects"]["crm-vendas"]["breakdown"][0]["category"]="invented"
+            path.write_text(json.dumps(bad),encoding="utf-8")
+            with self.assertRaises(ValueError):
+                p.load_verified_test_observations(path)
+            bad=json.loads(json.dumps(source))
+            bad["projects"]["crm-vendas"]["breakdown"][0]["passed"] += 1
+            path.write_text(json.dumps(bad),encoding="utf-8")
+            with self.assertRaises(ValueError):
+                p.load_verified_test_observations(path)
+
+    def test_category_counts_and_history_are_tied_to_exact_ci(self):
+        from unittest.mock import patch
+        root=pathlib.Path(__file__).resolve().parents[2] / "pages"
+        records=p.load_verified_test_observations(root/"test-observations.json")
+        proof=records["crm-vendas"]
+        ci={"id":proof["run_id"],"name":"Quality","status":"completed",
+            "conclusion":proof["run_conclusion"],"head_sha":"a"*40}
+        with patch.object(p,"api",side_effect=AssertionError("Reviewed data should not hit network")):
+            item=p.collect_test_counts("crm-vendas",ci,None,proof)
+        self.assertEqual(item["head_sha"],"a"*40)
+        self.assertEqual(item["categories"]["unit"]["passed"],17)
+        self.assertEqual(item["categories"]["e2e"]["passed"],7)
+        self.assertEqual(item["categories"]["unclassified"]["passed"],1880)
+        self.assertEqual(sum(x["passed"] for x in item["categories"].values()),item["passed"])
+        history=p.append_test_history({},{"crm-vendas":{"tests":item,"errors":{}}})
+        same={**item,"categories":p.empty_categories()}
+        same["categories"]["unclassified"]["passed"]=item["passed"]
+        current=p.append_test_history({"test_history":history},
+                                      {"crm-vendas":{"tests":same,"errors":{}}})
+        self.assertEqual(len(current["crm-vendas"]),1)
+        self.assertEqual(current["crm-vendas"][0]["head_sha"],"a"*40)
+        self.assertEqual(current["crm-vendas"][0]["first_seen_at"],
+                         history["crm-vendas"][0]["first_seen_at"])
+        other={**ci,"id":ci["id"]+1}
+        with patch.object(p,"api",return_value={"jobs":[]}):
+            missed=p.collect_test_counts("crm-vendas",other,None,proof)
+        self.assertEqual(missed["status"],"no_summary")
+        self.assertIsNone(missed["passed"])
+
+
 if __name__ == "__main__":
     unittest.main()
