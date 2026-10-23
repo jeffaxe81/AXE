@@ -27,6 +27,24 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 .sync-help{font-size:12px;color:var(--muted);margin:-4px 0 16px}
 @media(max-width:680px){.stats{grid-template-columns:1fr;gap:9px}.stat{padding:16px}.stat strong{font-size:26px}.hero{margin-top:38px}.toolbar{align-items:stretch}.actions button{flex:1}}
 </style>
+<style>
+.test-section{margin-top:34px;padding:24px 0;border-top:1px solid #304357}
+.test-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.test-head h2{font-size:22px;letter-spacing:-.03em;margin:0}
+.test-head p{color:#9fb3c8;font-size:12px;margin:6px 0 14px}
+.test-stats{margin:14px 0 16px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.test-stats .stat{min-width:0}.test-stats .stat strong{font-variant-numeric:tabular-nums}
+.test-table{min-width:740px;width:100%;border-collapse:collapse}
+.test-table th,.test-table td{text-align:left;padding:13px 10px;border-bottom:1px solid #2d4259}
+.test-table th{color:#a9bfd4;font-size:11px}.test-table td{font-size:12px}
+.test-table td:nth-child(n+2):nth-child(-n+5){font-variant-numeric:tabular-nums;font-weight:750}
+.test-table a{color:#9fe8c0;text-decoration:underline;text-underline-offset:3px}
+.test-table small{color:#9fb0c3;display:block;margin-top:5px}
+.test-table .partial{color:#ffd3a1}.test-table .missing{color:#a1b0c0}
+.test-history{margin-top:23px}.test-history h3{font-size:16px;margin:12px 0 8px}
+@media(max-width:680px){.test-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.test-section{display:none}}
+</style>
 </head>
 <body><main class="container">
 <header class="header"><div class="brand">AXE <em>DELIVERY HUB</em> / QUALIDADE</div><nav class="nav"><a href="./index.html">← Voltar ao portfólio</a></nav></header>
@@ -50,6 +68,19 @@ a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}but
 <p class="sync-help">Modo Online: verifica ao voltar à aba ou reconectar e a cada 15 s. Os dados dependem da coleta do GitHub (~5 min); a consulta direta à API permanece disponível pelo botão manual.</p>
 <div class="table-wrapper" tabindex="0" aria-label="Tabela de indicadores de entrega e qualidade">
 <table><thead><tr><th scope="col">Projeto</th><th scope="col">Última PR atualizada</th><th scope="col">Situação da PR</th><th scope="col">Última CI na main</th><th scope="col">Último evento</th><th scope="col">Verificação das fontes</th></tr></thead><tbody id="rows"></tbody></table></div>
+<section class="test-section" id="testes" aria-labelledby="test-title">
+<div class="test-head"><div><h2 id="test-title">Quantidade de testes executados</h2><p>Contagem extraída de relatórios de teste do GitHub Actions. Cada número aponta para a execução que o produziu.</p></div><button type="button" id="test-export" class="primary">↓ Exportar testes CSV</button></div>
+<div class="stats test-stats" aria-label="Resumo de testes reconhecidos">
+ <div class="stat"><label>Testes identificados</label><strong id="test-total">—</strong><small>última CI com relatório por projeto</small></div>
+ <div class="stat"><label>Aprovados</label><strong id="test-passed">—</strong><small>casos reconhecidos nos logs</small></div>
+ <div class="stat"><label>Falharam</label><strong id="test-failed">—</strong><small>casos reportados com falha</small></div>
+ <div class="stat"><label>Ignorados</label><strong id="test-skipped">—</strong><small>casos ignorados pelo runner</small></div>
+</div>
+<p class="dim" id="test-data-status" role="status" aria-live="polite">Aguardando dados de testes da coleta pública.</p>
+<div class="table-scroll"><table class="test-table"><thead><tr><th>Projeto</th><th>Executados</th><th>Aprovados</th><th>Falharam</th><th>Ignorados</th><th>Origem e cobertura</th></tr></thead><tbody id="test-rows"></tbody></table></div>
+<div class="test-history"><h3>Histórico acumulado de execuções observadas</h3><p id="test-history-summary" class="dim"></p><div class="table-scroll"><table class="test-table"><thead><tr><th>Projeto</th><th>Execuções contabilizadas</th><th>Casos identificados</th><th>Aprovados</th><th>Falharam</th><th>Ignorados</th></tr></thead><tbody id="test-history-rows"></tbody></table></div></div>
+<p class="dim"><strong>Como interpretar:</strong> os números são obtidos apenas quando o runner de testes publica um resumo reconhecível (pytest, unittest, Vitest ou Jest). A contagem pode ser parcial e não representa todos os testes do repositório. CI aprovada não implica quantidade de testes conhecida; CI com falha pode conter testes aprovados. O histórico soma somente execuções diferentes observadas desde a ativação desta função, sem reconstruir execuções anteriores.</p>
+</section>
 <div class="notes"><p><strong>Critérios:</strong> “integrada” significa PR efetivamente mesclada; “sucesso” significa conclusão bem-sucedida apenas da última execução do Actions retornada na main. PR fechada sem merge, execução cancelada e CI indisponível são situações diferentes. Ausência de workflow não implica falha.</p>
 <p>As consultas automáticas usam o snapshot público do coletor (até cerca de cinco minutos entre coletas); a consulta manual direta usa a API pública do GitHub, sem token. Os resultados manuais são guardados no navegador por até 30 minutos. Exportações refletem exclusivamente os dados carregados, incluindo indisponibilidades. Nenhum indicador comprova homologação ou GO de produção.</p></div>
 <footer>© 2026 AXE · Painel de rastreabilidade pública · <a href="https://github.com/jeffaxe81/AXE/tree/gh-pages">Código-fonte no GitHub</a></footer>
@@ -98,6 +129,97 @@ function evaluateSourceMeta(meta,now=Date.now()){
  return {label:"Verificada",kind:"ok",tooltip:details};
 }
 
+
+let qualityTests={},qualityTestHistory={},qualityTestsSnapshot=null;
+function boundedCount(value){
+ return Number.isSafeInteger(value)&&value>=0&&value<=100000000?value:null;
+}
+function testsFor(id){
+ const source=qualityTests[id];
+ const currentRun=records[id]?.ci?.id;
+ if(!source||source.status!=="available"||qualitySourceMeta[id]?.errors?.tests||
+    (currentRun&&source.run_id!==currentRun))return null;
+ const passed=boundedCount(source.passed),failed=boundedCount(source.failed),skipped=boundedCount(source.skipped);
+ if(passed===null||failed===null||skipped===null||!Number.isSafeInteger(source.run_id)||source.run_id<=0)return null;
+ return {source,passed,failed,skipped,total:passed+failed+skipped};
+}
+function testsHistoryFor(id){
+ const history=Array.isArray(qualityTestHistory[id])?qualityTestHistory[id]:[];
+ const seen=new Set(),valid=[];
+ for(const t of history){
+  if(t?.status!=="available"||!Number.isSafeInteger(t.run_id)||t.run_id<=0||seen.has(t.run_id))continue;
+  if(["passed","failed","skipped"].some(k=>boundedCount(t[k])===null))continue;
+  seen.add(t.run_id);valid.push(t);
+ }
+ return valid;
+}
+function safeQualityTestUrl(id,runId){
+ return "https://github.com/jeffaxe81/"+encodeURIComponent(id)+"/actions/runs/"+runId;
+}
+function renderTestCounts(){
+ const table=document.getElementById("test-rows"),historical=document.getElementById("test-history-rows");
+ table.replaceChildren();historical.replaceChildren();
+ let totals={passed:0,failed:0,skipped:0},known=0,historyTotals={runs:0,total:0,passed:0,failed:0,skipped:0};
+ for(const [id,name] of projects){
+  const tr=document.createElement("tr"),item=testsFor(id);
+  cellText(tr,name);
+  if(item){known++;totals.passed+=item.passed;totals.failed+=item.failed;totals.skipped+=item.skipped}
+  for(const field of ["total","passed","failed","skipped"]){
+   const td=cellText(tr,item?item[field].toLocaleString("pt-BR"):"—");
+   if(!item)td.className="missing";
+  }
+  const detail=cellText(tr,"");
+  if(item){
+   link(detail,safeQualityTestUrl(id,item.source.run_id),"CI #"+item.source.run_id+" ↗");
+   const sub=document.createElement("small");
+   const counted=boundedCount(item.source.parsed_jobs);
+   const scanned=boundedCount(item.source.scanned_jobs);
+   sub.textContent=(item.source.partial?"Contagem parcial":"Resumos reconhecidos")+
+     (counted!==null&&scanned!==null?" · "+counted+"/"+scanned+" jobs com resumo":"")+
+     (item.source.run_conclusion?" · CI: "+item.source.run_conclusion:"");
+   if(item.source.partial)sub.className="partial";
+   detail.appendChild(sub);
+  }else{
+   detail.textContent=qualityTests[id]?.status==="running"?"CI em execução":
+      qualityTests[id]?.status==="no_summary"?"Sem resumo de testes reconhecido":
+      qualitySourceMeta[id]?.errors?.tests?"Contagem indisponível (falha na coleta)":"Sem contagem disponível";
+  }
+  table.appendChild(tr);
+  const history=testsHistoryFor(id),row=document.createElement("tr");
+  const sums={passed:0,failed:0,skipped:0};
+  history.forEach(t=>{for(const k in sums)sums[k]+=t[k]});
+  const total=sums.passed+sums.failed+sums.skipped;
+  historyTotals.runs+=history.length;historyTotals.total+=total;
+  for(const k in sums)historyTotals[k]+=sums[k];
+  cellText(row,name);
+  for(const n of [history.length,total,sums.passed,sums.failed,sums.skipped])cellText(row,history.length?n.toLocaleString("pt-BR"):"—");
+  historical.appendChild(row);
+ }
+ const all=totals.passed+totals.failed+totals.skipped;
+ for(const [id,n] of [["test-total",all],["test-passed",totals.passed],["test-failed",totals.failed],["test-skipped",totals.skipped]])
+  document.getElementById(id).textContent=known?n.toLocaleString("pt-BR"):"—";
+ document.getElementById("test-data-status").textContent=known+
+  " de "+projects.length+" projetos têm resumos de testes reconhecidos na última CI. "+
+  (qualityTestsSnapshot?"Coleta em "+new Date(qualityTestsSnapshot).toLocaleString("pt-BR")+".":"Aguardando coleta pública.");
+ document.getElementById("test-history-summary").textContent=historyTotals.runs+
+  " execuções distintas observadas, com "+historyTotals.total.toLocaleString("pt-BR")+
+  " casos identificados ("+historyTotals.passed.toLocaleString("pt-BR")+
+  " aprovados, "+historyTotals.failed.toLocaleString("pt-BR")+" falhas, "+
+  historyTotals.skipped.toLocaleString("pt-BR")+" ignorados). Contagem histórica observada, não total vitalício.";
+}
+function exportTestCounts(){
+ const rows=[["Projeto","Execução","Executados","Aprovados","Falharam","Ignorados","Jobs lidos","Jobs com contagem","Parcial","Status CI","Fonte"]];
+ for(const [id,name] of projects){
+  const current=testsFor(id);if(!current){rows.push([name,"","","","","","","","","Não disponível",""]);continue}
+  const t=current.source;
+  rows.push([name,t.run_id,current.total,current.passed,current.failed,current.skipped,t.scanned_jobs,t.parsed_jobs,t.partial?"Sim":"Não",t.run_conclusion||"",safeQualityTestUrl(id,t.run_id)]);
+ }
+ const csv="\ufeff"+rows.map(c=>c.map(safeCsv).join(";")).join("\r\n")+"\r\n";
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=url;a.download="axe-contagem-testes.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById("test-export").addEventListener("click",exportTestCounts);
+
 function paint(){
  table.replaceChildren();
  let merged=0,passed=0;
@@ -123,6 +245,7 @@ function paint(){
  document.getElementById("projects-count").textContent=projects.length;
  document.getElementById("merged-count").textContent=retrievedAt?merged+" / "+projects.length:"—";
  document.getElementById("ci-count").textContent=retrievedAt?passed+" / "+projects.length:"—";
+ renderTestCounts();
 }
 async function getJson(url){
  const r=await fetch(url,{headers:{"Accept":"application/vnd.github+json"}});
@@ -212,6 +335,14 @@ function readQualitySnapshot(data){
  }
  if(!Number.isFinite(Date.parse(data.generated_at)))throw Error("Data inválida");
  const next={...records},nextMeta={...qualitySourceMeta};
+ qualityTestsSnapshot=data.generated_at;
+ qualityTestHistory=data.test_history&&typeof data.test_history==="object"?data.test_history:{};
+ qualityTests={};
+ for(const [id] of projects){
+  if(data.projects[id]&&Object.prototype.hasOwnProperty.call(data.projects[id],"tests")){
+   qualityTests[id]=data.projects[id].tests;
+  }
+ }
  let received=0,missing=0;
  for(const [id] of projects){
   const src=data.projects[id];if(!src)continue;
