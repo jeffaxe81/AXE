@@ -21,6 +21,9 @@ for(const page of pages){
  if(page==="index.html"){
   assert.match(html,/href="\.\/qualidade\.html"/, "Página principal não aponta para qualidade");
   assert.match(html,/const pct=p=>Math\.round/, "Fórmula de marcos ausente");
+  assert.match(html,/function releasePending\(row\)/, "Checklist de pendências de liberação ausente");
+  assert.match(html,/class="release-blockers"/, "Painel de pendências expansível ausente");
+  assert.match(html,/releasePending\(x\)\.join/, "Exportação de pendências CSV ausente");
  }
  if(page==="qualidade.html"){
   for(const id of ["rows","status","refresh","export","merged-count","ci-count"]){
