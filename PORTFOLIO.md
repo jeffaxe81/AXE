@@ -129,6 +129,18 @@ A página oferece filtros de projeto/tipo e exportação \`axe-historico-de-rele
 
 Os dados são limitados a repositórios públicos previamente selecionados, sem tokens no HTML e com texto e links sanitizados. Novos projetos exigem inclusão explícita tanto na declaração \`PROJECTS\` quanto na lista \`REPOS\` do coletor.
 
+## Contagem de testes executados (v7)
+
+Na [página de qualidade](https://jeffaxe81.github.io/AXE/qualidade.html#testes) e na seção **Testes automatizados observados** da página inicial, o painel distingue **casos de teste executados**, **aprovados**, **falharam** e **ignorados**. Cada valor é associado à CI exata no GitHub Actions.
+
+**Como funciona:** o coletor busca a última execução de CI da branch principal de cada projeto; quando há acesso aos logs, reconhece os resumos dos runners pytest, unittest, Vitest e Jest. Uma execução da CI aprovada **não é igual** a uma contagem de testes aprovada. Exemplo: a CI do AXE Dispatch de 9/10/2026 terminou com falha, embora sua suíte Vitest tenha registrado 1.366 casos aprovados. Se o log estiver indisponível, a interface mostra **Sem contagem disponível** — nunca zero inferido.
+
+Há uma linha de base pública em [\`test-observations.json\`](https://github.com/jeffaxe81/AXE/blob/gh-pages/test-observations.json) com **contagens reais**, verificadas nos logs oficiais do GitHub Actions e vinculadas a seus IDs de execução: CRM Vendas, AXE Dispatch, AXE PABX e Central de Alertas. Esse registro também serve de alternativa quando as permissões do GitHub Actions do repositório do painel não permitirem ler os logs de outro repositório. As observações só são usadas se o **ID da CI mais recente** e sua conclusão coincidirem exatamente com o registro; em outra execução, não são reutilizadas.
+
+A soma histórica em \`portfolio-status.json\`, campo \`test_history\`, inclui somente **execuções distintas efetivamente observadas**, sem duplicar a mesma CI em sucessivas atualizações. Ela **não representa o total vitalício do projeto**. O snapshot retém até 100 execuções observadas por repositório. Também mantém a \`verified_at.tests\`, a última verificação e a indicação de leitura parcial quando algum job não produziu resumo ou os resultados estão incompletos.
+
+**Limitações explícitas:** uma suíte pode ter outros testes fora dos resumos reconhecidos; a soma exibida é a **quantidade identificada**, não uma afirmação sobre todos os testes existentes no código. Os links às execuções são públicos. Quando uma nova CI é executada, o coletor tenta ler seus próprios resumos. Se a API não permitir coletá-los e ainda não houver evidência revisada vinculada ao novo ID, o sistema **não transfere** a contagem antiga para a CI nova. Para exportar as linhas verificadas, use **Exportar testes CSV** na página de qualidade.
+
 ## Atualização automática
 
 O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
