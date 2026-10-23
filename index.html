@@ -249,6 +249,7 @@
       <a href="#online"><span class="sym">◉</span><span class="nav-label">Acompanhamento online</span></a>
       <a href="#versoes"><span class="sym">▤</span><span class="nav-label">Versões e releases</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
+      <a href="#estados"><span class="sym">◷</span><span class="nav-label">Estado das entregas</span></a>
       <a href="#fila"><span class="sym">☷</span><span class="nav-label">Próximas entregas</span></a>
       <a href="#gates"><span class="sym">▣</span><span class="nav-label">Homologação</span></a>
       <a href="#liberacao"><span class="sym">◈</span><span class="nav-label">GO / NO-GO</span></a>
@@ -342,6 +343,14 @@
       <div class="tools"><label class="search"><input id="search" type="search" placeholder="Buscar projeto ou tecnologia…" aria-label="Buscar projetos"></label><select id="sort" class="filter" aria-label="Ordenar projetos"><option value="priority">Ordem do portfólio</option><option value="progress">Maior avanço</option><option value="recent">Atividade mais recente</option><option value="name">Nome A–Z</option></select><button type="button" class="refresh-btn" id="export-marcos" title="Exportar marcos e percentuais para CSV">↓ Exportar CSV</button></div>
       <div class="filters" role="group" aria-label="Filtrar categoria"><button class="chip selected" data-filter="all" aria-pressed="true">Todos</button><button class="chip" data-filter="produto" aria-pressed="false">Produtos</button><button class="chip" data-filter="plataforma" aria-pressed="false">Plataformas</button><button class="chip" data-filter="prototipo" aria-pressed="false">Protótipos</button></div>
       <div id="projects" class="projects"></div>
+    </section>
+    <section id="estados" class="section" aria-labelledby="states-heading">
+      <div class="section-header"><div><h2 id="states-heading">Estado das entregas</h2><p>Código em desenvolvimento, integração e homologação são etapas diferentes; PR aberta não comprova código pronto.</p></div>
+      <a href="#rastreio" class="refresh-btn">Ver evidências ↗</a></div>
+      <div id="delivery-states-summary" class="queue-summary" aria-live="polite"></div>
+      <p id="delivery-states-note" class="history-status" role="status" aria-live="polite">Aguardando consulta verificada às PRs e aos marcos.</p>
+      <div id="delivery-states-list" class="queue-list"></div>
+      <p class="history-status">“Integrada” não significa homologada. Testes físicos pendentes não bloqueiam o desenvolvimento, mas impedem a liberação operacional. Dados ausentes não significam testes aprovados.</p>
     </section>
     <section id="fila" class="section" aria-labelledby="queue-heading">
       <div class="section-header">
@@ -1016,6 +1025,7 @@ function importSnapshot(data){
  renderTracking();
  renderProjects();
  renderQueue();
+ renderDeliveryStates();
  const audit=document.getElementById("sync-audit-link");
  const url=data.collector?.run_url;
  if(typeof url==="string"&&/^https:\/\/github\.com\/jeffaxe81\/AXE\/actions\/runs\/\d{1,20}$/.test(url)){
@@ -1145,6 +1155,7 @@ async function pollSnapshot(){
    renderGateMatrix();
    renderTracking();
    renderProjects();
+   renderDeliveryStates();
    const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
    showSync("verificado "+syncTime(Date.now())+" · sem mudanças desde "+syncTime(lastSnapshot)+
     " · coleta ~5 min"+(stale?" · coleta antiga":""),!stale);
@@ -1620,6 +1631,36 @@ function renderQueue(){
    '<div><details class="queue-more"><summary>Ver todos os marcos pendentes</summary><ul>'+item.pending.map(m=>'<li>'+esc(m)+'</li>').join("")+'</ul></details><div class="queue-links"><a class="queue-link" href="'+repo(p)+'/issues" target="_blank" rel="noopener noreferrer">Issues ↗</a><a class="queue-link" href="'+repo(p)+'/pulls" target="_blank" rel="noopener noreferrer">PRs ↗</a>'+(item.ciRunUrl?'<a class="queue-link" href="'+item.ciRunUrl+'" target="_blank" rel="noopener noreferrer">Última CI ↗</a>':'')+'</div></div></article>';
  }).join(""):'<div class="queue-empty">Nenhum projeto corresponde a este filtro. Altere o filtro ou consulte os dados novamente.</div>';
 }
+/* Situações conservadoras baseadas em vínculos revisados e decisões formais. */
+function deliveryState(project){
+ const pending=project.milestones.filter(m=>!m[1]).length;
+ const ref=trackedRows().filter(r=>r.p.id===project.id);
+ const open=ref.filter(r=>r.ref.kind==="pr"&&r.state==="open");
+ const merged=ref.filter(r=>r.ref.kind==="pr"&&r.state==="merged");
+ const unknown=ref.filter(r=>r.state==="unknown");
+ const g=gateRecord(project);
+ const pendingAcceptance=g.counts.homolog.total>g.counts.homolog.completed||
+   g.counts.release.total>g.counts.release.completed;
+ if(releaseState(project).state==="go"&&!pending)return {type:"done",title:"Concluído — GO registrado",detail:"Verificar aceite e evidências da implantação efetiva.",url:repo(project)};
+ if(open.length)return {type:"open",title:"PR aberta — integração pendente",detail:"PR vinculada aberta, mas não há prova suficiente de código concluído.",url:traceUrl(open[0])};
+ if(merged.length&&pendingAcceptance)return {type:"homolog",title:"Há integração; homologação pendente",detail:"Ao menos uma PR vinculada foi integrada. Outras funções ainda podem estar em desenvolvimento.",url:traceUrl(merged[0])};
+ if(merged.length)return {type:"dev",title:"Integração parcial comprovada",detail:"Existe PR vinculada integrada, mas isso não conclui o produto.",url:traceUrl(merged[0])};
+ if(unknown.length)return {type:"unknown",title:"Situação não verificada",detail:"Os vínculos precisam de verificação recente. Não presumir aprovação.",url:repo(project)+"/pulls"};
+ return {type:"dev",title:pending?"Em desenvolvimento / pendente":"Marcos completos; GO não comprovado",
+   detail:pending?pending+" marco(s) editorial(is) pendente(s). Código pronto não confirmado.":"A aprovação dos marcos não substitui homologação.",url:repo(project)+"/pulls"};
+}
+function renderDeliveryStates(){
+ const items=PROJECTS.map(p=>({project:p,state:deliveryState(p)}));
+ const kinds=[["dev","Desenvolvimento / parcial"],["open","PR aberta"],["homolog","Integração + homologação"],["done","GO registrado"],["unknown","Não verificado"]];
+ document.getElementById("delivery-states-summary").innerHTML=kinds.map(([key,label])=>
+   '<div class="queue-stat"><b>'+items.filter(x=>x.state.type===key).length+'</b><span>'+esc(label)+'</span></div>').join("");
+ document.getElementById("delivery-states-note").textContent=
+   "Classificação conservadora: PRs vinculadas e recentemente verificadas, marcos editoriais e decisão formal. A ausência de PR vinculada não comprova ausência de trabalho.";
+ document.getElementById("delivery-states-list").innerHTML=items.map(({project,state})=>
+   '<article class="queue-item"><div><h3 class="queue-name">'+esc(project.name)+'</h3><span class="queue-pct">'+pct(project)+'% dos marcos editoriais</span></div>'+
+   '<div><div class="queue-next-title">'+esc(state.title)+'</div><div class="queue-sub">'+esc(state.detail)+'</div></div>'+
+   '<div><a class="queue-link" href="'+state.url+'" target="_blank" rel="noopener noreferrer">Evidência ↗</a></div></article>').join("");
+}
 function exportQueueCsv(){
  const rows=[["Projeto","Progresso dos marcos (%)","Marco pendente","PRs abertas na amostra verificada","Última CI verificada","Último commit registrado","Fonte"]];
  for(const item of queueItems())for(const step of item.pending)rows.push([
@@ -1639,7 +1680,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();renderTestOverview();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();renderTestOverview();renderDeliveryStates();startSnapshotPolling();
 </script>
 </body>
 </html>
