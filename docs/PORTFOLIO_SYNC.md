@@ -48,6 +48,15 @@ A alteração de modo cancela o timer anterior (não acumula vários agendamento
 - O gráfico de evolução mostra somente os pontos históricos efetivamente registrados, sem interpolar progresso de datas antigas. O histórico tem um limite de 365 mudanças, não 365 dias.
 - O site consulta o JSON a cada 15 segundos, mas **não há garantia de dado novo** nesse intervalo; o GitHub Actions é agendado a cada cinco minutos, sujeito a atrasos e às permissões do repositório.
 
+## Saúde e confiabilidade das fontes
+
+- Cada cartão no portfólio informa se as três fontes (commits, PRs e CI) foram verificadas, parcialmente verificadas, ficaram antigas ou falharam. O resumo mostra as contagens dos nove projetos.
+- O painel de qualidade apresenta o timestamp de verificação de PRs/CI separadamente da data do evento. Na consulta direta, os horários são da requisição manual; no snapshot são as datas `verified_at` de cada campo.
+- Dados são considerados antigos quando a **última confirmação de qualquer fonte necessária** tem mais de vinte minutos. Um snapshot novo não redefine a idade de um campo que falhou; valores anteriores continuam preservados, mas são identificados como antigos ou com falha.
+- Sem primeira coleta, a interface mostra **não verificado**, nunca zero entregas. Não confundir verificação de API ou CI verde com homologação funcional ou GO.
+- Em modo Manual, o painel não executa verificações periódicas nem consulta automaticamente a API de PRs/CI. `Verificar agora` consulta o arquivo de snapshot; os botões próprios de Histórico e Evidências fazem consultas diretas sob demanda.
+- Regressões do JavaScript e dos modos Manual / 15 s / 30 s / Online são executadas por `tests/test_dashboard.cjs` (Node sem dependências), além dos testes Python dos marcos.
+
 ## Arquivos
 
 - main: .github/workflows/portfolio-refresh.yml e scripts/refresh_portfolio.py
