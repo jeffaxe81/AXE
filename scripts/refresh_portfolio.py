@@ -300,7 +300,15 @@ def load_release_control(path, html, progress):
                     indices = gates[repo].get(key)
                     if not isinstance(indices, list) or not indices or any(type(i) is not int or i >= progress[repo]["total"] or i < 0 for i in indices):
                         raise ValueError("GO requires mapped homologation and release milestones")
-                # Completed milestone booleans are checked below without JavaScript execution.
+                match = re.search(
+                    r'\{id:"' + re.escape(repo) + r'",name:"[^"]+"[\s\S]*?milestones:\[([\s\S]*?)\],history:\[',
+                    html,
+                )
+                if not match:
+                    raise ValueError("GO requires a mapped milestone list")
+                milestone_rows = json.loads("[" + match.group(1) + "]")
+                if any(not milestone_rows[i][1] for key in ("homolog", "release") for i in gates[repo][key]):
+                    raise ValueError("GO requires completed homologation and release milestones")
                 if not all(iso_timestamp(v["verified_at"]) <= stamp for v in checks.values()):
                     raise ValueError("GO must postdate all release evidence")
     return source
