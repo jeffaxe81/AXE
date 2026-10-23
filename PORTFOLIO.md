@@ -141,6 +141,16 @@ A soma histórica em \`portfolio-status.json\`, campo \`test_history\`, inclui s
 
 **Limitações explícitas:** uma suíte pode ter outros testes fora dos resumos reconhecidos; a soma exibida é a **quantidade identificada**, não uma afirmação sobre todos os testes existentes no código. Os links às execuções são públicos. Quando uma nova CI é executada, o coletor tenta ler seus próprios resumos. Se a API não permitir coletá-los e ainda não houver evidência revisada vinculada ao novo ID, o sistema **não transfere** a contagem antiga para a CI nova. Para exportar as linhas verificadas, use **Exportar testes CSV** na página de qualidade.
 
+## Classificação de testes e evidência por release (v8)
+
+O painel [Qualidade → Testes](https://jeffaxe81.github.io/AXE/qualidade.html#categorias) passa a distinguir **unitários, integração, ponta a ponta, segurança** e **não classificados**. A contagem por categoria só é exibida quando a soma dos três resultados (`passed`, `failed`, `skipped`) concilia exatamente com os totais observados da CI.
+
+**Classificação baseada nas evidências:** a linha de base em `test-observations.json` marca `unittest Python` como `unit` e `Playwright end-to-end` como `e2e`. As demais suítes são mantidas em `unclassified`, porque nomes como `pytest`, `Vitest` ou `API` não comprovam por si sós o tipo de teste. A ausência de casos classificados em segurança/integração não prova que esses testes não existem ou que não foram executados. A manutenção do campo `category` é **editorial, revisada e explícita**; o coletor rejeita categorias desconhecidas e somas incorretas.
+
+Para cada execução com resumo reconhecido, o snapshot publica `tests.categories`, `tests.head_sha` e preserva o `test_history` por `run_id`, atualizando o registro da mesma CI sem duplicar a quantidade acumulada. Se o sistema conseguir ler os logs automaticamente mas não houver documentação explícita da categoria, todo o resultado fica em `unclassified`. `head_sha` vem da execução registrada no GitHub Actions.
+
+A seção **Validação por release** lista GitHub Releases publicadas e as quantidades de casos só quando `test_history[].head_sha` é idêntico ao `version_history[].sha` daquela release. Se não há igualdade exata, mostra **“Não vinculados por SHA”**, sem aproveitar a última CI ou assumir que uma execução anterior validou aquela versão. O histórico é apenas o de execuções observadas pelo sistema, não um inventário completo nem comprovação de homologação ou aprovação GO.
+
 ## Atualização automática
 
 O workflow `.github/workflows/portfolio-refresh.yml`, localizado na branch `main`, dispara a coleta agendada aproximadamente a cada **cinco minutos**. Pode ocorrer atraso por agendamento do GitHub Actions. Ele grava `portfolio-status.json` na branch `gh-pages` com dados **públicos** de commits, até 20 PRs recentes por projeto, última execução de CI na `main` e histórico de avanço de marcos.
