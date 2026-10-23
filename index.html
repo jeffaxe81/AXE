@@ -108,6 +108,13 @@
     @media(max-width:1100px){.queue-item{grid-template-columns:minmax(140px,.8fr) minmax(0,1.5fr)}.queue-more{grid-column:1/-1}.queue-more ul{columns:2}}
     @media(max-width:650px){.queue-summary{grid-template-columns:1fr 1fr}.queue-stat:last-child{grid-column:1/-1}.queue-item{grid-template-columns:1fr;gap:8px}.queue-more{grid-column:auto}.queue-more ul{columns:1}.queue-toolbar select{width:100%}.queue-toolbar label{width:100%;margin-top:5px}}
     @media print{#fila{display:none!important}}
+    .trace-pill{display:inline-block;background:#253649;border:1px solid #3b5066;border-radius:7px;padding:4px 8px;margin:3px 4px 2px 0;color:#b9cade;font-size:10px;font-weight:750;white-space:nowrap}
+    .trace-pill.merged{color:#b6ec69;border-color:#426c4a;background:#23432b}
+    .trace-pill.open{color:#ffcea7;border-color:#69483a;background:#3b2e2a}
+    .trace-pill a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+    .trace-sub{display:block;margin-top:5px}
+    .tasklist li>span:last-child{min-width:0}
+    @media print{#rastreio{display:none!important}}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -154,6 +161,7 @@
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
       <a href="#projetos"><span class="sym">▦</span><span class="nav-label">Projetos</span></a>
       <a href="#fila"><span class="sym">☷</span><span class="nav-label">Próximas entregas</span></a>
+      <a href="#rastreio"><span class="sym">⌗</span><span class="nav-label">Rastreabilidade</span></a>
       <a href="#evolucao"><span class="sym">▥</span><span class="nav-label">Evolução</span></a>
       <a href="#relatorio"><span class="sym">▤</span><span class="nav-label">Relatório</span></a>
       <a href="./qualidade.html"><span class="sym">✓</span><span class="nav-label">PRs & CI</span></a>
@@ -224,6 +232,18 @@
       <p id="queue-meta" class="history-status" role="status" aria-live="polite"></p>
       <div id="queue-list" class="queue-list"></div>
       <p class="history-status">A próxima entrega é o primeiro marco ainda não concluído na lista editorial. PRs são contadas apenas entre as 20 mais recentemente atualizadas por repositório; CI e PRs exigem evidência recente. A ausência de commits por 30 dias não significa atraso. Percentuais mudam somente após revisão explícita dos marcos.</p>
+    </section>
+    <section id="rastreio" class="section" aria-labelledby="tracking-title">
+      <div class="section-header"><div><h2 id="tracking-title">Rastreabilidade dos marcos</h2><p>Issues e PRs vinculadas somente após revisão manual. Integração não equivale à homologação.</p></div>
+      <button type="button" id="tracking-export" class="refresh-btn">↓ Evidências CSV</button></div>
+      <div id="tracking-summary" class="trend-summary" aria-live="polite"></div>
+      <div class="queue-toolbar"><label for="tracking-filter">Filtrar</label><select class="filter" id="tracking-filter">
+      <option value="all">Todos os vínculos</option><option value="open">Abertos</option><option value="merged">PRs integradas</option><option value="unknown">Sem verificação recente</option></select></div>
+      <p id="tracking-info" class="history-status" role="status" aria-live="polite"></p>
+      <div class="report-table-wrap"><table class="report-table" style="min-width:790px"><thead><tr>
+      <th scope="col">Projeto</th><th scope="col">Marco</th><th scope="col">Situação editorial</th><th scope="col">Evidência</th><th scope="col">Estado GitHub</th><th scope="col">Verificado em</th>
+      </tr></thead><tbody id="tracking-rows"></tbody></table></div>
+      <p class="history-status">Estados do GitHub só são exibidos quando verificados há até 20 minutos e sem erro. PR integrada, issue encerrada e testes de CI não comprovam homologação. Nenhum vínculo altera automaticamente a porcentagem dos marcos.</p>
     </section>
     <section id="evolucao" class="section">
       <div class="section-header">
@@ -346,6 +366,8 @@ const repo=p=>"https://github.com/jeffaxe81/"+encodeURIComponent(p.id);
 const commit=(p,sha)=>repo(p)+"/commit/"+encodeURIComponent(sha);
 const formatDate=s=>new Date(s+"T12:00:00").toLocaleDateString("pt-BR",{day:"2-digit",month:"short",year:"numeric"});
 const EVIDENCE_IDS=["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop"];
+const MILESTONE_LINKS = {"crm-vendas":{"2":[{"kind":"pr","number":281}],"3":[{"kind":"pr","number":277}],"6":[{"kind":"issue","number":142},{"kind":"issue","number":159}]},"dispatch":{"0":[{"kind":"pr","number":118}],"1":[{"kind":"pr","number":119}],"2":[{"kind":"pr","number":115}]},"axe-gestao-convites":{"2":[{"kind":"pr","number":1}]},"axe-voice-desktop":{"0":[{"kind":"pr","number":1}]},"central-despacho-alertas-publicacao":{"1":[{"kind":"pr","number":9}]}};
+let trackingData={};
 const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
 document.getElementById("m-projects").textContent=PROJECTS.length;
 document.getElementById("m-done").textContent=done;
@@ -366,7 +388,7 @@ function renderProjects(){
  document.getElementById("visible-count").textContent=ps.length+" de "+PROJECTS.length+" projetos";
  document.getElementById("projects").innerHTML=ps.length?ps.map(p=>{
    const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);const latest=latestCommitsByProject[p.id];
-   const tasks=p.milestones.map(m=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span>'+esc(m[0])+'</li>').join("");
+   const tasks=p.milestones.map((m,i)=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span><span>'+esc(m[0])+trackingChips(p,i)+'</span></li>').join("");
    return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><div class="project-health" data-health="'+esc(p.id)+'"><span class="health-dot" aria-hidden="true"></span><span class="health-label">Aguardando coleta</span></div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
  }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
  refreshProjectHealth();
@@ -789,7 +811,10 @@ function goodCommit(e){
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
+ trackingData=data.tracking&&typeof data.tracking==="object"?data.tracking:{};
  refreshProjectHealth();
+ renderTracking();
+ renderProjects();
  renderQueue();
  const audit=document.getElementById("sync-audit-link");
  const url=data.collector?.run_url;
@@ -961,6 +986,48 @@ function startSnapshotPolling(){
  });
 }
 
+
+function trackedRows(){
+ const rows=[];
+ for(const p of PROJECTS)for(const [index,refs] of Object.entries(MILESTONE_LINKS[p.id]||{}))
+  for(const ref of refs){
+   const x=(trackingData[p.id]?.[index]||[]).find?.(v=>v.kind===ref.kind&&v.number===ref.number);
+   const stamp=Date.parse(x?.verified_at||"");
+   const fresh=x&&!x.error&&Number.isFinite(stamp)&&stamp<=Date.now()+300000&&Date.now()-stamp<=1200000;
+   const state=fresh&&["open","closed","merged"].includes(x.state)?x.state:"unknown";
+   rows.push({p,index:Number(index),ref,state,checked:state==="unknown"?"":x.verified_at});
+  }
+ return rows;
+}
+function traceUrl(row){return repo(row.p)+"/"+(row.ref.kind==="pr"?"pull/":"issues/")+row.ref.number}
+function traceLabel(row){return row.state==="unknown"?"Não verificado":row.state==="merged"?"Integrada":row.state==="open"?"Aberta":row.ref.kind==="pr"?"Fechada sem merge":"Fechada"}
+function trackingChips(p,index){
+ const matches=trackedRows().filter(r=>r.p.id===p.id&&r.index===index);
+ return matches.length?'<span class="trace-sub">'+matches.map(r=>'<span class="trace-pill '+esc(r.state)+'"><a href="'+traceUrl(r)+'" target="_blank" rel="noopener noreferrer">'+(r.ref.kind==="pr"?"PR #":"Issue #")+r.ref.number+'</a> · '+esc(traceLabel(r))+'</span>').join("")+'</span>':"";
+}
+function renderTracking(){
+ const rows=trackedRows(),filter=document.getElementById("tracking-filter").value;
+ const current=rows.filter(r=>filter==="all"||filter==="unknown"&&r.state==="unknown"||filter==="open"&&r.state==="open"||filter==="merged"&&r.state==="merged"&&r.ref.kind==="pr");
+ const stats=[["Vínculos revisados",rows.length],["Verificações recentes",rows.filter(r=>r.state!=="unknown").length],["PRs integradas",rows.filter(r=>r.state==="merged").length],["Referências abertas",rows.filter(r=>r.state==="open").length]];
+ document.getElementById("tracking-summary").innerHTML=stats.map(([label,n])=>'<div class="trend-stat"><b>'+n+'</b><span>'+esc(label)+'</span></div>').join("");
+ document.getElementById("tracking-info").textContent=current.length+" de "+rows.length+" referências visíveis. Estados indisponíveis ou antigos ficam como Não verificado.";
+ document.getElementById("tracking-rows").innerHTML=current.length?current.map(r=>{
+ const m=r.p.milestones[r.index],status=m[1]?"Concluído nos marcos":"Pendente nos marcos";
+ return '<tr><td>'+esc(r.p.name)+'</td><td>'+esc(m[0])+'</td><td>'+esc(status)+'</td>'+
+ '<td><a href="'+traceUrl(r)+'" target="_blank" rel="noopener noreferrer">'+(r.ref.kind==="pr"?"PR #":"Issue #")+r.ref.number+' ↗</a></td>'+
+ '<td><span class="trace-pill '+esc(r.state)+'">'+esc(traceLabel(r))+'</span></td><td>'+(r.checked?esc(new Date(r.checked).toLocaleString("pt-BR")):"—")+'</td></tr>';
+ }).join(""):'<tr><td colspan="6">Nenhuma evidência encontrada para este filtro.</td></tr>';
+}
+function exportTrackedCsv(){
+ const data=[["Projeto","Marco","Situação editorial","Tipo","Número","Estado verificado","Data de verificação","URL"]];
+ trackedRows().forEach(r=>data.push([r.p.name,r.p.milestones[r.index][0],r.p.milestones[r.index][1]?"Concluído":"Pendente",r.ref.kind,r.ref.number,traceLabel(r),r.checked,traceUrl(r)]));
+ const csv="\ufeff"+data.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=url;a.download="axe-evidencias-marcos.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById("tracking-filter").addEventListener("change",renderTracking);
+document.getElementById("tracking-export").addEventListener("click",exportTrackedCsv);
+
 /* Fila operacional: interpreta evidências, sem equiparar commit/PR a entrega homologada. */
 const queueFilter=document.getElementById("queue-filter");
 const queueSort=document.getElementById("queue-sort");
@@ -1045,7 +1112,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();startSnapshotPolling();
 </script>
 </body>
 </html>
