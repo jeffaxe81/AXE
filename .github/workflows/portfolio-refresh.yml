@@ -1,7 +1,8 @@
 name: Atualizar portfólio AXE
 on:
   schedule:
-    - cron: '3-58/5 * * * *'
+    - cron: '7-57/5 * * * *'
+  # Cron atualizado para reativar o scheduler do GitHub em caso de interrupção.
   workflow_dispatch:
   push:
     branches: [main]
