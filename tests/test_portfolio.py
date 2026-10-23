@@ -92,5 +92,60 @@ class PortfolioTests(unittest.TestCase):
             self.assertEqual(set(all_indices), set(range(progress[repo]["total"])))
 
 
+    def test_release_manifest_covers_every_project_with_no_implicit_go(self):
+        page = pathlib.Path(__file__).resolve().parents[2] / "pages"
+        html = (page / "index.html").read_text(encoding="utf-8")
+        progress = p.extract_milestone_progress(html)
+        manifest = p.load_release_control(page / "release-approvals.json", html, progress)
+        self.assertEqual(set(manifest["projects"]), set(p.REPOS))
+        for project in manifest["projects"].values():
+            self.assertEqual(set(project["checks"]), set(p.RELEASE_CHECKS))
+            self.assertTrue(all(v["status"] == "not_recorded" for v in project["checks"].values()))
+            self.assertEqual(project["decisions"], [])
+
+    def test_release_go_requires_real_evidence_and_completed_stage_gates(self):
+        import tempfile
+        page = pathlib.Path(__file__).resolve().parents[2] / "pages"
+        html = (page / "index.html").read_text(encoding="utf-8")
+        progress = p.extract_milestone_progress(html)
+        base = json.loads((page / "release-approvals.json").read_text(encoding="utf-8"))
+        url = "https://github.com/jeffaxe81/crm-vendas/pull/281"
+        with tempfile.TemporaryDirectory() as directory:
+            location = pathlib.Path(directory) / "release-approvals.json"
+            def validate(data):
+                location.write_text(json.dumps(data), encoding="utf-8")
+                return p.load_release_control(location, html, progress)
+            # Explicit NO_GO can be recorded without any automatic green checks.
+            denial = json.loads(json.dumps(base))
+            denial["projects"]["crm-vendas"]["decisions"].append({
+                "outcome": "NO_GO", "reviewer": "github-reviewer",
+                "recorded_at": p.NOW, "sha": "a" * 40, "reference": url,
+                "reason": "Homologação de produção ainda não foi concluída."
+            })
+            self.assertEqual(validate(denial)["projects"]["crm-vendas"]["decisions"][0]["outcome"], "NO_GO")
+            # A GO statement without evidence must never be accepted.
+            unproven = json.loads(json.dumps(denial))
+            unproven["projects"]["crm-vendas"]["decisions"][0]["outcome"] = "GO"
+            with self.assertRaises(ValueError):
+                validate(unproven)
+            # Even documented checks cannot override unfinished release milestones.
+            proof = json.loads(json.dumps(unproven))
+            for entry in proof["projects"]["crm-vendas"]["checks"].values():
+                entry.update(status="verified", evidence=url,
+                             note="Revisão pública vinculada ao registro de implantação",
+                             verified_at=p.NOW)
+            with self.assertRaises(ValueError):
+                validate(proof)
+            wrong = json.loads(json.dumps(proof))
+            wrong["projects"]["crm-vendas"]["checks"]["security"]["evidence"] = \
+                "https://github.com/other-account/private-repository/pull/1"
+            with self.assertRaises(ValueError):
+                validate(wrong)
+            unknown = json.loads(json.dumps(base))
+            unknown["projects"]["crm-vendas"]["checks"].pop("functional")
+            with self.assertRaises(ValueError):
+                validate(unknown)
+
+
 if __name__ == "__main__":
     unittest.main()
