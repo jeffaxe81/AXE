@@ -106,4 +106,26 @@ for (const [one,two,expectedOne,expectedTwo] of cases) {
   assert.equal(source(one,now).kind,expectedOne);
   assert.equal(quality(two,now).kind,expectedTwo);
 }
+// A fila nunca transforma ausência de leitura em zero e respeita a ordem editorial.
+const queueNow=Date.parse("2026-10-23T06:10:00Z");
+const recent=new Date(queueNow-2*60000).toISOString();
+const checked=p.fn("nextStepInfo(PROJECTS[0],{prs:{open:2},ci:{conclusion:'failure'},verified_at:{prs:'"+recent+"',ci:'"+recent+"'},commits:[{date:'2026-10-22'}]}, "+queueNow+")");
+assert.equal(checked.remaining,3);
+assert.equal(checked.pending[0],"Onboarding homologado");
+assert.equal(checked.openPrs,2);
+assert.equal(checked.ciResult,"failure");
+assert.equal(checked.quiet,false);
+const unavailable=p.fn("nextStepInfo(PROJECTS[0],{prs:{open:0},ci:{conclusion:'success'},verified_at:{prs:'2026-09-01T00:00:00Z',ci:'2026-09-01T00:00:00Z'}}, "+queueNow+")");
+assert.equal(unavailable.openPrs,null,"Stale PR data is unknown, never zero");
+assert.equal(unavailable.ciResult,null,"Stale CI data is unknown, never success");
+const errored=p.fn("nextStepInfo(PROJECTS[0],{prs:{open:2},ci:{conclusion:'failure'},errors:{prs:'HTTPError',ci:'HTTPError'},verified_at:{prs:'"+recent+"',ci:'"+recent+"'}}, "+queueNow+")");
+assert.equal(errored.openPrs,null);
+assert.equal(errored.ciResult,null);
+assert.equal(p.fn("queueItems().length"),9);
+p.fn("queueFilter.value='all'; renderQueue()");
+assert.ok(p.elements.get("queue-list").innerHTML.includes("Onboarding homologado"));
+assert.ok(p.elements.get("queue-list").innerHTML.includes("Abrir issues"));
+assert.ok(p.elements.get("queue-summary").innerHTML.includes("Pendências mapeadas"));
+assert.ok(p.elements.get("queue-list").innerHTML.includes("sem leitura recente"));
+console.log("PASS: fila de próximas entregas, 9 projetos, nulidade de PR/CI desatualizadas e evidências verificadas");
 console.log("PASS: HTML JavaScript, manual/15s/30s/online timers and 10 freshness scenarios");
