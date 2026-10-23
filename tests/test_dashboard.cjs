@@ -270,7 +270,7 @@ assert.equal(q.fn("testCategoriesOverview().known"),0,"Inconsistent category tot
 console.log("PASS: explicit test suite categories reconcile, unknown stays unknown, release matching requires exact commit SHA");
 
 const hourlyNow=Date.parse("2026-10-23T21:00:00Z");
-const sampleHour={status:"measured",baseline_at:"2026-10-23T20:00:00Z",measured_at:"2026-10-23T21:00:00Z",
+const sampleHour={status:"measured",window_minutes:60,baseline_at:"2026-10-23T20:00:00Z",measured_at:"2026-10-23T21:00:00Z",
  portfolio:{before_percent:60,after_percent:62,delta_points:2,delta_milestones:1},
  projects:{"crm-vendas":{before_percent:57.14,after_percent:71.43,delta_points:14.29,delta_milestones:1},
  "dispatch":{before_percent:66.67,after_percent:66.67,delta_points:0,delta_milestones:0}}};
@@ -287,6 +287,38 @@ p.fn("hourlyEvidence={status:'insufficient_history',baseline_at:null,measured_at
 assert.equal(p.fn("hourlyDisplay(null,"+hourlyNow+").delta"),null);
 assert.ok(p.elements.get("hour-detail").textContent.includes("Aguardando"));
 assert.ok(!p.elements.get("hour-summary").innerHTML.includes("0 p.p."));
+
+const period6={...sampleHour,window_minutes:360,baseline_at:"2026-10-23T15:00:00Z",
+ measured_at:"2026-10-23T21:00:00Z"};
+p.fn("progressWindows="+JSON.stringify({"60":sampleHour,"360":period6}));
+p.fn("setProgressPeriod('360')");
+assert.equal(p.fn("progressPeriod"),360);
+assert.equal(p.fn("hourlyDisplay(null,"+hourlyNow+").label"),"+2 p.p.");
+assert.equal(p.fn("hourlyDisplay('crm-vendas',"+hourlyNow+").label"),"+14,29 p.p.");
+p.fn("setProgressPeriod('1440')");
+assert.equal(p.fn("hourlyDisplay(null,"+hourlyNow+").delta"),null,"24h cannot be synthesized from 6h");
+p.fn("setProgressPeriod('60')");
+const activitySample={"crm-vendas":{
+ commits:[{sha:"a".repeat(40),date:"2026-10-23",committed_at:"2026-10-23T20:35:00Z",title:"Actual commit"},
+          {sha:"b".repeat(40),date:"2026-10-22",committed_at:"2026-10-22T19:00:00Z",title:"Old commit"}],
+ prs:{recent:[{number:99,updated_at:"2026-10-23T20:45:00Z",state:"open"}]},
+ ci:{id:999,status:"completed",updated_at:"2026-10-23T20:59:00Z",conclusion:"success"},
+ verified_at:{commits:"2026-10-23T21:00:00Z",prs:"2026-10-23T21:00:00Z",
+              ci:"2026-10-23T21:00:00Z"},errors:{}
+}};
+p.fn("sourceRecords="+JSON.stringify(activitySample)+";onlineSnapshotAt='2026-10-23T21:00:00Z'");
+assert.equal(p.fn("activityForProject(PROJECTS[0],"+hourlyNow+").commits"),1);
+assert.equal(p.fn("activityForProject(PROJECTS[0],"+hourlyNow+").prs"),1);
+assert.equal(p.fn("activityForProject(PROJECTS[0],"+hourlyNow+").ci"),1);
+assert.equal(p.fn("activityForProject(PROJECTS[0],"+(hourlyNow+25*60000)+").available"),false);
+p.fn("sourceRecords['crm-vendas'].errors.prs='API';");
+assert.equal(p.fn("activityForProject(PROJECTS[0],"+hourlyNow+").prs"),null,
+ "Failed PR collection cannot look like zero updates");
+p.fn("sourceRecords['crm-vendas'].errors={};progressPeriod=360");
+assert.equal(p.fn("activityForProject(PROJECTS[0],"+hourlyNow+").commits"),1);
+p.fn("progressPeriod=60");
+console.log("PASS: 1h/6h/24h selection, precise commit/PR/CI activity and stale-source safeguards");
+
 console.log("PASS: last-hour progress uses real baseline, displays percentage points and refuses missing/stale evidence");
 
 console.log("PASS: verified counts, partial flag, distinct CI history, no inferred zero or mismatch");
