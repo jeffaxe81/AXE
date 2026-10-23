@@ -54,11 +54,17 @@ def commits(repo):
     data = api(repo, "commits?sha=main&per_page=100")
     if not isinstance(data, list):
         raise ValueError("Invalid commit response")
-    return [
-        {"sha": c["sha"], "date": c["commit"]["committer"]["date"][:10], "title": short(c["commit"]["message"])}
-        for c in data if isinstance(c.get("sha"), str) and len(c["sha"]) == 40
-        and ((c.get("commit") or {}).get("committer") or {}).get("date")
-    ]
+    result = []
+    for c in data:
+        if not isinstance(c, dict) or not isinstance(c.get("sha"), str) or not re.fullmatch(r"[0-9a-fA-F]{40}", c["sha"]):
+            continue
+        info = c.get("commit") or {}
+        stamp = (info.get("committer") or {}).get("date")
+        if not isinstance(stamp, str) or not re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", stamp):
+            continue
+        result.append({"sha": c["sha"].lower(), "date": stamp[:10],
+                       "committed_at": stamp, "title": short(info.get("message"))})
+    return result
 
 
 def prs(repo):
@@ -92,6 +98,15 @@ def prs(repo):
         "active": entries,
         "active_sample_size": len(entries),
         "active_limit": 12,
+        "recent": [{
+            "number": p["number"],
+            "updated_at": p["updated_at"],
+            "state": "merged" if p.get("merged_at") else p.get("state"),
+            "url": "https://github.com/" + OWNER + "/" + repo + "/pull/" + str(p["number"]),
+        } for p in data if isinstance(p, dict) and type(p.get("number")) is int and p["number"] > 0
+          and isinstance(p.get("updated_at"), str)
+          and re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", p["updated_at"])],
+        "recent_limit": 20,
         "latest": ({
             "number": data[0].get("number"), "title": short(data[0].get("title")),
             "state": "merged" if data[0].get("merged_at") else data[0].get("state"),
@@ -484,15 +499,13 @@ def append_progress_samples(saved, progress, observed_at=NOW):
     return samples[-600:]
 
 
-def hourly_progress(samples, at=NOW):
-    """Compare to the nearest genuine snapshot 60–80 minutes prior.
-
-    If the collector has not recorded an hourly baseline yet, report
-    insufficient history instead of claiming a zero-percent movement.
-    """
+def progress_for_window(samples, minutes=60, at=NOW):
+    """Compare two genuine snapshots; tolerates at most 20 minutes of scheduler lag."""
+    if minutes not in (60, 360, 1440):
+        raise ValueError("Unsupported progress window")
     current = samples[-1]
     now = dt.datetime.fromisoformat(at.replace("Z", "+00:00"))
-    cutoff = now - dt.timedelta(hours=1)
+    cutoff = now - dt.timedelta(minutes=minutes)
     candidates = []
     for sample in samples[:-1]:
         try:
@@ -501,7 +514,7 @@ def hourly_progress(samples, at=NOW):
             continue
         if cutoff - dt.timedelta(minutes=20) <= date <= cutoff:
             candidates.append((date, sample))
-    output = {"window_minutes": 60, "measured_at": at, "baseline_at": None,
+    output = {"window_minutes": minutes, "measured_at": at, "baseline_at": None,
               "status": "insufficient_history", "portfolio": None, "projects": {}}
     if not candidates:
         return output
@@ -532,6 +545,11 @@ def hourly_progress(samples, at=NOW):
            "total": sum(row["total"] for row in after.values())}
     output["portfolio"] = comparison(start, end)
     return output
+
+
+def hourly_progress(samples, at=NOW):
+    """Backwards-compatible last-hour view for existing dashboard consumers."""
+    return progress_for_window(samples, 60, at)
 
 
 def append_progress_history(old, progress):
@@ -768,6 +786,8 @@ def generate(output, html_file):
     history = append_progress_history(saved, progress)
     progress_samples = append_progress_samples(saved, progress)
     progress_hourly = hourly_progress(progress_samples)
+    progress_windows = {str(minutes): progress_for_window(progress_samples, minutes)
+                        for minutes in (60, 360, 1440)}
     version_history = merge_version_history(saved, result)
     test_history = append_test_history(saved, result)
     release_control = load_release_control(output.with_name("release-approvals.json"), html_file.read_text(encoding="utf-8"), progress)
@@ -779,7 +799,7 @@ def generate(output, html_file):
         "run_url": ("https://github.com/jeffaxe81/AXE/actions/runs/" + run_id) if run_id.isdecimal() and len(run_id) <= 20 else None,
         "trigger": os.environ.get("GITHUB_EVENT_NAME") if os.environ.get("GITHUB_EVENT_NAME") in ("push", "schedule", "workflow_dispatch") else None,
     }
-    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "progress_samples": progress_samples, "progress_hourly": progress_hourly, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history, "test_history": test_history}
+    payload = {"schema_version": 1, "generated_at": NOW, "collection_interval_minutes": 5, "owner": OWNER, "projects": result, "progress": progress, "progress_history": history, "progress_samples": progress_samples, "progress_hourly": progress_hourly, "progress_windows": progress_windows, "collector": collector, "tracking": tracking, "release_control": release_control, "version_history": version_history, "test_history": test_history}
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
     print("Collected", len(result), "repositories;", len(failures), "unavailable sources.")
