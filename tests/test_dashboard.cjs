@@ -187,7 +187,7 @@ assert.ok(p.elements.get("release-cards").innerHTML.includes("Aceite formal"));
 assert.equal(p.fn("PROJECTS.reduce((n,x)=>n+x.milestones.filter(m=>m[1]).length,0)"),releaseBefore,
  "Formal decisions never alter the editorial milestone progress");
 
-const sampleOnline=JSON.stringify({"crm-vendas":{"prs:{active:[
+const sampleOnline=JSON.stringify({"crm-vendas":{prs:{active:[
   {number:17,title:"Homologar painel",updated_at:"2026-10-23T12:00:00Z",draft:false}]},
  commits:[{sha:"f".repeat(40),date:"2026-10-23",title:"Add dashboard"}],
  ci:{id:123,updated_at:"2026-10-23T11:30:00Z",status:"completed",conclusion:"failure",name:"CI"}}});
