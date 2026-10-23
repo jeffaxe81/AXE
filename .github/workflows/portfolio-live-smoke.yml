@@ -1,0 +1,85 @@
+name: Verificar portal AXE publicado
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/portfolio-live-smoke.yml'
+  schedule:
+    - cron: '17 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: axe-portfolio-live-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Conferir site e dados públicos
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verificar GitHub Pages e coletor
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://jeffaxe81.github.io/AXE"
+          for attempt in 1 2 3 4 5; do
+            echo "Consulta pública ${attempt}/5"
+            if curl -fLsS --max-time 25 --retry 2 --retry-delay 2 "$URL/" -o /tmp/axe-index.html &&
+               curl -fLsS --max-time 25 --retry 2 --retry-delay 2 "$URL/portfolio-status.json" -o /tmp/axe-status.json &&
+               curl -fLsS --max-time 25 --retry 2 --retry-delay 2 "$URL/qualidade.html" -o /tmp/axe-quality.html; then
+              break
+            fi
+            if [ "$attempt" -eq 5 ]; then
+              echo "::error::GitHub Pages indisponível após cinco verificações."
+              exit 1
+            fi
+            sleep 10
+          done
+
+          python3 - <<'PY'
+          import datetime as dt
+          import json
+          from pathlib import Path
+
+          site = Path("/tmp/axe-index.html").read_text(encoding="utf-8")
+          quality = Path("/tmp/axe-quality.html").read_text(encoding="utf-8")
+          snapshot = json.loads(Path("/tmp/axe-status.json").read_text(encoding="utf-8"))
+
+          required = ('id="online"', 'id="versoes"', 'id="gates"',
+                      'id="liberacao"', 'id="rastreio"')
+          missing = [marker for marker in required if marker not in site]
+          if missing:
+              raise SystemExit("Site publicado sem seções previstas: " + ", ".join(missing))
+          if 'id="rows"' not in quality:
+              raise SystemExit("Página de qualidade incompleta")
+          if snapshot.get("schema_version") != 1 or snapshot.get("owner") != "jeffaxe81":
+              raise SystemExit("Snapshot público com identificação inválida")
+          projects = snapshot.get("projects")
+          versions = snapshot.get("version_history")
+          if not isinstance(projects, dict) or len(projects) != 9:
+              raise SystemExit("Snapshot incompleto: esperado nove projetos")
+          if not isinstance(versions, dict) or set(versions) != set(projects):
+              raise SystemExit("Histórico de versões ausente/incompleto")
+          if not isinstance(snapshot.get("release_control", {}).get("projects"), dict):
+              raise SystemExit("Matriz GO / NO-GO ausente")
+          at = snapshot.get("generated_at")
+          try:
+              stamp = dt.datetime.fromisoformat(at.replace("Z", "+00:00"))
+          except (AttributeError, ValueError):
+              raise SystemExit("Data da coleta inválida")
+          age = (dt.datetime.now(dt.timezone.utc) - stamp).total_seconds()
+          if not -300 <= age <= 7200:
+              raise SystemExit(f"Coleta pública desatualizada ou futura: {age:.0f}s")
+          total_versions = sum(len(entries) for entries in versions.values())
+          print(f"PASS: site e painel qualidade acessíveis; {len(projects)} projetos; "
+                f"{total_versions} versões; coleta há {age/60:.1f} min.")
+          PY
+
+      - name: Resumo da verificação
+        if: always()
+        run: echo "Verificação pública do GitHub Pages finalizada." >> "$GITHUB_STEP_SUMMARY"
