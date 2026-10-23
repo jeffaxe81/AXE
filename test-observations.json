@@ -1,0 +1,164 @@
+{
+  "schema_version": 1,
+  "owner": "jeffaxe81",
+  "method": "Revisao de resumos terminais em logs oficiais de jobs CI pelo conector GitHub; nao equivale a homologacao.",
+  "observed_at": "2026-10-23T19:22:08Z",
+  "projects": {
+    "crm-vendas": {
+      "run_id": 39910348668,
+      "run_url": "https://github.com/jeffaxe81/crm-vendas/actions/runs/39910348668",
+      "observed_at": "2026-10-23T19:22:08Z",
+      "run_conclusion": "success",
+      "source": "github_job_logs_verified",
+      "partial": true,
+      "counts": {
+        "passed": 1904,
+        "failed": 0,
+        "skipped": 0
+      },
+      "breakdown": [
+        {
+          "name": "unittest Python",
+          "passed": 17,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "Vitest contracts",
+          "passed": 132,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "Vitest web",
+          "passed": 643,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "Jest API shard 1",
+          "passed": 526,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "Jest API shard 2",
+          "passed": 579,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "Playwright end-to-end",
+          "passed": 7,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    "dispatch": {
+      "run_id": 37992338044,
+      "run_url": "https://github.com/jeffaxe81/dispatch/actions/runs/37992338044",
+      "observed_at": "2026-10-23T19:22:08Z",
+      "run_conclusion": "failure",
+      "source": "github_job_logs_verified",
+      "partial": true,
+      "counts": {
+        "passed": 1366,
+        "failed": 0,
+        "skipped": 0
+      },
+      "breakdown": [
+        {
+          "name": "Vitest (suite observada)",
+          "passed": 1366,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    "pabx-mvp": {
+      "run_id": 39910281756,
+      "run_url": "https://github.com/jeffaxe81/pabx-mvp/actions/runs/39910281756",
+      "observed_at": "2026-10-23T19:22:08Z",
+      "run_conclusion": "success",
+      "source": "github_job_logs_verified",
+      "partial": false,
+      "counts": {
+        "passed": 1320,
+        "failed": 0,
+        "skipped": 0
+      },
+      "breakdown": [
+        {
+          "name": "pytest admin-api",
+          "passed": 393,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest scripts",
+          "passed": 127,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest ai-worker",
+          "passed": 86,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest backup",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest asterisk-agi",
+          "passed": 19,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest configuracoes-web",
+          "passed": 302,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest queue-api",
+          "passed": 377,
+          "failed": 0,
+          "skipped": 0
+        },
+        {
+          "name": "pytest asterisk-scripts",
+          "passed": 8,
+          "failed": 0,
+          "skipped": 0
+        }
+      ]
+    },
+    "central-despacho-alertas-publicacao": {
+      "run_id": 34733745489,
+      "run_url": "https://github.com/jeffaxe81/central-despacho-alertas-publicacao/actions/runs/34733745489",
+      "observed_at": "2026-10-23T19:22:08Z",
+      "run_conclusion": "success",
+      "source": "github_job_logs_verified",
+      "partial": false,
+      "counts": {
+        "passed": 112,
+        "failed": 0,
+        "skipped": 1
+      },
+      "breakdown": [
+        {
+          "name": "Vitest quality",
+          "passed": 112,
+          "failed": 0,
+          "skipped": 1
+        }
+      ]
+    }
+  }
+}
