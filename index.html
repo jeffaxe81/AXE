@@ -201,6 +201,19 @@
     .project-version span{color:var(--muted)}
     .project-version a{color:var(--accent);font-weight:790}
     .project-version a:hover{text-decoration:underline;text-underline-offset:2px}
+    .hour-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+    .hour-stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:17px}
+    .hour-stat b{display:block;font-variant-numeric:tabular-nums;font-size:27px;letter-spacing:-.02em}
+    .hour-stat span{color:var(--muted);font-size:11px;display:block;margin-top:7px}
+    .hour-projects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:15px}
+    .hour-project{background:#142439;border:1px solid var(--line);border-radius:12px;padding:14px}
+    .hour-project strong{font-size:12px;display:block;overflow-wrap:anywhere}
+    .hour-project span{display:block;color:var(--muted);font-size:11px;margin-top:7px}
+    .hour-project b{display:block;font-size:18px;font-variant-numeric:tabular-nums;margin-top:6px}
+    .hour-gain{color:#b2eb80}.hour-drop{color:#ffc2ab}.hour-flat{color:#afc2d8}
+    .project-hourly{font-size:11px;color:var(--muted);margin:9px 0;line-height:1.45}
+    @media(max-width:900px){.hour-projects{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:600px){.hour-summary,.hour-projects{grid-template-columns:1fr}}
     @media print {
       body{background:white!important;color:black!important;font-size:12px}
       .shell{display:block;max-width:none}
@@ -245,6 +258,7 @@
     <div class="aside-caption">Workspace</div>
     <nav class="nav">
       <a class="active" href="#inicio"><span class="sym">◫</span><span class="nav-label">Visão geral</span></a>
+      <a href="#ultima-hora"><span class="sym">◷</span><span class="nav-label">Última hora</span></a>
       <a href="#testes"><span class="sym">✓</span><span class="nav-label">Testes automatizados</span></a>
       <a href="#online"><span class="sym">◉</span><span class="nav-label">Acompanhamento online</span></a>
       <a href="#versoes"><span class="sym">▤</span><span class="nav-label">Versões e releases</span></a>
@@ -292,6 +306,13 @@
     <section aria-label="Indicadores de qualidade" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:20px 24px;background:#15283b;border:1px solid var(--line);border-radius:16px;margin-top:26px">
       <div><strong style="font-size:16px">PRs e testes — evidências consultáveis</strong><p style="margin:4px 0 0;font-size:13px;color:var(--muted)">Última PR e GitHub Actions na main, separados do progresso dos marcos.</p></div>
       <a href="./qualidade.html" style="font-weight:800;color:var(--accent);white-space:nowrap">Abrir painel de qualidade ↗</a>
+    </section>
+    <section class="section" id="ultima-hora" aria-labelledby="hour-title">
+      <div class="section-header"><div><h2 id="hour-title">Avanço na última hora</h2><p>Variação real dos marcos concluídos, em pontos percentuais (p.p.). Commits, testes e PRs não alteram esse indicador.</p></div>
+      <a href="#projetos" class="refresh-btn">Por projeto ↓</a></div>
+      <div class="hour-summary" id="hour-summary" aria-live="polite"></div>
+      <p class="history-status" id="hour-detail" role="status" aria-live="polite">Aguardando referência de uma hora atrás.</p>
+      <div class="hour-projects" id="hour-projects"></div>
     </section>
     <section id="testes" class="section" aria-labelledby="test-heading">
       <div class="section-header">
@@ -580,6 +601,54 @@ function projectVersionSnippet(p){
  return '<div class="project-version">'+(entry.kind==="release"?"Release publicada: ":"Tag registrada: ")+
   '<a href="'+url+'" target="_blank" rel="noopener noreferrer">'+esc(entry.version)+' ↗</a></div>';
 }
+
+let hourlyEvidence=null;
+function hourlyDisplay(projectId=null,now=Date.now()){
+ const ev=hourlyEvidence,unknown={kind:"unknown",label:"Aguardando 1 hora de medições",delta:null};
+ if(!ev||ev.status!=="measured"||!ev.measured_at||!ev.baseline_at)return unknown;
+ const measured=Date.parse(ev.measured_at),base=Date.parse(ev.baseline_at);
+ if(!Number.isFinite(measured)||!Number.isFinite(base)||measured-base<60*60000||
+    measured-base>80*60000||measured>now+5*60000)return unknown;
+ if(now-measured>20*60000)return {kind:"stale",label:"Medição antiga",delta:null};
+ const entry=projectId?ev.projects?.[projectId]:ev.portfolio;
+ if(!entry||!["before_percent","after_percent","delta_points","delta_milestones"].every(k=>
+   typeof entry[k]==="number"&&Number.isFinite(entry[k])))return unknown;
+ if(Math.abs(entry.after_percent-entry.before_percent-entry.delta_points)>0.03)return unknown;
+ const diff=Number(entry.delta_points.toFixed(2));
+ return {kind:diff>0?"gain":diff<0?"drop":"flat",
+  label:(diff>0?"+":"")+diff.toLocaleString("pt-BR",{maximumFractionDigits:2})+" p.p.",
+  delta:diff,marcos:entry.delta_milestones,before:entry.before_percent,after:entry.after_percent,
+  from:ev.baseline_at,to:ev.measured_at};
+}
+function renderHourlyProgress(){
+ const all=hourlyDisplay(),items=PROJECTS.map(project=>({project,result:hourlyDisplay(project.id)}));
+ const growing=items.filter(x=>x.result.delta!==null&&x.result.delta>0).length;
+ const values=[["Avanço consolidado",all.delta===null?"—":all.label],
+ ["Projetos que avançaram",all.delta===null?"—":growing+" / "+PROJECTS.length],
+ ["Marcos no intervalo",all.delta===null?"—":(all.marcos>0?"+":"")+all.marcos]];
+ document.getElementById("hour-summary").innerHTML=values.map(([label,v])=>
+ '<div class="hour-stat"><b>'+esc(v)+'</b><span>'+esc(label)+'</span></div>').join("");
+ document.getElementById("hour-detail").textContent=all.kind==="stale"?
+ "Última coleta com mais de 20 minutos: não é possível confirmar o avanço da hora atual.":
+ all.delta===null?"Aguardando a primeira referência horária válida. O coletor salva medições a cada execução (~5 min); sem 60 minutos de histórico, o painel não inventa 0%.":
+ "Intervalo medido: "+new Date(all.from).toLocaleString("pt-BR")+" até "+
+ new Date(all.to).toLocaleString("pt-BR")+" · "+all.before.toLocaleString("pt-BR")+
+ "% → "+all.after.toLocaleString("pt-BR")+"%. "+
+ (all.delta<0?"Queda indica marco reaberto ou revisão editorial.":"Variação exclusiva dos marcos documentados.");
+ document.getElementById("hour-projects").innerHTML=items.map(({project,result})=>
+ '<article class="hour-project"><strong>'+esc(project.name)+'</strong>'+
+ '<b class="hour-'+esc(result.kind)+'">'+esc(result.delta===null?"—":result.label)+'</b>'+
+ '<span>'+esc(result.delta===null?result.label:
+ (result.marcos>0?"+":"")+result.marcos+" marcos · "+result.before.toLocaleString("pt-BR")+
+ "% → "+result.after.toLocaleString("pt-BR")+"%")+'</span></article>').join("");
+}
+function projectHourlyMarkup(project){
+ const record=hourlyDisplay(project.id);
+ return '<div class="project-hourly">Última hora: <strong class="hour-'+
+ esc(record.kind)+'">'+esc(record.delta===null?"—":record.label)+
+ '</strong> · '+esc(record.delta===null?record.label:
+ (record.marcos>0?"+":"")+record.marcos+" marcos")+'</div>';
+}
 function renderProjects(){
  const q=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
  const order=document.getElementById("sort").value;
@@ -591,7 +660,7 @@ function renderProjects(){
  document.getElementById("projects").innerHTML=ps.length?ps.map(p=>{
    const completed=p.milestones.filter(m=>m[1]).length;const percent=pct(p);const latest=latestCommitsByProject[p.id];
    const tasks=p.milestones.map((m,i)=>'<li class="'+(m[1]?'done':'')+'"><span aria-hidden="true">'+(m[1]?'✓':'○')+'</span><span>'+esc(m[0])+trackingChips(p,i)+'</span></li>').join("");
-   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><div class="project-health" data-health="'+esc(p.id)+'"><span class="health-dot" aria-hidden="true"></span><span class="health-label">Aguardando coleta</span></div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+projectVersionSnippet(p)+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
+   return '<article class="project"><div class="project-top"><div class="project-icon" aria-hidden="true">'+esc(p.symbol)+'</div><span class="status '+esc(p.type)+'">'+esc(p.stage)+'</span></div><h3>'+esc(p.name)+'</h3><p class="description">'+esc(p.description)+'</p><div class="tech" title="'+esc(p.tech)+'">'+esc(p.tech)+'</div><div class="project-health" data-health="'+esc(p.id)+'"><span class="health-dot" aria-hidden="true"></span><span class="health-label">Aguardando coleta</span></div>'+(latest?'<div class="latest-commit">Último commit <a target="_blank" rel="noopener noreferrer" title="'+esc(latest.title)+'" href="'+commit(p,latest.sha)+'">'+esc(latest.sha.slice(0,7))+'</a> · '+esc(formatDate(latest.date))+'</div>':'')+projectVersionSnippet(p)+projectHourlyMarkup(p)+'<hr class="divider"><div class="percent-head"><span class="pct">'+percent+'%</span><span class="progress-label">'+completed+' de '+p.milestones.length+' marcos<br>concluídos</span></div><div class="progress-track" role="progressbar" aria-label="Avanço dos marcos de '+esc(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+percent+'"><div class="progress-fill" style="width:'+percent+'%"></div></div><details><summary>Ver marcos de entrega</summary><ul class="tasklist">'+tasks+'</ul></details><div class="project-bottom"><span>Atividade: '+formatDate(p.updated)+'</span><a href="'+repo(p)+'" target="_blank" rel="noopener noreferrer">Repositório ↗</a></div></article>';
  }).join(""):'<div class="empty">Nenhum projeto encontrado com estes filtros.</div>';
  refreshProjectHealth();
 }
@@ -1013,6 +1082,8 @@ function goodCommit(e){
 function importSnapshot(data){
  if(data.schema_version!==1||data.owner!=="jeffaxe81"||!data.projects||typeof data.projects!=="object")throw Error("snapshot inválido");
  sourceRecords=data.projects;
+ hourlyEvidence=data.progress_hourly&&typeof data.progress_hourly==="object"?data.progress_hourly:null;
+ renderHourlyProgress();
  renderTestOverview();
  onlineSnapshotAt=data.generated_at||null;
  versionHistory=data.version_history&&typeof data.version_history==="object"?data.version_history:{};
@@ -1149,6 +1220,7 @@ async function pollSnapshot(){
   lastSnapshotCheckAt=Date.now();
   if(result.generated_at&&result.generated_at===lastSnapshot){
    refreshProjectHealth();
+   renderHourlyProgress();
    renderTestOverview();
    renderOnline();renderVersions();
    renderReleases();
@@ -1680,7 +1752,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();renderTestOverview();renderDeliveryStates();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();renderTestOverview();renderHourlyProgress();renderDeliveryStates();startSnapshotPolling();
 </script>
 </body>
 </html>
