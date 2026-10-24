@@ -230,3 +230,11 @@ Não incluir no HTML, JSON público ou histórico IPs internos, chaves, certific
 No painel **GO / NO-GO**, cada projeto oferece um item expansível **Pendências para liberação**, calculado exclusivamente a partir do cadastro público já existente. Ele lista os critérios documentais ainda não registrados, os marcos de homologação e liberação ainda não concluídos ou não mapeados e a ausência de decisão formal ou uma decisão que precisa ser revisada.
 
 A lista também integra a exportação `axe-go-no-go.csv`. Ela é um **roteiro de verificação**, não um resultado de testes e nem prova de que o projeto está apto para produção. A lista pode estar vazia no cadastro e ainda haver dependências externas. Nenhuma pendência é concluída automaticamente por commit, PR ou CI, e nenhuma liberação é presumida.
+
+## Referências de CI e testes para revisão humana (v12)
+
+No painel **GO / NO-GO**, cada projeto agora apresenta uma área expansível **Referências de CI e testes para revisão**, com link canônico da execução no repositório, resultado e SHA quando o identificador, a fonte e o registro são válidos. As contagens aparecem **somente quando** a CI, o SHA, o ID da execução e os totais de testes identificados correspondem; sem resumo de testes, o painel mantém explicitamente **Sem contagem vinculada**.
+
+Uma fonte verificada há mais de **20 minutos** é mostrada como **registro antigo** — um link histórico para investigar, não uma verificação atual. Se houver erro de coleta, um SHA ou um ID inválido, a interface não inventa um link. A exportação `axe-go-no-go.csv` ganha colunas para link da CI, momento da coleta e contagem vinculada.
+
+Esse recurso **não altera** o cadastro `release-approvals.json`, não conclui critérios, não aprova homologação e não substitui um responsável humano. Resultados de CI e testes são apenas referências para quem vai verificar funcionalidades, segurança, recuperação, rollback e aceite.
