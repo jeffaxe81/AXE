@@ -24,6 +24,36 @@ for(const page of pages){
   assert.match(html,/function releasePending\(row\)/, "Checklist de pendências de liberação ausente");
   assert.match(html,/class="release-blockers"/, "Painel de pendências expansível ausente");
   assert.match(html,/releasePending\(x\)\.join/, "Exportação de pendências CSV ausente");
+  assert.match(html,/function releaseReviewEvidence\(project,nowMs=Date\.now\(\)\)/, "Revisão de evidências CI ausente");
+  assert.match(html,/class="release-review"/, "Seção de referências para revisão ausente");
+  assert.match(html,/CI para revisão/, "Exportação CI para revisão ausente");
+  // Exercitar a função isoladamente, sem permitir promoção implícita de critérios.
+  const start=html.indexOf("function releaseReviewEvidence("),end=html.indexOf("function renderReleases()",start);
+  assert.ok(start>=0&&end>start,"Função de revisão não isolável");
+  const testCtx=vm.createContext({sourceRecords:{},repo:p=>"https://github.com/jeffaxe81/"+p.id});
+  vm.runInContext(html.slice(start,end),testCtx);
+  const proj={id:"crm-vendas"},sha="a".repeat(40),now=Date.parse("2026-10-23T22:00:00Z");
+  function checkEvidence(record,when=now){
+   testCtx.sourceRecords={"crm-vendas":record};
+   return vm.runInContext("releaseReviewEvidence({id:'crm-vendas'},"+when+")",testCtx);
+  }
+  const good={ci:{id:123,head_sha:sha,status:"completed",conclusion:"success"},
+    tests:{status:"available",run_id:123,head_sha:sha,run_conclusion:"success",
+      passed:12,failed:1,skipped:2},
+    verified_at:{ci:"2026-10-23T21:58:00Z",tests:"2026-10-23T21:58:00Z"},errors:{}};
+  const verified=checkEvidence(good);
+  assert.equal(verified.ciStatus,"recent");
+  assert.equal(verified.ciUrl,"https://github.com/jeffaxe81/crm-vendas/actions/runs/123");
+  assert.equal(verified.testCounts.passed,12);
+  assert.equal(verified.testCounts.failed,1);
+  const old=checkEvidence(good,now+40*60000);
+  assert.equal(old.ciStatus,"historical");
+  assert.equal(old.testCounts.stale,true);
+  assert.equal(checkEvidence({...good,tests:{...good.tests,head_sha:"b".repeat(40)}}).testCounts,null);
+  assert.equal(checkEvidence({...good,tests:{...good.tests,run_id:124}}).testCounts,null);
+  assert.equal(checkEvidence({...good,errors:{ci:"API failure"}}).ciUrl,null);
+  assert.equal(checkEvidence({...good,ci:{...good.ci,head_sha:"invalid"}}).ciUrl,null);
+  assert.equal(checkEvidence({}).ciStatus,"unavailable");
  }
  if(page==="qualidade.html"){
   for(const id of ["rows","status","refresh","export","merged-count","ci-count"]){
