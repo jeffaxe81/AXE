@@ -78,3 +78,9 @@ O coletor permanece agendado aproximadamente a cada cinco minutos; a execução 
 O `portfolio-live-smoke.yml` verifica a presença da fila V13 no site publicado e continua rejeitando snapshots com coleta mais antiga que 30 minutos. O teste de regressão `tests/test_dashboard.cjs` garante as quatro prioridades (CRM, PABX, Dispatch, Voice), seleção de nove projetos, distinção entre contagem ausente, falhas da CI e divergência de execução, sem promover nenhum estado GO.
 
 A presença de elementos HTML e resultados de testes de interface não substitui revisão operacional, liberação ou homologação dos aplicativos.
+
+## Evidências das etapas da CI (v14)
+
+O coletor registra uma lista **limitada e explícita** de etapas de teste executadas pelo GitHub Actions nos repositórios prioritários. Para CRM, PABX, Dispatch e AXE Voice, cada observação registra nome da etapa, identificador do job, status, conclusão, ID de execução e SHA. A coleta lê `actions/runs/<id>/jobs?per_page=100` e filtra nomes permitidos conhecidos. Sem resposta válida, o dado fica pendente ou com erro.
+
+**Etapas concluídas com sucesso não são a quantidade de casos de teste aprovados.** A contagem de casos continua separada, dependente de um resumo confiável ou observação auditada. Este registro também não substitui testes funcionais, validação de segurança ou homologação, nem altera GO/NO-GO ou percentuais.
