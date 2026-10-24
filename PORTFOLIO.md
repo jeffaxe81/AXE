@@ -246,3 +246,11 @@ O painel **GO / NO-GO** passou a ter uma fila operacional filtrável para os qua
 Estados distintos ajudam a não confundir ausência de CI na coleta com execução em falha, contagem ausente com zero testes, ou um histórico desatualizado com uma verificação atual. Cada cartão recomenda a *próxima ação de verificação*, abre a página pública da CI ou dos workflows e indica quantas pendências documentais/marcos ainda precisam ser avaliados. A fila oferece exportação CSV `axe-fila-evidencias.csv`.
 
 Não se inferem prazos, conclusão de funcionalidades ou conformidade. As sugestões e os resultados de CI **não** alteram o percentual editorial, o arquivo de aprovações nem o estado GO / NO-GO. Mesmo com contagem de testes, o aceite funcional depende de revisão.
+
+## Evidências das etapas de teste na CI (v14)
+
+A fila de homologação agora oferece um item expansível **Etapas da CI** por projeto. Uma etapa aparece apenas quando os dados foram consultados sem erro nos últimos 20 minutos e o run ID e o SHA correspondem à última CI observada. São apresentados os nomes das etapas e suas conclusões, com registro de leitura parcial quando aplicável.
+
+O CSV `axe-fila-evidencias.csv` inclui a identidade da CI, os resultados das etapas e os nomes revisáveis. **Etapas de teste concluídas não são quantidades de casos de teste aprovados**; o indicador de casos continua independente. Sem dados recentes, o estado é *sem leitura recente*, nunca zero etapas.
+
+Mesmo uma CI verde, com todas as etapas concluídas, não encerra marcos de homologação/liberação e não registra GO.

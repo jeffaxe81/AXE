@@ -59,6 +59,35 @@ for(const page of pages){
   assert.equal(triage(base,at+40*60000).kind,"unverified");
   assert.equal(triage({}).kind,"unverified");
 
+  // A medição de etapas deve coincidir com o mesmo run ID/SHA e coleta recente.
+  {
+    const s0=html.indexOf("function ciStepEvidence("),
+          s1=html.indexOf("function renderEvidenceTriage()",s0);
+    assert.ok(s0>0&&s1>s0,"Validador de etapas da CI ausente");
+    const ctx2=vm.createContext({});
+    vm.runInContext(html.slice(s0,s1),ctx2);
+    const sha2="b".repeat(40), at2=Date.parse("2026-10-23T22:00:00Z");
+    const sample={ci:{id:123,head_sha:sha2},
+      verified_at:{ci_test_steps:"2026-10-23T21:58:00Z"},
+      errors:{},
+      ci_test_steps:{status:"observed",run_id:123,head_sha:sha2,partial:false,
+        steps:[{job_id:321,name:"Run repository tests",status:"completed",conclusion:"success"},
+               {job_id:322,name:"Run integration tests",status:"completed",conclusion:"failure"}]}};
+    const check=(rec,when=at2)=>{
+      ctx2.row=rec;return vm.runInContext("ciStepEvidence({id:'crm-vendas'},row,"+when+")",ctx2);
+    };
+    assert.equal(check(sample).kind,"observed");
+    assert.equal(check(sample).passed,1);
+    assert.equal(check(sample).failed,1);
+    assert.equal(check(sample).steps.length,2);
+    assert.equal(check({...sample,ci_test_steps:{...sample.ci_test_steps,run_id:124}}).kind,"unknown");
+    assert.equal(check({...sample,ci_test_steps:{...sample.ci_test_steps,head_sha:"a".repeat(40)}}).kind,"unknown");
+    assert.equal(check({...sample,errors:{ci_test_steps:"API"}}).kind,"unknown");
+    assert.equal(check(sample,at2+40*60000).kind,"unknown");
+    assert.equal(check({}).kind,"unknown");
+  }
+
+
   // Exercitar a função isoladamente, sem permitir promoção implícita de critérios.
   const start=html.indexOf("function releaseReviewEvidence("),end=html.indexOf("function renderReleases()",start);
   assert.ok(start>=0&&end>start,"Função de revisão não isolável");
