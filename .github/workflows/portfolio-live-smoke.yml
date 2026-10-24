@@ -116,8 +116,8 @@ jobs:
           except (AttributeError, ValueError):
               raise SystemExit("Data da coleta inválida")
           age = (dt.datetime.now(dt.timezone.utc) - stamp).total_seconds()
-          if not -300 <= age <= 7200:
-              raise SystemExit(f"Coleta pública desatualizada ou futura: {age:.0f}s")
+          if not -300 <= age <= 1800:
+              raise SystemExit(f"Coleta pública fora do limite de 30 min: {age:.0f}s (verificar agendamento do coletor)")
           total_versions = sum(len(entries) for entries in versions.values())
           print(f"PASS: site e painel qualidade acessíveis; {len(projects)} projetos; "
                 f"{total_versions} versões; coleta há {age/60:.1f} min.")
