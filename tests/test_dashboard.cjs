@@ -341,6 +341,7 @@ p.fn("sourceRecords['crm-vendas'].errors.ci='API'");
 assert.equal(review().ciUrl,null,"Failed CI collection must hide link");
 p.fn("sourceRecords={}");
 assert.equal(review().ciStatus,"unavailable");
+p.fn("releaseControl=null");
 assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded","Review links cannot create GO");
 console.log("PASS: evidence-review provenance, stale CI, API failures and independent GO decisions");
 
