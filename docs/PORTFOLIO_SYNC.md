@@ -66,3 +66,9 @@ A alteração de modo cancela o timer anterior (não acumula vários agendamento
 - Commits enviados por GitHub Actions com GITHUB_TOKEN não disparam build de Pages; por isso o navegador consulta o JSON bruto. A CDN pode introduzir algum atraso.
 
 Caso GitHub Actions seja desativado ou perca a permissão de escrita, as verificações continuam mostrando o último snapshot, com aviso de dados antigos após 20 minutos. A validação de continuidade depende da observação de execuções **schedule** concluídas, não apenas de execuções disparadas por **push**.
+
+## Alerta de coleta antiga (v12 — reforço de confiabilidade)
+
+A validação pública horária rejeita o snapshot quando `generated_at` estiver a mais de **30 minutos** do horário UTC real, ou no futuro por mais de cinco minutos. O antigo limite de duas horas deixava aparecer uma verificação verde para um portfólio desatualizado. Agora o job sinaliza falha com indicação para verificar o agendamento do coletor.
+
+O coletor permanece agendado aproximadamente a cada cinco minutos; a execução efetiva depende do serviço GitHub Actions e pode atrasar. Uma falha de frescor **não reprova funcionalmente nenhum produto**: indica que o monitoramento não confirmou dados recentes e requer inspeção. Os testes de comportamento da página agora incluem a área V12 de referências para revisão.
