@@ -182,6 +182,12 @@
     .triage-meta{font-size:11px;color:var(--muted);margin-top:8px}
     .triage-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px}
     .triage-links a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+    .triage-check-steps{font-size:12px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}
+    .triage-check-steps summary{cursor:pointer;color:var(--ink);font-weight:750}
+    .triage-check-steps ul{padding-left:20px;line-height:1.7;max-height:200px;overflow-y:auto}
+    .triage-check-steps p{font-size:11px;color:var(--muted);line-height:1.5}
+    .triage-check-steps .ci-step-success{color:#b6ec69}
+    .triage-check-steps .ci-step-failure{color:#ffceae}
     @media(max-width:700px){.triage-list{grid-template-columns:1fr}}
     .release-decision{font-size:11px;color:#b4c6d9;border-top:1px solid var(--line);padding-top:13px;line-height:1.65;overflow-wrap:anywhere}
     .release-decision a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
@@ -1616,26 +1622,61 @@ function evidenceTriageRows(nowMs=Date.now()){
  }).map(project=>({project,result:triageEvidence(project,sourceRecords[project.id],nowMs),
    blockers:releasePending(releaseState(project)).length}));
 }
+/* CI workflow test steps are distinct from actual testcase totals and formal GO. */
+function ciStepEvidence(project,record,nowMs=Date.now()){
+ const empty={kind:"unknown",label:"Etapas da CI: sem leitura recente",steps:[],passed:0,failed:0};
+ const ci=record?.ci,report=record?.ci_test_steps;
+ const checked=Date.parse(record?.verified_at?.ci_test_steps||"");
+ if(!record||record.errors?.ci_test_steps||record.errors?.ci||
+    !Number.isFinite(checked)||checked>nowMs+300000||nowMs-checked>20*60000||
+    !Number.isSafeInteger(ci?.id)||ci.id<=0||!/^[a-f0-9]{40}$/.test(ci.head_sha||"")||
+    report?.run_id!==ci.id||report?.head_sha!==ci.head_sha||
+    report?.status!=="observed"||!Array.isArray(report.steps)||report.steps.length>20)
+    return empty;
+ const allowed=["success","failure","cancelled","skipped","timed_out","neutral",null];
+ const steps=report.steps.filter(x=>x&&typeof x.name==="string"&&x.name.length>0&&
+  x.name.length<=150&&Number.isSafeInteger(x.job_id)&&x.job_id>0&&
+  x.status==="completed"&&allowed.includes(x.conclusion));
+ if(!steps.length)return empty;
+ const passed=steps.filter(x=>x.conclusion==="success").length;
+ const failed=steps.filter(x=>x.conclusion==="failure"||x.conclusion==="timed_out").length;
+ return {kind:"observed",label:"Etapas da CI: "+passed+" concluídas com sucesso"+
+  (failed?" · "+failed+" com falha":"")+
+  (report.partial?" · lista parcial":""),
+  steps,passed,failed};
+}
 function renderEvidenceTriage(){
  const rows=evidenceTriageRows(),missing=rows.filter(row=>row.result.kind!=="review").length;
  document.getElementById("evidence-triage-summary").textContent=rows.length+
   " projetos exibidos · "+missing+" precisam de conferência de CI/testes · os critérios de liberação são independentes.";
  document.getElementById("evidence-triage-list").innerHTML=rows.map(({project,result,blockers})=>{
   const link=result.runId?repo(project)+"/actions/runs/"+result.runId:null;
+  const stages=ciStepEvidence(project,sourceRecords[project.id]);
+  const details='<details class="triage-check-steps"><summary>'+esc(stages.label)+'</summary>'+
+   (stages.kind==="observed"?'<ul>'+stages.steps.map(step=>
+     '<li class="'+(step.conclusion==="success"?"ci-step-success":
+        step.conclusion==="failure"||step.conclusion==="timed_out"?"ci-step-failure":"")+'">'+
+       esc(step.name)+' — '+esc(step.conclusion||"sem conclusão")+'</li>').join("")+'</ul>':
+     '<p>Não foi possível confirmar as etapas da última CI com evidência recente.</p>')+
+     '<p>Etapas do workflow, não quantidade de casos de teste. Não comprovam homologação.</p></details>';
   return '<article class="triage-row"><h4>'+esc(project.name)+'</h4>'+
    '<span class="triage-status">'+esc(result.status)+'</span>'+
    '<div class="triage-action">Próxima ação: '+esc(result.action)+'</div>'+
    '<div class="triage-meta">'+blockers+' pendências documentais ou marcos para revisão · '+pct(project)+'% dos marcos editoriais</div>'+
-   '<div class="triage-links">'+(link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Ver CI ↗</a>':
+   details+'<div class="triage-links">'+(link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Ver CI ↗</a>':
     '<a href="'+repo(project)+'/actions" target="_blank" rel="noopener noreferrer">Ver workflows ↗</a>')+
     '<a href="'+repo(project)+'/issues" target="_blank" rel="noopener noreferrer">Ver issues ↗</a></div></article>';
  }).join("");
 }
 function exportEvidenceTriage(){
- const rows=[["Projeto","Estado observado","Próxima ação","Pendências documentais","Percentual de marcos editoriais","Referência da CI"]];
+ const rows=[["Projeto","Estado observado","Próxima ação","Pendências documentais","Percentual de marcos editoriais","Referência da CI","Etapas de teste na CI","Etapas com sucesso","Etapas com falha","Nomes e resultados observados"]];
  evidenceTriageRows().forEach(({project,result,blockers})=>rows.push([
   project.name,result.status,result.action,blockers,pct(project)+"%",
-  result.runId?repo(project)+"/actions/runs/"+result.runId:""]));
+  result.runId?repo(project)+"/actions/runs/"+result.runId:"",
+  ciStepEvidence(project,sourceRecords[project.id]).kind,
+  ciStepEvidence(project,sourceRecords[project.id]).kind==="observed"?ciStepEvidence(project,sourceRecords[project.id]).passed:"",
+  ciStepEvidence(project,sourceRecords[project.id]).kind==="observed"?ciStepEvidence(project,sourceRecords[project.id]).failed:"",
+  ciStepEvidence(project,sourceRecords[project.id]).steps.map(s=>s.name+" = "+s.conclusion).join(" | ")]));
  const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
  const a=document.createElement("a");a.href=url;a.download="axe-fila-evidencias.csv";
