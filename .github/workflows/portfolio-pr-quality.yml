@@ -1,0 +1,40 @@
+name: Validar alterações do coletor AXE
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/portfolio-pr-quality.yml'
+      - '.github/workflows/portfolio-live-smoke.yml'
+      - '.github/workflows/portfolio-refresh.yml'
+      - 'scripts/refresh_portfolio.py'
+      - 'tests/**'
+      - 'docs/PORTFOLIO_SYNC.md'
+
+permissions:
+  contents: read
+
+jobs:
+  regression:
+    name: Testes de regressão do coletor e do site
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout dos testes
+        uses: actions/checkout@v4
+        with:
+          path: source
+          persist-credentials: false
+
+      - name: Checkout do site publicado
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: pages
+          persist-credentials: false
+
+      - name: Validar coletor e marcos
+        run: python3 -m unittest discover -s source/tests -p 'test_portfolio.py' -v
+
+      - name: Validar JavaScript, indicadores e referências V12
+        run: node source/tests/test_dashboard.cjs pages/index.html pages/qualidade.html
