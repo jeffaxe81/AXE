@@ -238,3 +238,11 @@ No painel **GO / NO-GO**, cada projeto agora apresenta uma área expansível **R
 Uma fonte verificada há mais de **20 minutos** é mostrada como **registro antigo** — um link histórico para investigar, não uma verificação atual. Se houver erro de coleta, um SHA ou um ID inválido, a interface não inventa um link. A exportação `axe-go-no-go.csv` ganha colunas para link da CI, momento da coleta e contagem vinculada.
 
 Esse recurso **não altera** o cadastro `release-approvals.json`, não conclui critérios, não aprova homologação e não substitui um responsável humano. Resultados de CI e testes são apenas referências para quem vai verificar funcionalidades, segurança, recuperação, rollback e aceite.
+
+## Fila de evidências de homologação (v13)
+
+O painel **GO / NO-GO** passou a ter uma fila operacional filtrável para os quatro projetos prioritários (CRM, PABX, Dispatch e AXE Voice) ou para os nove projetos. A fila interpreta **somente informações confirmadas pelo snapshot público**: execução de CI, conclusão, identificador e SHA, resumo de testes com a mesma identidade e coleta com no máximo 20 minutos.
+
+Estados distintos ajudam a não confundir ausência de CI na coleta com execução em falha, contagem ausente com zero testes, ou um histórico desatualizado com uma verificação atual. Cada cartão recomenda a *próxima ação de verificação*, abre a página pública da CI ou dos workflows e indica quantas pendências documentais/marcos ainda precisam ser avaliados. A fila oferece exportação CSV `axe-fila-evidencias.csv`.
+
+Não se inferem prazos, conclusão de funcionalidades ou conformidade. As sugestões e os resultados de CI **não** alteram o percentual editorial, o arquivo de aprovações nem o estado GO / NO-GO. Mesmo com contagem de testes, o aceite funcional depende de revisão.
