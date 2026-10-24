@@ -343,6 +343,35 @@ p.fn("sourceRecords={}");
 assert.equal(review().ciStatus,"unavailable");
 p.fn("releaseControl=null");
 assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded","Review links cannot create GO");
+// V13: a fila operacional nao promove CI ou contador a homologacao.
+const triageAt=Date.parse("2026-10-23T22:00:00Z");
+const triageSha="a".repeat(40);
+const triageRecord={ci:{id:456,status:"completed",conclusion:"success",head_sha:triageSha},
+ tests:{status:"available",run_id:456,head_sha:triageSha,run_conclusion:"success",
+  passed:30,failed:0,skipped:2},
+ verified_at:{ci:"2026-10-23T21:58:00Z",tests:"2026-10-23T21:58:00Z"},errors:{}};
+p.fn("sourceRecords="+JSON.stringify({"crm-vendas":triageRecord}));
+const triageResult=rec=>{
+ p.fn("sourceRecords="+JSON.stringify({"crm-vendas":rec}));
+ return p.fn("triageEvidence(PROJECTS[0],sourceRecords['crm-vendas'],"+triageAt+")");
+};
+assert.equal(triageResult(triageRecord).kind,"review");
+assert.equal(triageResult({...triageRecord,ci:null}).kind,"no_ci");
+assert.equal(triageResult({...triageRecord,tests:{...triageRecord.tests,run_id:457}}).kind,"missing_counts");
+assert.equal(triageResult({...triageRecord,ci:{...triageRecord.ci,conclusion:"failure"}}).kind,"ci_failed");
+assert.equal(triageResult({...triageRecord,tests:{...triageRecord.tests,failed:1}}).kind,"tests_failed");
+assert.equal(triageResult({...triageRecord,errors:{ci:"API"}}).kind,"unverified");
+p.fn("sourceRecords="+JSON.stringify({"crm-vendas":triageRecord}));
+p.fn("document.getElementById('evidence-triage-filter').value='priority';renderEvidenceTriage()");
+assert.equal(p.fn("evidenceTriageRows().length"),4);
+assert.ok(p.elements.get("evidence-triage-list").innerHTML.includes("CRM Vendas"));
+assert.ok(p.elements.get("evidence-triage-list").innerHTML.includes("AXE"));
+p.fn("document.getElementById('evidence-triage-filter').value='all';renderEvidenceTriage()");
+assert.equal(p.fn("evidenceTriageRows().length"),9);
+p.fn("releaseControl=null");
+assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded");
+console.log("PASS: V13 CI/test triage, four priority projects, nine monitored projects, no implicit GO");
+
 console.log("PASS: evidence-review provenance, stale CI, API failures and independent GO decisions");
 
 console.log("PASS: last-hour progress uses real baseline, displays percentage points and refuses missing/stale evidence");

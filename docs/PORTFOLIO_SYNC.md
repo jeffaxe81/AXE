@@ -72,3 +72,9 @@ Caso GitHub Actions seja desativado ou perca a permissão de escrita, as verific
 A validação pública horária rejeita o snapshot quando `generated_at` estiver a mais de **30 minutos** do horário UTC real, ou no futuro por mais de cinco minutos. O antigo limite de duas horas deixava aparecer uma verificação verde para um portfólio desatualizado. Agora o job sinaliza falha com indicação para verificar o agendamento do coletor.
 
 O coletor permanece agendado aproximadamente a cada cinco minutos; a execução efetiva depende do serviço GitHub Actions e pode atrasar. Uma falha de frescor **não reprova funcionalmente nenhum produto**: indica que o monitoramento não confirmou dados recentes e requer inspeção. Os testes de comportamento da página agora incluem a área V12 de referências para revisão.
+
+## Verificação da fila V13 na publicação
+
+O `portfolio-live-smoke.yml` verifica a presença da fila V13 no site publicado e continua rejeitando snapshots com coleta mais antiga que 30 minutos. O teste de regressão `tests/test_dashboard.cjs` garante as quatro prioridades (CRM, PABX, Dispatch, Voice), seleção de nove projetos, distinção entre contagem ausente, falhas da CI e divergência de execução, sem promover nenhum estado GO.
+
+A presença de elementos HTML e resultados de testes de interface não substitui revisão operacional, liberação ou homologação dos aplicativos.
