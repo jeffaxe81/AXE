@@ -27,6 +27,38 @@ for(const page of pages){
   assert.match(html,/function releaseReviewEvidence\(project,nowMs=Date\.now\(\)\)/, "Revisão de evidências CI ausente");
   assert.match(html,/class="release-review"/, "Seção de referências para revisão ausente");
   assert.match(html,/CI para revisão/, "Exportação CI para revisão ausente");
+
+  assert.match(html,/id="evidence-triage-list"/, "Fila de evidências ausente");
+  assert.match(html,/function triageEvidence\(project,record,nowMs=Date\.now\(\)\)/,
+    "Classificação de observações ausente");
+  assert.match(html,/axe-fila-evidencias\.csv/, "Exportação CSV da fila ausente");
+  const triageStart=html.indexOf("function triageEvidence("),
+        triageEnd=html.indexOf("function evidenceTriageRows(",triageStart);
+  assert.ok(triageStart>=0&&triageEnd>triageStart,"Função de triagem ausente");
+  const ctx=vm.createContext({});
+  vm.runInContext(html.slice(triageStart,triageEnd),ctx);
+  const at=Date.parse("2026-10-23T22:00:00Z"),triageSha="a".repeat(40);
+  const project={id:"crm-vendas"};
+  const base={ci:{id:123,status:"completed",conclusion:"success",head_sha:triageSha},
+    tests:{status:"available",run_id:123,run_conclusion:"success",head_sha:triageSha,
+      passed:12,failed:0,skipped:1},
+    verified_at:{ci:"2026-10-23T21:59:00Z",tests:"2026-10-23T21:59:00Z"},errors:{}};
+  function triage(rec,when=at){
+    ctx.record=rec;
+    return vm.runInContext("triageEvidence({id:'crm-vendas'},record,"+when+")",ctx);
+  }
+  assert.equal(triage(base).kind,"review");
+  assert.equal(triage({...base,ci:null}).kind,"no_ci");
+  assert.equal(triage({...base,tests:{...base.tests,run_id:124}}).kind,"missing_counts");
+  assert.equal(triage({...base,tests:{...base.tests,head_sha:"b".repeat(40)}}).kind,"missing_counts");
+  assert.equal(triage({...base,tests:{...base.tests,failed:1}}).kind,"tests_failed");
+  assert.equal(triage({...base,tests:{...base.tests,partial:true}}).kind,"partial");
+  assert.equal(triage({...base,ci:{...base.ci,conclusion:"failure"}}).kind,"ci_failed");
+  assert.equal(triage({...base,ci:{...base.ci,id:0}}).kind,"unverified");
+  assert.equal(triage({...base,errors:{ci:"HTTP 403"}}).kind,"unverified");
+  assert.equal(triage(base,at+40*60000).kind,"unverified");
+  assert.equal(triage({}).kind,"unverified");
+
   // Exercitar a função isoladamente, sem permitir promoção implícita de critérios.
   const start=html.indexOf("function releaseReviewEvidence("),end=html.indexOf("function renderReleases()",start);
   assert.ok(start>=0&&end>start,"Função de revisão não isolável");

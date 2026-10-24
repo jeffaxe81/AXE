@@ -170,6 +170,19 @@
     .release-review a{color:var(--accent);font-weight:750;text-decoration:underline;text-underline-offset:2px}
     .release-review .historical{color:#ffceae}
     .release-review .review-muted{color:var(--muted);font-size:11px}
+
+    .triage-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between;margin:20px 0 12px}
+    .triage-head h3{margin:0;font-size:19px}
+    .triage-note{color:var(--muted);font-size:12px;margin:0 0 14px}
+    .triage-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-bottom:20px}
+    .triage-row{border:1px solid var(--line);background:var(--panel);border-radius:14px;padding:16px;min-width:0}
+    .triage-row h4{margin:0;font-size:15px}
+    .triage-status{display:block;margin:8px 0;font-size:12px;color:#ffceae;font-weight:750}
+    .triage-action{font-size:12px;color:var(--ink);line-height:1.5}
+    .triage-meta{font-size:11px;color:var(--muted);margin-top:8px}
+    .triage-links{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:11px}
+    .triage-links a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+    @media(max-width:700px){.triage-list{grid-template-columns:1fr}}
     .release-decision{font-size:11px;color:#b4c6d9;border-top:1px solid var(--line);padding-top:13px;line-height:1.65;overflow-wrap:anywhere}
     .release-decision a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
     .release-empty{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted);grid-column:1/-1}
@@ -459,6 +472,20 @@
       </div>
       <p id="release-note" class="history-status" role="status" aria-live="polite">Aguardando leitura do registro público de decisões.</p>
       <div class="release-cards" id="release-cards"></div>
+      <div class="triage-head">
+        <h3 id="evidence-triage-heading">Fila de evidências para homologação</h3>
+        <div class="queue-toolbar">
+          <label for="evidence-triage-filter">Projetos</label>
+          <select id="evidence-triage-filter" class="filter">
+            <option value="priority" selected>CRM, PABX, Dispatch e Voice</option>
+            <option value="all">Todos os 9</option>
+          </select>
+          <button id="evidence-triage-export" class="refresh-btn" type="button">↓ Exportar fila CSV</button>
+        </div>
+      </div>
+      <p class="triage-note">Orienta a próxima verificação com base no último snapshot. Não confirma que os testes foram executados nem aprova liberação.</p>
+      <div id="evidence-triage-summary" class="history-status" role="status" aria-live="polite"></div>
+      <div id="evidence-triage-list" class="triage-list"></div>
       <p class="history-status">O GO só pode ser <strong>registrado</strong> por uma decisão explícita vinculada a evidências públicas, a um responsável, uma data e um SHA de código, após cumprir os critérios e os marcos de homologação/liberação. Isso é um registro documental, não uma comprovação independente de implantação. As decisões e suas alterações ficam versionadas no GitHub. CI e merge não aprovam produção automaticamente.</p>
     </section>
     <section id="rastreio" class="section" aria-labelledby="tracking-title">
@@ -1179,7 +1206,7 @@ function importSnapshot(data){
  versionHistory=data.version_history&&typeof data.version_history==="object"?data.version_history:{};
  renderOnline();renderVersions();
  releaseControl=data.release_control&&typeof data.release_control==="object"?data.release_control:null;
- renderReleases();
+ renderReleases();renderEvidenceTriage();
  renderGateMatrix();
  trackingData=data.tracking&&typeof data.tracking==="object"?data.tracking:{};
  refreshProjectHealth();
@@ -1313,7 +1340,7 @@ async function pollSnapshot(){
    renderHourlyProgress();
    renderTestOverview();
    renderOnline();renderVersions();
-   renderReleases();
+   renderReleases();renderEvidenceTriage();
    renderGateMatrix();
    renderTracking();
    renderProjects();
@@ -1544,6 +1571,78 @@ function exportReleaseCsv(){
 }
 releaseFilter.addEventListener("change",renderReleases);
 document.getElementById("release-export").addEventListener("click",exportReleaseCsv);
+
+/* Operational triage from observed data, never a source of release approvals. */
+const EVIDENCE_TRIAGE_PRIORITY=["crm-vendas","pabx-mvp","dispatch","axe-voice-desktop"];
+function triageEvidence(project,record,nowMs=Date.now()){
+ const ci=record?.ci;
+ const verified=Date.parse(record?.verified_at?.ci||"");
+ const recent=Number.isFinite(verified)&&verified<=nowMs+300000&&
+  nowMs-verified<=20*60000&&!record?.errors?.ci;
+ const result={kind:"unverified",status:"CI: sem leitura recente",
+  action:"Revalidar a coleta antes de avaliar testes",runId:null};
+ if(!recent)return result;
+ if(ci===null)return {kind:"no_ci",status:"Nenhuma CI identificada na main",
+  action:"Criar ou executar validação automática na main e registrar a execução",runId:null};
+ if(!ci||!Number.isSafeInteger(ci.id)||ci.id<=0||!/^[a-f0-9]{40}$/.test(ci.head_sha||""))
+  return {kind:"unverified",status:"CI: identidade da execução incompleta",
+   action:"Confirmar ID e SHA do workflow",runId:null};
+ const base={runId:ci.id};
+ if(ci.status!=="completed")return {...base,kind:"pending",
+  status:"CI ainda não concluída",action:"Consultar o workflow antes de avaliar o resultado"};
+ if(ci.conclusion!=="success")return {...base,kind:"ci_failed",
+  status:"CI sem aprovação verificada",action:"Revisar o resultado e corrigir as falhas na execução"};
+ const tests=record.tests,checked=Date.parse(record?.verified_at?.tests||"");
+ if(!Number.isFinite(checked)||checked>nowMs+300000||nowMs-checked>20*60000||
+    record?.errors?.tests)return {...base,kind:"unverified",status:"CI aprovada; testes sem verificação recente",
+    action:"Atualizar a coleta de resultados de testes"};
+ const valid=tests?.status==="available"&&tests.run_id===ci.id&&
+  tests.head_sha===ci.head_sha&&tests.run_conclusion===ci.conclusion&&
+  ["passed","failed","skipped"].every(k=>Number.isSafeInteger(tests[k])&&tests[k]>=0);
+ if(!valid)return {...base,kind:"missing_counts",status:"CI aprovada; contagem indisponível",
+  action:"Obter resumo de testes da mesma execução e do mesmo SHA"};
+ if(tests.failed>0)return {...base,kind:"tests_failed",status:"Testes com falhas registradas",
+  action:"Corrigir falhas e executar novamente os testes"};
+ if(tests.partial===true)return {...base,kind:"partial",status:"Contagem parcial de testes",
+  action:"Conferir jobs sem resumo e completar a rastreabilidade"};
+ return {...base,kind:"review",status:"Contagem de testes rastreável",
+  action:"Revisar evidências funcionais e critérios de homologação antes do aceite"};
+}
+function evidenceTriageRows(nowMs=Date.now()){
+ return PROJECTS.filter(p=>document.getElementById("evidence-triage-filter").value==="all"||
+   EVIDENCE_TRIAGE_PRIORITY.includes(p.id)).sort((a,b)=>{
+    const ai=EVIDENCE_TRIAGE_PRIORITY.indexOf(a.id),bi=EVIDENCE_TRIAGE_PRIORITY.indexOf(b.id);
+    return (ai<0?999:ai)-(bi<0?999:bi)||a.name.localeCompare(b.name,"pt-BR");
+ }).map(project=>({project,result:triageEvidence(project,sourceRecords[project.id],nowMs),
+   blockers:releasePending(releaseState(project)).length}));
+}
+function renderEvidenceTriage(){
+ const rows=evidenceTriageRows(),missing=rows.filter(row=>row.result.kind!=="review").length;
+ document.getElementById("evidence-triage-summary").textContent=rows.length+
+  " projetos exibidos · "+missing+" precisam de conferência de CI/testes · os critérios de liberação são independentes.";
+ document.getElementById("evidence-triage-list").innerHTML=rows.map(({project,result,blockers})=>{
+  const link=result.runId?repo(project)+"/actions/runs/"+result.runId:null;
+  return '<article class="triage-row"><h4>'+esc(project.name)+'</h4>'+
+   '<span class="triage-status">'+esc(result.status)+'</span>'+
+   '<div class="triage-action">Próxima ação: '+esc(result.action)+'</div>'+
+   '<div class="triage-meta">'+blockers+' pendências documentais ou marcos para revisão · '+pct(project)+'% dos marcos editoriais</div>'+
+   '<div class="triage-links">'+(link?'<a href="'+esc(link)+'" target="_blank" rel="noopener noreferrer">Ver CI ↗</a>':
+    '<a href="'+repo(project)+'/actions" target="_blank" rel="noopener noreferrer">Ver workflows ↗</a>')+
+    '<a href="'+repo(project)+'/issues" target="_blank" rel="noopener noreferrer">Ver issues ↗</a></div></article>';
+ }).join("");
+}
+function exportEvidenceTriage(){
+ const rows=[["Projeto","Estado observado","Próxima ação","Pendências documentais","Percentual de marcos editoriais","Referência da CI"]];
+ evidenceTriageRows().forEach(({project,result,blockers})=>rows.push([
+  project.name,result.status,result.action,blockers,pct(project)+"%",
+  result.runId?repo(project)+"/actions/runs/"+result.runId:""]));
+ const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
+ const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=url;a.download="axe-fila-evidencias.csv";
+ document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById("evidence-triage-filter").addEventListener("change",renderEvidenceTriage);
+document.getElementById("evidence-triage-export").addEventListener("click",exportEvidenceTriage);
 
 /* Stage gates are curated groups of milestones, not inferred from PR counts. */
 const gateFilter=document.getElementById("gate-filter");
@@ -1914,7 +2013,7 @@ document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
 document.querySelectorAll("[data-filter]").forEach(b=>b.addEventListener("click",()=>{currentFilter=b.dataset.filter;document.querySelectorAll("[data-filter]").forEach(x=>{const active=x===b;x.classList.toggle("selected",active);x.setAttribute("aria-pressed",String(active))});renderProjects()}));
 document.querySelectorAll(".nav a").forEach(a=>a.addEventListener("click",()=>{document.querySelectorAll(".nav a").forEach(x=>x.classList.remove("active"));a.classList.add("active")}));
-renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderOnline();renderVersions();renderTestOverview();renderHourlyProgress();renderDeliveryStates();startSnapshotPolling();
+renderProjects();renderHistory();renderQueue();renderTracking();renderGateMatrix();renderReleases();renderEvidenceTriage();renderOnline();renderVersions();renderTestOverview();renderHourlyProgress();renderDeliveryStates();startSnapshotPolling();
 </script>
 </body>
 </html>
