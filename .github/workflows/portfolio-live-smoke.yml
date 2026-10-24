@@ -51,7 +51,7 @@ jobs:
           snapshot = json.loads(Path("/tmp/axe-status.json").read_text(encoding="utf-8"))
 
           required = ('id="hour-period"', 'id="hour-activity-summary"', 'id="ultima-hora"', 'id="testes"', 'id="online"', 'id="versoes"', 'id="gates"',
-                      'id="liberacao"', 'id="rastreio"')
+                      'id="liberacao"', 'id="evidence-triage-list"', 'id="evidence-triage-filter"', 'id="rastreio"')
           missing = [marker for marker in required if marker not in site]
           if missing:
               raise SystemExit("Site publicado sem seções previstas: " + ", ".join(missing))
