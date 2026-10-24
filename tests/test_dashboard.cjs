@@ -319,6 +319,32 @@ assert.equal(p.fn("activityForProject(PROJECTS[0],"+hourlyNow+").commits"),1);
 p.fn("progressPeriod=60");
 console.log("PASS: 1h/6h/24h selection, precise commit/PR/CI activity and stale-source safeguards");
 
+// Referências para revisão: sem inferir liberação nem herdar testes de outra CI.
+const reviewNow=Date.parse("2026-10-23T22:00:00Z");
+const reviewSha="a".repeat(40);
+const reviewSource={"crm-vendas":{
+ ci:{id:123,head_sha:reviewSha,status:"completed",conclusion:"success"},
+ tests:{status:"available",run_id:123,head_sha:reviewSha,run_conclusion:"success",passed:10,failed:1,skipped:2},
+ verified_at:{ci:"2026-10-23T21:58:00Z",tests:"2026-10-23T21:58:00Z"},errors:{}
+}};
+p.fn("sourceRecords="+JSON.stringify(reviewSource));
+const review=()=>p.fn("releaseReviewEvidence(PROJECTS[0],"+reviewNow+")");
+assert.equal(review().ciStatus,"recent");
+assert.equal(review().testCounts.passed,10);
+assert.equal(review().testCounts.failed,1);
+assert.equal(p.fn("releaseReviewEvidence(PROJECTS[0],"+(reviewNow+60*60000)+")").ciStatus,"historical");
+p.fn("sourceRecords['crm-vendas'].tests.run_id=999");
+assert.equal(review().testCounts,null,"Different test run cannot be reused");
+p.fn("sourceRecords['crm-vendas'].tests.run_id=123;sourceRecords['crm-vendas'].tests.head_sha='b'.repeat(40)");
+assert.equal(review().testCounts,null,"Different source SHA cannot be reused");
+p.fn("sourceRecords['crm-vendas'].errors.ci='API'");
+assert.equal(review().ciUrl,null,"Failed CI collection must hide link");
+p.fn("sourceRecords={}");
+assert.equal(review().ciStatus,"unavailable");
+p.fn("releaseControl=null");
+assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded","Review links cannot create GO");
+console.log("PASS: evidence-review provenance, stale CI, API failures and independent GO decisions");
+
 console.log("PASS: last-hour progress uses real baseline, displays percentage points and refuses missing/stale evidence");
 
 console.log("PASS: verified counts, partial flag, distinct CI history, no inferred zero or mismatch");
