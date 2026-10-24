@@ -130,6 +130,65 @@ def ci(repo):
     }
 
 
+# Explicit workflow-step allowlist; these are executed CI steps, NOT individual test-case counts.
+CI_TEST_STEPS = {
+    "crm-vendas": (
+        "Test address configuration and rollback", "Run repository tests",
+        "Run contracts and web tests", "Run API tests (shard 1 of 2)",
+        "Run API tests (shard 2 of 2)", "Run end-to-end test",
+    ),
+    "pabx-mvp": (
+        "Testar configuracoes-web", "Testar admin-api", "Testar queue-api",
+        "Testar ai-worker", "Testar asterisk-agi", "Testar asterisk-scripts",
+        "Testar backup", "Testar scripts",
+    ),
+    "dispatch": ("Executar testes locais",),
+    "axe-voice-desktop": (
+        "Executar testes de integridade (não testes SIP)",
+        "Conferir 231 arquivos da importação original",
+    ),
+}
+
+
+def collect_ci_step_evidence(repo, ci_record):
+    """Read GitHub's step conclusions for the exact latest main run; never claim test totals."""
+    if ci_record is None or repo not in CI_TEST_STEPS:
+        return None
+    run_id = ci_record.get("id")
+    sha = ci_record.get("head_sha")
+    if type(run_id) is not int or run_id < 1 or not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
+        raise ValueError("CI step evidence requires a valid run ID and SHA")
+    if ci_record.get("status") != "completed":
+        return {"run_id": run_id, "head_sha": sha, "status": "running", "steps": [], "checked_at": NOW}
+    response = api(repo, "actions/runs/" + str(run_id) + "/jobs?per_page=100")
+    if not isinstance(response, dict) or not isinstance(response.get("jobs"), list):
+        raise ValueError("CI job steps unavailable")
+    rows, seen = [], set()
+    allowed = set(CI_TEST_STEPS[repo])
+    for job in response["jobs"][:100]:
+        if not isinstance(job, dict) or type(job.get("id")) is not int or job["id"] < 1:
+            continue
+        name = short(job.get("name"), 100)
+        for step in (job.get("steps") or [])[:100]:
+            if not isinstance(step, dict):
+                continue
+            title = step.get("name")
+            if title not in allowed or title in seen:
+                continue
+            state = step.get("status")
+            conclusion = step.get("conclusion")
+            if state not in ("completed", "in_progress", "queued", "pending"):
+                continue
+            if conclusion not in (None, "success", "failure", "cancelled", "skipped", "timed_out", "neutral"):
+                continue
+            rows.append({"job_id": job["id"], "job_name": name, "name": title,
+                         "status": state, "conclusion": conclusion})
+            seen.add(title)
+    partial = (type(response.get("total_count")) is int and response["total_count"] > len(response["jobs"])) or len(response["jobs"]) >= 100
+    return {"run_id": run_id, "head_sha": sha, "status": "observed" if rows else "no_matching_steps",
+            "checked_at": NOW, "steps": rows[:20], "partial": partial,
+            "allowlisted_steps": len(allowed)}
+
 
 RELEASE_TAG_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._/-]{0,99}$")
 
@@ -767,6 +826,14 @@ def generate(output, html_file):
                 item["verified_at"][key] = (prev.get("verified_at") or {}).get(key)
                 item["errors"][key] = type(exc).__name__
                 failures.append(repo + ":" + key)
+        try:
+            item["ci_test_steps"] = collect_ci_step_evidence(repo, item.get("ci"))
+            item["verified_at"]["ci_test_steps"] = NOW
+        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, ValueError, OSError, KeyError, TypeError) as exc:
+            item["ci_test_steps"] = prev.get("ci_test_steps")
+            item["verified_at"]["ci_test_steps"] = (prev.get("verified_at") or {}).get("ci_test_steps")
+            item["errors"]["ci_test_steps"] = type(exc).__name__
+            failures.append(repo + ":ci_test_steps")
         try:
             item["tests"] = collect_test_counts(repo, item.get("ci"), prev.get("tests"), verified_tests.get(repo))
             item["verified_at"]["tests"] = NOW

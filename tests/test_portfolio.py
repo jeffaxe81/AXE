@@ -237,6 +237,61 @@ class PortfolioTests(unittest.TestCase):
             self.assertIsNone(empty["passed"])
             self.assertTrue(empty["partial"])
 
+
+    def test_ci_step_evidence_reports_real_steps_not_case_counts(self):
+        from unittest.mock import patch
+        sha = "a" * 40
+        ci = {"id": 987, "status": "completed", "conclusion": "success", "head_sha": sha}
+        jobs = {"total_count": 2, "jobs": [
+            {"id": 456, "name": "verify", "steps": [
+                {"name": "Run repository tests", "status": "completed", "conclusion": "success"},
+                {"name": "Run API tests (shard 1 of 2)", "status": "completed", "conclusion": "success"},
+                {"name": "Build source", "status": "completed", "conclusion": "success"},
+            ]},
+            {"id": 457, "name": "manifest", "steps": [
+                {"name": "Run repository tests", "status": "completed", "conclusion": "success"},
+            ]},
+        ]}
+        with patch.object(p, "api", return_value=jobs) as fetch:
+            report = p.collect_ci_step_evidence("crm-vendas", ci)
+            fetch.assert_called_once_with("crm-vendas", "actions/runs/987/jobs?per_page=100")
+        self.assertEqual(report["status"], "observed")
+        self.assertEqual(report["run_id"], 987)
+        self.assertEqual(report["head_sha"], sha)
+        self.assertEqual(len(report["steps"]), 2, "Duplicated steps and build must not be counted")
+        self.assertEqual(report["steps"][0]["conclusion"], "success")
+        self.assertNotIn("passed", report, "Job steps must not masquerade as test-case counts")
+
+    def test_ci_step_evidence_tracks_failed_and_missing_without_implicit_success(self):
+        from unittest.mock import patch
+        sha = "b" * 40
+        ci = {"id": 123, "status": "completed", "conclusion": "failure", "head_sha": sha}
+        payload = {"total_count": 1, "jobs": [
+            {"id": 1, "name": "pytest | backup", "steps": [
+                {"name": "Testar backup", "status": "completed", "conclusion": "failure"}]}]}
+        with patch.object(p, "api", return_value=payload):
+            record = p.collect_ci_step_evidence("pabx-mvp", ci)
+        self.assertEqual(record["steps"][0]["conclusion"], "failure")
+        self.assertEqual(record["allowlisted_steps"], 8)
+        with patch.object(p, "api", return_value={"total_count": 0, "jobs": []}):
+            missing = p.collect_ci_step_evidence("pabx-mvp", ci)
+        self.assertEqual(missing["status"], "no_matching_steps")
+        self.assertEqual(missing["steps"], [])
+        running = {**ci, "status": "in_progress"}
+        with patch.object(p, "api", side_effect=AssertionError("Running run must not query jobs")):
+            self.assertEqual(p.collect_ci_step_evidence("pabx-mvp", running)["status"], "running")
+        self.assertIsNone(p.collect_ci_step_evidence("aderencia_tecnica", ci))
+        with self.assertRaises(ValueError):
+            p.collect_ci_step_evidence("dispatch", {**ci, "head_sha": "invalid"})
+
+    def test_ci_step_evidence_partial_when_backend_response_is_truncated(self):
+        from unittest.mock import patch
+        ci = {"id": 234, "status": "completed", "conclusion": "success", "head_sha": "c" * 40}
+        with patch.object(p, "api", return_value={"total_count": 50, "jobs": []}):
+            result = p.collect_ci_step_evidence("dispatch", ci)
+        self.assertTrue(result["partial"])
+        self.assertEqual(result["status"], "no_matching_steps")
+
     def test_history_only_adds_distinct_verified_runs(self):
         record = {"run_id": 123, "status": "available", "passed": 17,
                   "failed": 0, "skipped": 0, "parser_version": p.TEST_PARSER_VERSION}
