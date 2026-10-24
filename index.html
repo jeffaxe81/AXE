@@ -164,6 +164,12 @@
     .release-blockers summary{cursor:pointer;font-weight:750;color:var(--ink)}
     .release-blockers ul{margin:10px 0 0;padding-left:19px;line-height:1.65;overflow-wrap:anywhere}
     .release-blockers li{margin:4px 0}
+    .release-review{margin:10px 0 15px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:#17273b;font-size:12px;color:#b4c7da}
+    .release-review summary{cursor:pointer;color:var(--ink);font-weight:750}
+    .release-review p{margin:9px 0;line-height:1.5}
+    .release-review a{color:var(--accent);font-weight:750;text-decoration:underline;text-underline-offset:2px}
+    .release-review .historical{color:#ffceae}
+    .release-review .review-muted{color:var(--muted);font-size:11px}
     .release-decision{font-size:11px;color:#b4c6d9;border-top:1px solid var(--line);padding-top:13px;line-height:1.65;overflow-wrap:anywhere}
     .release-decision a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
     .release-empty{padding:25px;text-align:center;border:1px dashed var(--line);border-radius:14px;color:var(--muted);grid-column:1/-1}
@@ -1451,6 +1457,40 @@ function releasePending(row){
  else if(row.state==="no_go")pending.push("Resolver o NO-GO antes de uma nova decisão");
  return pending;
 }
+/* Review-only references: CI/test links never satisfy release criteria automatically. */
+function releaseReviewEvidence(project,nowMs=Date.now()){
+ const empty={ciUrl:null,ciStatus:"unavailable",ciLabel:"Sem CI rastreável na última coleta",
+  checkedAt:null,testsLabel:"Sem contagem de testes vinculada à CI",testCounts:null};
+ const record=sourceRecords[project.id],ci=record?.ci;
+ const id=ci?.id,sha=ci?.head_sha;
+ const checked=Date.parse(record?.verified_at?.ci||"");
+ if(!Number.isSafeInteger(id)||id<=0||!/^[a-f0-9]{40}$/.test(sha||"")||
+    !["completed","in_progress","queued"].includes(ci?.status)||
+    !Number.isFinite(checked)||checked>nowMs+300000||record?.errors?.ci)return empty;
+ const stale=nowMs-checked>20*60000;
+ const status=stale?"historical":"recent";
+ const ciLabel=(ci.status==="completed"?
+   (ci.conclusion==="success"?"CI concluída com sucesso":
+    ci.conclusion==="failure"?"CI concluída com falha":
+    "CI concluída ("+String(ci.conclusion||"sem resultado")+")"):
+    "CI "+ci.status)+" · SHA "+sha.slice(0,12);
+ const result={ciUrl:repo(project)+"/actions/runs/"+id,ciStatus:status,
+  ciLabel,checkedAt:record.verified_at.ci,
+  testsLabel:"Sem contagem de testes vinculada à CI",testCounts:null};
+ const tests=record.tests,testsChecked=Date.parse(record?.verified_at?.tests||"");
+ const countsValid=tests?.status==="available"&&tests.run_id===id&&tests.head_sha===sha&&
+  tests.run_conclusion===ci.conclusion&&!record?.errors?.tests&&
+  Number.isFinite(testsChecked)&&testsChecked<=nowMs+300000&&
+  ["passed","failed","skipped"].every(k=>Number.isSafeInteger(tests[k])&&tests[k]>=0);
+ if(countsValid){
+  result.testCounts={passed:tests.passed,failed:tests.failed,skipped:tests.skipped,
+   partial:tests.partial===true,stale:nowMs-testsChecked>20*60000};
+  result.testsLabel=tests.passed+" aprovados · "+tests.failed+" falharam · "+
+    tests.skipped+" ignorados"+(tests.partial?" · leitura parcial":"")+
+    (result.testCounts.stale?" · medição antiga":"");
+ }
+ return result;
+}
 function renderReleases(){
  const all=PROJECTS.map(releaseState);
  const stats=[["Projetos",all.length],["Critérios documentados",all.reduce((n,p)=>n+p.checked,0)+" / "+(all.length*RELEASE_CRITERIA.length)],
@@ -1471,6 +1511,16 @@ function renderReleases(){
   const blockerHtml='<details class="release-blockers"><summary>Pendências para liberação ('+pending.length+')</summary>'+
    (pending.length?'<ul>'+pending.map(text=>'<li>'+esc(text)+'</li>').join("")+'</ul>':
     '<p>Sem pendências documentais identificadas no cadastro. A operação real ainda exige validação.</p>')+'</details>';
+  const reviewed=releaseReviewEvidence(row.project);
+  const reviewedHtml='<details class="release-review"><summary>Referências de CI e testes para revisão</summary>'+
+    (reviewed.ciUrl?
+     '<p><a href="'+esc(reviewed.ciUrl)+'" target="_blank" rel="noopener noreferrer">Abrir execução no GitHub ↗</a> · '+esc(reviewed.ciLabel)+'</p>'+
+     '<p class="'+(reviewed.ciStatus==="historical"?"historical":"review-muted")+'">'+
+        (reviewed.ciStatus==="historical"?"Registro antigo; verificar a execução novamente":"Fonte consultada recentemente")+
+        ' · verificada em '+esc(reviewed.checkedAt)+'</p>':
+     '<p>Sem link confiável de CI. Consulte o repositório antes de revisar.</p>')+
+    '<p>'+esc(reviewed.testsLabel)+'</p>'+
+    '<p class="review-muted">Apenas referências para inspeção. CI e contagens não comprovam homologação, segurança ou aceite.</p></details>';
   const d=row.decision;
   const event=d?'<strong>'+esc(d.outcome)+"</strong> por "+esc(d.reviewer)+" em "+esc(d.recorded_at)+
    ' · <a href="'+esc(d.reference)+'" target="_blank" rel="noopener noreferrer">Ver decisão ↗</a>'+
@@ -1479,13 +1529,15 @@ function renderReleases(){
   return '<article class="release-card"><div class="release-title"><h3>'+esc(row.project.name)+'</h3><span class="release-state '+esc(row.state)+'">'+esc(label)+'</span></div>'+
    '<p class="release-sub">'+row.checked+' de '+RELEASE_CRITERIA.length+' critérios documentados · homologação/liberação '+
    (row.complete?"com marcos concluídos":row.mapped?"com marcos pendentes":"não totalmente mapeadas")+'</p>'+
-   '<div class="release-evidence">'+checks+'</div>'+blockerHtml+'<div class="release-decision">'+event+'</div></article>';
+   '<div class="release-evidence">'+checks+'</div>'+blockerHtml+reviewedHtml+'<div class="release-decision">'+event+'</div></article>';
  }).join(""):'<div class="release-empty">Nenhum projeto corresponde ao filtro atual.</div>';
 }
 function exportReleaseCsv(){
- const rows=[["Projeto","Situação GO/NO-GO","Critério","Evidência documentada","URL","Última decisão","Responsável","SHA","Referência da decisão","Pendências para liberação"]];
+ const rows=[["Projeto","Situação GO/NO-GO","Critério","Evidência documentada","URL","Última decisão","Responsável","SHA","Referência da decisão","Pendências para liberação","Referência CI para revisão","Coleta CI em","Testes observados na mesma CI"]];
  PROJECTS.map(releaseState).forEach(x=>x.entries.forEach(e=>rows.push([x.project.name,x.state,e.label,e.verified?"Sim":"Não",e.evidence||"",
-  x.decision?.outcome||"",x.decision?.reviewer||"",x.decision?.sha||"",x.decision?.reference||"",releasePending(x).join(" | ")])));
+  x.decision?.outcome||"",x.decision?.reviewer||"",x.decision?.sha||"",x.decision?.reference||"",releasePending(x).join(" | "),
+  releaseReviewEvidence(x.project).ciUrl||"",releaseReviewEvidence(x.project).checkedAt||"",
+  releaseReviewEvidence(x.project).testCounts?releaseReviewEvidence(x.project).testsLabel:"Sem contagem vinculada"])));
  const csv="\ufeff"+rows.map(row=>row.map(asCsvCell).join(";")).join("\r\n")+"\r\n";
  const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
  const a=document.createElement("a");a.href=url;a.download="axe-go-no-go.csv";document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
