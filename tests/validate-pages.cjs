@@ -37,10 +37,10 @@ for(const page of pages){
   assert.ok(triageStart>=0&&triageEnd>triageStart,"Função de triagem ausente");
   const ctx=vm.createContext({});
   vm.runInContext(html.slice(triageStart,triageEnd),ctx);
-  const at=Date.parse("2026-10-23T22:00:00Z"),sha="a".repeat(40);
+  const at=Date.parse("2026-10-23T22:00:00Z"),triageSha="a".repeat(40);
   const project={id:"crm-vendas"};
-  const base={ci:{id:123,status:"completed",conclusion:"success",head_sha:sha},
-    tests:{status:"available",run_id:123,run_conclusion:"success",head_sha:sha,
+  const base={ci:{id:123,status:"completed",conclusion:"success",head_sha:triageSha},
+    tests:{status:"available",run_id:123,run_conclusion:"success",head_sha:triageSha,
       passed:12,failed:0,skipped:1},
     verified_at:{ci:"2026-10-23T21:59:00Z",tests:"2026-10-23T21:59:00Z"},errors:{}};
   function triage(rec,when=at){
