@@ -1371,7 +1371,8 @@ async function pollSnapshot(allowDirectFallback=true){
   const age=Date.now()-Date.parse(result.generated_at||"");
   if(allowDirectFallback&&Number.isFinite(age)&&age>20*60*1000)await refreshDirectWhenStale();
  }catch(_){
-  showSync("falha ao acessar snapshot; "+describeRefreshFailure(),false);
+  showSync("falha ao acessar snapshot; "+describeRefreshFailure()+". Consulta direta tentada quando disponível.",false);
+  if(allowDirectFallback)await refreshDirectWhenStale();
  }finally{snapshotBusy=false;syncNow.disabled=false}
 }
 function setSyncMode(value,save=true){
