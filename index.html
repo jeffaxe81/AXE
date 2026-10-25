@@ -321,7 +321,7 @@
       </select>
       <span id="sync-label" role="status" aria-live="polite"> · verificando preferência…</span>
       <button class="refresh-btn" id="sync-now" type="button">↻ Verificar agora</button><a id="sync-audit-link" class="refresh-btn" href="https://github.com/jeffaxe81/AXE/actions/workflows/portfolio-refresh.yml" target="_blank" rel="noopener noreferrer">Ver automação ↗</a>
-      <small class="sync-explain">Verificar agora relê o snapshot. Para consultar diretamente o GitHub, use os botões de Histórico ou Evidências. Online verifica a cada 15 s, ao retornar à aba ou reconectar; a coleta automática ocorre a cada ~5 min.</small>
+      <small class="sync-explain">Verificar agora consulta o snapshot e as atividades diretamente no GitHub. Se a coleta agendada atrasar, o modo automático consulta commits e PRs diretamente com intervalo controlado. Percentuais dos marcos exigem revisão e evidências; GitHub Actions não garante execução exata a cada 5 min.</small>
     </div>
     <div class="source-summary" id="source-summary" role="status" aria-live="polite">Fontes dos projetos: aguardando primeira coleta verificada.</div>
     <section class="hero" aria-label="Introdução">
@@ -1188,6 +1188,8 @@ const SYNC_SETTING_KEY="axe-delivery-sync-mode-v2";
 const SYNC_PERIODS={manual:0,"15s":15000,"30s":30000,online:15000};
 const SYNC_NAMES={manual:"Manual","15s":"Automático 15 s","30s":"Automático 30 s",online:"Online"};
 let syncMode="15s",syncTimer=null,lastSnapshot=null,snapshotBusy=false,lastSnapshotCheckAt=0;
+const DIRECT_FALLBACK_INTERVAL_MS=30*60*1000;
+let lastDirectFallbackAt=0,directFallbackBusy=false,manualRefreshBusy=false;
 const syncLabel=document.getElementById("sync-label");
 const syncLed=document.getElementById("sync-led");
 const syncNow=document.getElementById("sync-now");
@@ -1269,7 +1271,7 @@ function importSnapshot(data){
  const stamp=new Date(data.generated_at).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
  evidenceStatus.textContent="Evidências públicas coletadas em "+stamp+". Os marcos permanecem revisados manualmente.";
  const stale=Date.now()-Date.parse(data.generated_at)>20*60*1000;
- showSync("verificado "+syncTime(Date.now())+" · coleta "+stamp+" (até ~5 min)"+
+ showSync("verificado "+syncTime(Date.now())+" · coleta "+stamp+" (agendamento ~5 min)"+
   (errors?" · "+errors+" fontes indisponíveis":"")+(stale?" · coleta antiga":""),!stale&&errors===0);
 }
 
@@ -1332,7 +1334,15 @@ function describeRefreshFailure(){
   ?"consulte novamente pelo botão Verificar agora; dados anteriores preservados"
   :"nova tentativa no próximo intervalo; dados anteriores preservados";
 }
-async function pollSnapshot(){
+async function refreshDirectWhenStale(){
+ if(syncMode==="manual"||directFallbackBusy||Date.now()-lastDirectFallbackAt<DIRECT_FALLBACK_INTERVAL_MS)return;
+ lastDirectFallbackAt=Date.now();
+ directFallbackBusy=true;
+ try{
+  await Promise.allSettled([refreshLiveHistory(false),refreshEvidence(false)]);
+ }finally{directFallbackBusy=false}
+}
+async function pollSnapshot(allowDirectFallback=true){
  if(snapshotBusy||document.hidden)return;
  if(!onlineAvailable()){showSync("sem conexão; dados anteriores preservados",false);return}
  snapshotBusy=true;syncNow.disabled=true;
@@ -1353,11 +1363,13 @@ async function pollSnapshot(){
    renderDeliveryStates();
    const stale=Date.now()-Date.parse(lastSnapshot)>20*60*1000;
    showSync("verificado "+syncTime(Date.now())+" · sem mudanças desde "+syncTime(lastSnapshot)+
-    " · coleta ~5 min"+(stale?" · coleta antiga":""),!stale);
+    " · agendamento ~5 min"+(stale?" · coleta antiga":""),!stale);
   }else{
    importSnapshot(result);
    lastSnapshot=result.generated_at||null;
   }
+  const age=Date.now()-Date.parse(result.generated_at||"");
+  if(allowDirectFallback&&Number.isFinite(age)&&age>20*60*1000)await refreshDirectWhenStale();
  }catch(_){
   showSync("falha ao acessar snapshot; "+describeRefreshFailure(),false);
  }finally{snapshotBusy=false;syncNow.disabled=false}
@@ -2048,7 +2060,17 @@ function exportQueueCsv(){
 queueFilter.addEventListener("change",renderQueue);
 queueSort.addEventListener("change",renderQueue);
 document.getElementById("queue-export").addEventListener("click",exportQueueCsv);
-syncNow.addEventListener("click",pollSnapshot);
+syncNow.addEventListener("click",async()=>{
+ if(manualRefreshBusy)return;
+ manualRefreshBusy=true;syncNow.disabled=true;
+ try{
+  await pollSnapshot(false);
+  if(Date.now()-lastDirectFallbackAt>=5*60*1000){
+   lastDirectFallbackAt=Date.now();
+   await Promise.allSettled([refreshLiveHistory(true),refreshEvidence(true)]);
+  }
+ }finally{manualRefreshBusy=false;syncNow.disabled=false}
+});
 
 document.getElementById("search").addEventListener("input",renderProjects);
 document.getElementById("sort").addEventListener("change",renderProjects);
