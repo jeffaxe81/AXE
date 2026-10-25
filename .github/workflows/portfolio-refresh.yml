@@ -2,7 +2,8 @@ name: Atualizar portfólio AXE
 on:
   schedule:
     - cron: '7-57/5 * * * *'
-  # Cron atualizado para reativar o scheduler do GitHub em caso de interrupção.
+  # O schedule do GitHub Actions é best-effort: execuções podem atrasar.
+  # O painel público consulta a API diretamente quando o snapshot atrasa.
   workflow_dispatch:
   push:
     branches: [main]
