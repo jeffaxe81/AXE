@@ -26,7 +26,7 @@ A alteração de modo cancela o timer anterior (não acumula vários agendamento
 ## Ativação e operação
 
 1. Verifique Settings → Actions → General → Workflow permissions. Para publicar automaticamente na gh-pages, o token do Actions precisa de permissão de escrita no conteúdo.
-2. Em Actions → Atualizar portfólio AXE, use Run workflow na branch main para uma coleta sob demanda, se o acionamento manual estiver habilitado. O workflow também executa por mudanças no código na main e por cron `3-58/5 * * * *` (UTC, aprox. a cada 5 minutos).
+2. Em Actions → Atualizar portfólio AXE, use Run workflow na branch main para uma coleta sob demanda, se o acionamento manual estiver habilitado. O workflow também executa por mudanças no código na main e por cron `7-57/5 * * * *` (UTC, aprox. a cada 5 minutos).
 3. Verifique o arquivo portfolio-status.json atualizado na gh-pages e, em Settings → Pages, confirme Deploy from a branch → gh-pages / (root), para servir as páginas HTML. O JSON atualizado é lido diretamente do GitHub Raw, independentemente da recompilação do Pages.
 4. O botão Verificar agora lê o arquivo público; ele não aciona uma nova execução do workflow.
 
@@ -84,3 +84,15 @@ A presença de elementos HTML e resultados de testes de interface não substitui
 O coletor registra uma lista **limitada e explícita** de etapas de teste executadas pelo GitHub Actions nos repositórios prioritários. Para CRM, PABX, Dispatch e AXE Voice, cada observação registra nome da etapa, identificador do job, status, conclusão, ID de execução e SHA. A coleta lê `actions/runs/<id>/jobs?per_page=100` e filtra nomes permitidos conhecidos. Sem resposta válida, o dado fica pendente ou com erro.
 
 **Etapas concluídas com sucesso não são a quantidade de casos de teste aprovados.** A contagem de casos continua separada, dependente de um resumo confiável ou observação auditada. Este registro também não substitui testes funcionais, validação de segurança ou homologação, nem altera GO/NO-GO ou percentuais.
+
+## Recuperação automática de coleta atrasada (v15)
+
+O GitHub Actions pode atrasar ou descartar execuções com `schedule`; portanto **não é possível garantir uma atualização do servidor a cada cinco minutos apenas com cron do GitHub**.
+
+- A rotina `portfolio-refresh.yml` continua tentando a coleta no cron `7-57/5 * * * *`.
+- A verificação independente `portfolio-live-smoke.yml` passa a usar `11,26,41,56 * * * *` (aproximadamente a cada 15 minutos), com **escopo de ações `write` somente neste workflow**.
+- Quando o snapshot publicado está há mais de **20 minutos** sem coleta, o watchdog checa se já existe uma execução recente em andamento; caso contrário usa o `GITHUB_TOKEN` temporário do próprio Actions para criar **um `workflow_dispatch`**, sem criar PAT, credenciais compartilhadas ou alterações de percentuais.
+- A verificação aguarda e relê o **JSON publicado no Pages**, com query única para evitar cache, por até 18 tentativas (10 segundos cada). Somente considera recuperado se a coleta for **mais recente** que a anterior e estiver dentro da janela de 20 minutos. Em caso de falha, não mascara o erro e o smoke permanece vermelho.
+- Os testes de regressão estão em `tests/test_watchdog.py`. A coleta de dados e o watchdog continuam limitados pelo serviço do GitHub: se **ambos** os cron estiverem atrasados, somente uma execução manual/externa pode restabelecer o ritmo; uma garantia estrita exigiria agendador independente fora do GitHub.
+
+O navegador continua com consultas opcionais a cada 15/30 segundos e fallback de consulta pública direta, mas isso não significa execução de uma nova coleta no servidor a cada 15 segundos.

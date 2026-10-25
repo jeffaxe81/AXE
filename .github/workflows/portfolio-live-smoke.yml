@@ -7,10 +7,11 @@ on:
     paths:
       - '.github/workflows/portfolio-live-smoke.yml'
   schedule:
-    - cron: '17 * * * *'
+    - cron: '11,26,41,56 * * * *'
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: axe-portfolio-live-smoke
@@ -20,9 +21,16 @@ jobs:
   smoke:
     name: Conferir site e dados públicos
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
+      - name: Checkout somente leitura do watchdog
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
       - name: Verificar GitHub Pages e coletor
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
@@ -40,6 +48,10 @@ jobs:
             fi
             sleep 10
           done
+
+          # Independently recover delayed/missed scheduled runs. The strict
+          # validation below still rejects stale snapshots after recovery.
+          python3 scripts/portfolio_watchdog.py
 
           python3 - <<'PY'
           import datetime as dt
@@ -116,8 +128,8 @@ jobs:
           except (AttributeError, ValueError):
               raise SystemExit("Data da coleta inválida")
           age = (dt.datetime.now(dt.timezone.utc) - stamp).total_seconds()
-          if not -300 <= age <= 1800:
-              raise SystemExit(f"Coleta pública fora do limite de 30 min: {age:.0f}s (verificar agendamento do coletor)")
+          if not -300 <= age <= 1200:
+              raise SystemExit(f"Coleta pública fora do limite de 20 min: {age:.0f}s (verificar recuperação automática)")
           total_versions = sum(len(entries) for entries in versions.values())
           print(f"PASS: site e painel qualidade acessíveis; {len(projects)} projetos; "
                 f"{total_versions} versões; coleta há {age/60:.1f} min.")

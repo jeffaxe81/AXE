@@ -8,6 +8,7 @@ on:
       - '.github/workflows/portfolio-live-smoke.yml'
       - '.github/workflows/portfolio-refresh.yml'
       - 'scripts/refresh_portfolio.py'
+      - 'scripts/portfolio_watchdog.py'
       - 'tests/**'
       - 'docs/PORTFOLIO_SYNC.md'
 
@@ -35,6 +36,9 @@ jobs:
 
       - name: Validar coletor e marcos
         run: python3 -m unittest discover -s source/tests -p 'test_portfolio.py' -v
+
+      - name: Validar recuperação automática da coleta antiga
+        run: python3 -m unittest discover -s source/tests -p 'test_watchdog.py' -v
 
       - name: Validar JavaScript, indicadores e referências V12
         run: node source/tests/test_dashboard.cjs pages/index.html pages/qualidade.html
