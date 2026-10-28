@@ -521,7 +521,7 @@ function render(){
  for(const element of grid.querySelectorAll('details[data-project]')){
    if(expanded.has(element.getAttribute("data-project")))element.open=true;
  }
- const hash=decodeURIComponent(location.hash||"").slice(1);
+ const hash=String(location.hash||"").slice(1);
  if(/^p-[a-z0-9_-]+$/.test(hash)){
    const target=document.getElementById(hash);
    if(target){const detail=target.querySelector("details[data-project]");if(detail)detail.open=true;}
