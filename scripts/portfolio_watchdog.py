@@ -36,7 +36,8 @@ def age_seconds(snapshot, now):
     if (not isinstance(snapshot, dict) or snapshot.get("schema_version") != 1
             or snapshot.get("owner") != "jeffaxe81"
             or not isinstance(snapshot.get("projects"), dict)
-            or len(snapshot["projects"]) != 9):
+            or len(snapshot["projects"]) not in (9, 10)
+            or (len(snapshot["projects"]) == 10 and "axe-fomento" not in snapshot["projects"])):
         raise RecoveryError("Snapshot inválido/incompleto")
     age = (now - timestamp(snapshot.get("generated_at"))).total_seconds()
     if age < -300:
