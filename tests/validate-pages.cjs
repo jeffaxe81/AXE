@@ -133,6 +133,7 @@ for(const page of pages){
   assert.match(html,/portfolio-status\.json/,"Resumo não consulta o snapshot oficial");
   assert.match(html,/source\.progress/,"Resumo não usa marcos verificados do snapshot");
    assert.match(html,/axe-fomento/,"Resumo não possui AXE Fomento");
+  assert.match(html,/\[9,10\]\.includes/,"A leitura deve aceitar o snapshot anterior na migração 9→10");
   assert.match(html,/function freshness\(data,now=Date\.now\(\)\)/,"Proteção de dados antigos ausente");
   assert.match(html,/now-time>20\*60000/,"Dados com mais de 20 min não sinalizados como antigos");
   assert.match(html,/status de execução não é homologação/,"Sem aviso de limite da CI");
