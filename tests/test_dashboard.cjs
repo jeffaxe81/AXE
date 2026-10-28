@@ -168,7 +168,7 @@ assert.ok(p.elements.get("gate-summary").innerHTML.includes("Liberação pendent
 p.fn("sourceRecords={}");
 
 const releaseBefore=p.fn("PROJECTS.reduce((n,x)=>n+x.milestones.filter(m=>m[1]).length,0)");
-assert.equal(releaseBefore,30);
+assert.equal(releaseBefore,p.fn("PROJECTS.length===10?31:30"),"O Fomento acrescenta um marco documental, sem homologar os quatro pendentes");
 assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded","Unknown is not GO");
 const notReady=JSON.stringify({schema_version:1,owner:"jeffaxe81",projects:{
   "crm-vendas":{checks:{},decisions:[{outcome:"GO",reviewer:"release-reviewer",
