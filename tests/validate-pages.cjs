@@ -161,6 +161,15 @@ for(const page of pages){
   assert.equal(Object.keys(actualMilestones).length,10);
   assert.deepEqual(actualMilestones["axe-fomento"],[["Escopo da V1 e roadmap registrados no README",true],["Código-fonte da V1 e testes disponíveis para verificação",false],["Integração verificável com editais oficiais e respectivas fontes",false],["Segurança, isolamento municipal e testes integrados homologados",false],["Aceite operacional e liberação para produção registrados",false]],"Somente a documentação do Fomento possui marco concluído");
   assert.equal(actualMilestones["axe-fomento"].filter(x=>x[1]).length,1);
+  const releaseLedger=JSON.parse(fs.readFileSync("release-approvals.json","utf8"));
+  assert.equal(Object.keys(releaseLedger.projects).length,10,"Livro de homologação deve listar dez projetos");
+  const fomentoLedger=releaseLedger.projects["axe-fomento"];
+  assert.ok(fomentoLedger,"Fomento deve possuir livro de homologação");
+  assert.deepEqual(fomentoLedger.decisions,[],"Não registrar GO sem homologação");
+  assert.deepEqual(Object.keys(fomentoLedger.checks).sort(),["approval","data","functional","rollback","security"].sort());
+  assert.ok(Object.values(fomentoLedger.checks).every(x=>x.status==="not_recorded"&&x.evidence===null),
+    "Requisitos do Fomento não podem ser presumidos");
+
   const proj={id:"crm-vendas"},rows=actualMilestones[proj.id],done=rows.filter(x=>x[1]).length;
   const sample={progress:{"crm-vendas":{completed:done,total:rows.length}}};
   ctx.sample=sample;
