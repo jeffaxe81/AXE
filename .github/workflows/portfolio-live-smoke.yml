@@ -100,8 +100,10 @@ jobs:
                   raise SystemExit("Progresso consolidado da hora ausente")
               if set(hourly.get("projects", {})) != set(projects):
                   raise SystemExit("Progresso horário por projeto incompleto")
-          if not isinstance(projects, dict) or len(projects) != 9:
-              raise SystemExit("Snapshot incompleto: esperado nove projetos")
+          if not isinstance(projects, dict) or len(projects) not in (9, 10):
+              raise SystemExit("Snapshot incompleto: esperado 9 ou 10 projetos na transição")
+          if len(projects) == 10 and "axe-fomento" not in projects:
+              raise SystemExit("Décimo projeto não corresponde ao AXE Fomento")
           if not isinstance(versions, dict) or set(versions) != set(projects):
               raise SystemExit("Histórico de versões ausente/incompleto")
           if not isinstance(test_history, dict) or set(test_history) != set(projects):
