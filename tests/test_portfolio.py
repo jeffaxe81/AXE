@@ -13,7 +13,7 @@ class PortfolioTests(unittest.TestCase):
         source = pathlib.Path(__file__).resolve().parents[2] / "pages" / "index.html"
         self.assertTrue(source.is_file(), "The gh-pages checkout is required")
         data = p.extract_milestone_progress(source.read_text(encoding="utf-8"))
-        self.assertEqual(set(data), set(p.REPOS))
+        self.assertIn(set(data), (set(p.REPOS), set(p.EXTENDED_REPOS)))
         self.assertTrue(all(0 <= row["completed"] <= row["total"] for row in data.values()))
         self.assertGreater(sum(row["total"] for row in data.values()), 0)
 
@@ -28,6 +28,17 @@ class PortfolioTests(unittest.TestCase):
         self.assertEqual(len(advanced), 2)
         self.assertEqual(advanced[0]["projects"], example)
         self.assertEqual(advanced[1]["projects"], changed)
+
+    def test_fomento_rollout_only_accepts_expected_tenth_repo(self):
+        with self.assertRaises(ValueError):
+            p.extract_milestone_progress('const PROJECTS = [{id:"axe-fomento",name:"AXE Fomento",milestones:[["escopo",true]],history:[]}];')
+        page = pathlib.Path(__file__).resolve().parents[2] / "pages" / "index.html"
+        reviewed = page.read_text(encoding="utf-8")
+        progress = p.extract_milestone_progress(reviewed)
+        self.assertIn(len(progress), (9, 10))
+        if "axe-fomento" in progress:
+            self.assertGreaterEqual(progress["axe-fomento"]["total"], 1)
+            self.assertEqual(set(progress), set(p.EXTENDED_REPOS))
 
     def test_malformed_input_fails_closed(self):
         with self.assertRaises(ValueError):
@@ -97,7 +108,7 @@ class PortfolioTests(unittest.TestCase):
         html = (page / "index.html").read_text(encoding="utf-8")
         progress = p.extract_milestone_progress(html)
         manifest = p.load_release_control(page / "release-approvals.json", html, progress)
-        self.assertEqual(set(manifest["projects"]), set(p.REPOS))
+        self.assertEqual(set(manifest["projects"]), set(progress))
         for project in manifest["projects"].values():
             self.assertEqual(set(project["checks"]), set(p.RELEASE_CHECKS))
             self.assertTrue(all(v["status"] == "not_recorded" for v in project["checks"].values()))
