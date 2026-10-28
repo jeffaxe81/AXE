@@ -36,6 +36,20 @@ class WatchdogTests(unittest.TestCase):
                          dispatch=dispatch, fetch_snapshot=fetch,
                          sleep=sleep, attempts=attempts)
 
+    def test_tenth_project_must_be_fomento_and_is_accepted(self):
+        legacy = self.snap(2)
+        promoted = dict(legacy)
+        promoted["projects"] = {**legacy["projects"], "axe-fomento": {}}
+        self.assertEqual(w.age_seconds(promoted, self.now), 2 * 60)
+        fake = dict(legacy)
+        fake["projects"] = {**legacy["projects"], "other-project": {}}
+        with self.assertRaises(w.RecoveryError):
+            w.age_seconds(fake, self.now)
+        eleven = dict(promoted)
+        eleven["projects"] = {**promoted["projects"], "another": {}}
+        with self.assertRaises(w.RecoveryError):
+            w.age_seconds(eleven, self.now)
+
     def test_fresh_snapshot_skips_recovery(self):
         _, state = self.run_watchdog(original=self.snap(2))
         self.assertEqual(state, "fresh")
