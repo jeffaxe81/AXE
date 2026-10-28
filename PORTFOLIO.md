@@ -254,3 +254,21 @@ A fila de homologação agora oferece um item expansível **Etapas da CI** por p
 O CSV `axe-fila-evidencias.csv` inclui a identidade da CI, os resultados das etapas e os nomes revisáveis. **Etapas de teste concluídas não são quantidades de casos de teste aprovados**; o indicador de casos continua independente. Sem dados recentes, o estado é *sem leitura recente*, nunca zero etapas.
 
 Mesmo uma CI verde, com todas as etapas concluídas, não encerra marcos de homologação/liberação e não registra GO.
+
+
+## Página de resumo compartilhável (2026-10-28)
+
+O arquivo `resumo.html` oferece uma apresentação responsiva e de leitura rápida
+dos **nove projetos monitorados** pelo portfólio, com objetivo, escopo,
+próximo passo, repositório GitHub e indicador editorial.
+
+- Acesso público: https://jeffaxe81.github.io/AXE/resumo.html
+- A página principal `index.html` oferece acesso direto no menu e no cabeçalho.
+- A lista de projetos e as descrições foram cotejadas com os repositórios públicos;
+  indicadores de progresso e CI são carregados do `portfolio-status.json` oficial
+  via GitHub Raw, com fallback no próprio Pages e consultas periódicas de 60 segundos.
+- Se a coleta tiver mais de 20 minutos, a página identifica o dado como antigo e
+  não o apresenta como homologação vigente.
+- Filtros e pesquisa funcionam localmente, sem cadastrar ou coletar dados do visitante.
+- O link pode ser enviado no ChatGPT Web ou por qualquer mensageiro; isso não cria
+  um atalho permanente na interface nativa do ChatGPT nem publica uma conversa.
