@@ -2,7 +2,7 @@
 const fs=require("node:fs");
 const vm=require("node:vm");
 const assert=require("node:assert/strict");
-const pages=["index.html","qualidade.html"];
+const pages=["index.html","qualidade.html","resumo.html"];
 let passed=0;
 for(const page of pages){
  const html=fs.readFileSync(page,"utf8");
@@ -20,6 +20,7 @@ for(const page of pages){
  assert.equal((html.match(/<section\b/g)||[]).length,(html.match(/<\/section\s*>/g)||[]).length,page+": seções não balanceadas");
  if(page==="index.html"){
   assert.match(html,/href="\.\/qualidade\.html"/, "Página principal não aponta para qualidade");
+  assert.match(html,/href="\.\/resumo\.html"/, "Página principal não aponta para o resumo");
   assert.match(html,/const pct=p=>Math\.round/, "Fórmula de marcos ausente");
   assert.match(html,/function releasePending\(row\)/, "Checklist de pendências de liberação ausente");
   assert.match(html,/class="release-blockers"/, "Painel de pendências expansível ausente");
@@ -115,6 +116,26 @@ for(const page of pages){
   assert.equal(checkEvidence({...good,errors:{ci:"API failure"}}).ciUrl,null);
   assert.equal(checkEvidence({...good,ci:{...good.ci,head_sha:"invalid"}}).ciUrl,null);
   assert.equal(checkEvidence({}).ciStatus,"unavailable");
+ }
+ if(page==="resumo.html"){
+  for(const id of ["project-grid","total-projects","overall-progress","overall-milestones","source-message","refresh","search","result-count"]){
+    assert.ok(ids.includes(id),"Resumo sem ID: "+id);
+  }
+  assert.match(html,/const PROJECTS=\[/,"Catálogo de projetos ausente");
+  const projectSection=html.slice(html.indexOf("const PROJECTS=["),html.indexOf("const grid="));
+  const repoIds=[...projectSection.matchAll(/\bid:"([^"]+)"/g)].map(x=>x[1]);
+  assert.equal(repoIds.length,9,"Resumo deve listar os nove projetos monitorados");
+  assert.equal(new Set(repoIds).size,9,"Repositórios duplicados no resumo");
+  for(const project of ["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop","dispatch-v2",
+     "centralizador-controle","aderencia_tecnica","axe-gestao-convites","central-despacho-alertas-publicacao"]){
+    assert.ok(repoIds.includes(project),"Projeto ausente no resumo: "+project);
+  }
+  assert.match(html,/portfolio-status\.json/,"Resumo não consulta o snapshot oficial");
+  assert.match(html,/source\.progress/,"Resumo não usa marcos verificados do snapshot");
+  assert.match(html,/function freshness\(data,now=Date\.now\(\)\)/,"Proteção de dados antigos ausente");
+  assert.match(html,/now-time>20\*60000/,"Dados com mais de 20 min não sinalizados como antigos");
+  assert.match(html,/status de execução não é homologação/,"Sem aviso de limite da CI");
+  assert.match(html,/href="\.\/index\.html#liberacao"/,"Sem acesso à homologação");
  }
  if(page==="qualidade.html"){
   for(const id of ["rows","status","refresh","export","merged-count","ci-count"]){
