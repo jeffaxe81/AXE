@@ -367,10 +367,10 @@ assert.equal(p.fn("evidenceTriageRows().length"),4);
 assert.ok(p.elements.get("evidence-triage-list").innerHTML.includes("CRM Vendas"));
 assert.ok(p.elements.get("evidence-triage-list").innerHTML.includes("AXE"));
 p.fn("document.getElementById('evidence-triage-filter').value='all';renderEvidenceTriage()");
-assert.equal(p.fn("evidenceTriageRows().length"),9);
+assert.equal(p.fn("evidenceTriageRows().length"),p.fn("PROJECTS.length"));
 p.fn("releaseControl=null");
 assert.equal(p.fn("releaseState(PROJECTS[0]).state"),"unrecorded");
-console.log("PASS: V13 CI/test triage, four priority projects, nine monitored projects, no implicit GO");
+console.log("PASS: V13 CI/test triage, four priority projects, monitored projects, no implicit GO");
 
 console.log("PASS: evidence-review provenance, stale CI, API failures and independent GO decisions");
 
@@ -379,6 +379,6 @@ console.log("PASS: last-hour progress uses real baseline, displays percentage po
 console.log("PASS: verified counts, partial flag, distinct CI history, no inferred zero or mismatch");
 console.log("PASS: Online PR, commits, CI, tags and independently published Releases");
 console.log("PASS: fail-closed GO/NO-GO controls, CSV structure, and separate milestone progress");
-console.log("PASS: nine stage-gate matrices, explicit milestones, independent CI and release status");
-console.log("PASS: fila de próximas entregas, 9 projetos, nulidade de PR/CI desatualizadas e evidências verificadas");
+console.log("PASS: stage-gate matrices, explicit milestones, independent CI and release status");
+console.log("PASS: fila de próximas entregas, projetos monitorados, nulidade de PR/CI desatualizadas e evidências verificadas");
 console.log("PASS: HTML JavaScript, manual/15s/30s/online timers and 10 freshness scenarios");
