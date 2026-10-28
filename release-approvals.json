@@ -317,6 +317,41 @@
         }
       },
       "decisions": []
+    },
+    "axe-fomento": {
+      "checks": {
+        "functional": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "security": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "data": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "rollback": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        },
+        "approval": {
+          "status": "not_recorded",
+          "evidence": null,
+          "note": null,
+          "verified_at": null
+        }
+      },
+      "decisions": []
     }
   }
 }

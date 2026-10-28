@@ -620,6 +620,10 @@ const PROJECTS = [
     ["Registro da release 1.12.0",true],["Observabilidade em modo shadow documentada",true],["Validação integrada da operação",false],["Homologação final para produção",false]],history:[
     ["2026-09-13","Merge de observabilidade shadow (#9)","54f961b7ebc75935d50a3991a1307b96114586de"],
     ["2026-09-13","Documentação da release 1.12.0","71a38693f40b543bdceb485fe1378e75b5334c99"]
+  ]},
+  {id:"axe-fomento",name:"AXE Fomento",symbol:"◈",kind:"plataforma",stage:"Documentação",type:"plan",tech:"Node.js · PostgreSQL (escopo documentado)",description:"Captação de recursos públicos para prefeituras: radar de editais, aderência preliminar e projetos municipais. Main pública contém apenas README.",updated:"2026-10-23",milestones:[
+    ["Escopo da V1 e roadmap registrados no README",true],["Código-fonte da V1 e testes disponíveis para verificação",false],["Integração verificável com editais oficiais e respectivas fontes",false],["Segurança, isolamento municipal e testes integrados homologados",false],["Aceite operacional e liberação para produção registrados",false]],history:[
+    ["2026-10-23","Publicação do README e roteiro inicial V1","27dda567230c877459fb4f3c64a6cf4b6bc28a42"]
   ]}
 ];
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -632,7 +636,7 @@ const MILESTONE_LINKS = {"crm-vendas":{"2":[{"kind":"pr","number":281}],"3":[{"k
 let trackingData={};
 let releaseControl=null;
 const RELEASE_CRITERIA=[["functional","Testes funcionais"],["security","Segurança"],["data","Dados e recuperação"],["rollback","Rollback / implantação"],["approval","Aceite formal"]];
-const GATE_MATRIX = {"crm-vendas":{"dev":[0,1,2],"tests":[3,5],"homolog":[4],"release":[6]},"dispatch":{"dev":[0,1,2],"tests":[3],"homolog":[4],"release":[5]},"pabx-mvp":{"dev":[0,1,2,3,4],"tests":[],"homolog":[5],"release":[]},"axe-voice-desktop":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"dispatch-v2":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"centralizador-controle":{"dev":[0],"tests":[1,2],"homolog":[3],"release":[4]},"aderencia_tecnica":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[]},"axe-gestao-convites":{"dev":[0,1,2],"tests":[3],"homolog":[],"release":[4]},"central-despacho-alertas-publicacao":{"dev":[0,1],"tests":[2],"homolog":[3],"release":[]}};
+const GATE_MATRIX = {"crm-vendas":{"dev":[0,1,2],"tests":[3,5],"homolog":[4],"release":[6]},"dispatch":{"dev":[0,1,2],"tests":[3],"homolog":[4],"release":[5]},"pabx-mvp":{"dev":[0,1,2,3,4],"tests":[],"homolog":[5],"release":[]},"axe-voice-desktop":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"dispatch-v2":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[5]},"centralizador-controle":{"dev":[0],"tests":[1,2],"homolog":[3],"release":[4]},"aderencia_tecnica":{"dev":[0,1,2,3],"tests":[4],"homolog":[],"release":[]},"axe-gestao-convites":{"dev":[0,1,2],"tests":[3],"homolog":[],"release":[4]},"central-despacho-alertas-publicacao":{"dev":[0,1],"tests":[2],"homolog":[3],"release":[]},"axe-fomento":{"dev":[0,1,2],"tests":[3],"homolog":[4],"release":[]}};
 const total=PROJECTS.reduce((n,p)=>n+p.milestones.length,0), done=PROJECTS.reduce((n,p)=>n+p.milestones.filter(m=>m[1]).length,0),events=PROJECTS.reduce((n,p)=>n+p.history.length,0);
 document.getElementById("m-projects").textContent=PROJECTS.length;
 document.getElementById("m-done").textContent=done;
@@ -738,7 +742,7 @@ function renderHourlyProgress(){
  const partiallyLimited=activity.filter(x=>x.data.partial).length;
  document.getElementById("hour-activity-detail").textContent=
  "Atividade pública identificada em "+periodLabel()+" até a última coleta. "+
- cRows.length+"/9 projetos com commits consultados; "+pRows.length+"/9 com PRs consultadas. "+
+ cRows.length+"/"+PROJECTS.length+" projetos com commits consultados; "+pRows.length+"/"+PROJECTS.length+" com PRs consultadas. "+
  (partiallyLimited?"Amostra truncada em "+partiallyLimited+" projetos; totais podem ser mínimos. ":"")+
  "PR atualizada não implica PR integrada; CI recente significa apenas que a última execução retornada teve atualização no período.";
  document.getElementById("hour-activity-projects").innerHTML=activity.map(({project,data})=>{
