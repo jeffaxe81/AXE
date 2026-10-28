@@ -18,6 +18,13 @@ REPOS = (
     "dispatch-v2", "centralizador-controle", "aderencia_tecnica",
     "axe-gestao-convites", "central-despacho-alertas-publicacao",
 )
+# During the two-branch rollout, both the 9-project and 10-project reviewed
+# site definitions are valid. Once gh-pages registers AXE Fomento, the collector
+# automatically follows the fully reviewed list; the repository is never added
+# merely from untrusted API data.
+FOMENTO_REPO = "axe-fomento"
+EXTENDED_REPOS = REPOS + (FOMENTO_REPO,)
+
 NOW = dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
@@ -497,13 +504,13 @@ def extract_milestone_progress(html):
         r'\{id:"([A-Za-z0-9_-]+)",name:"([^"]+)"[\s\S]*?milestones:\[([\s\S]*?)\],history:\['
     )
     matches = list(pattern.finditer(html))
-    expected = len(REPOS)
-    if len(matches) != expected or html.count("milestones:[") != expected:
-        raise ValueError("Expected exactly %d milestone lists, found %d" % (expected, len(matches)))
+    expected = len(matches)
+    if expected not in (len(REPOS), len(EXTENDED_REPOS)) or html.count("milestones:[") != expected:
+        raise ValueError("Expected exactly 9 or 10 reviewed milestone lists; found %d" % expected)
     progress = {}
     for match in matches:
         repo_id = match.group(1)
-        if repo_id not in REPOS or repo_id in progress:
+        if repo_id not in EXTENDED_REPOS or repo_id in progress:
             raise ValueError("Unknown or duplicate portfolio project: " + repo_id)
         raw = "[" + match.group(3) + "]"
         milestones = json.loads(raw)
@@ -520,7 +527,7 @@ def extract_milestone_progress(html):
             "completed": sum(row[1] for row in milestones),
             "total": len(milestones),
         }
-    if set(progress) != set(REPOS):
+    if set(progress) not in (set(REPOS), set(EXTENDED_REPOS)):
         raise ValueError("Portfolio and collector repository lists differ")
     return progress
 
@@ -727,13 +734,13 @@ def load_release_control(path, html, progress):
     if not isinstance(source["purpose"], str) or len(source["purpose"]) > 180:
         raise ValueError("Invalid ledger description")
     projects = source["projects"]
-    if not isinstance(projects, dict) or set(projects) != set(REPOS):
+    if not isinstance(projects, dict) or set(projects) != set(progress):
         raise ValueError("Release ledger must enumerate exactly monitored repositories")
     gate_match = re.search(r'^const GATE_MATRIX = (\{[^\n]+\});$', html, re.M)
     if not gate_match:
         raise ValueError("Reviewed stage gate map required")
     gates = json.loads(gate_match.group(1))
-    if set(gates) != set(REPOS):
+    if set(gates) != set(progress):
         raise ValueError("Stage gate and release ledger project mismatch")
     for repo, row in projects.items():
         if not isinstance(row, dict) or set(row) != {"checks", "decisions"}:
@@ -800,6 +807,12 @@ def load_release_control(path, html, progress):
 
 
 def generate(output, html_file):
+    # The canonical audited page determines whether the Fomento repository is
+    # actually part of the monitored set. This preserves a safe 9 -> 10 rollout.
+    global REPOS
+    reviewed_html = html_file.read_text(encoding="utf-8")
+    reviewed_progress = extract_milestone_progress(reviewed_html)
+    REPOS = tuple(EXTENDED_REPOS if FOMENTO_REPO in reviewed_progress else EXTENDED_REPOS[:-1])
     old = {}
     saved = {}
     if output.is_file():
@@ -849,7 +862,7 @@ def generate(output, html_file):
         for item in result.values()
     ):
         raise RuntimeError("All sources failed; keeping the previous snapshot")
-    progress = extract_milestone_progress(html_file.read_text(encoding="utf-8"))
+    progress = reviewed_progress
     history = append_progress_history(saved, progress)
     progress_samples = append_progress_samples(saved, progress)
     progress_hourly = hourly_progress(progress_samples)
