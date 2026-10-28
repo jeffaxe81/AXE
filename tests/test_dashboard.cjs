@@ -121,7 +121,7 @@ assert.equal(unavailable.ciResult,null,"Stale CI data is unknown, never success"
 const errored=p.fn("nextStepInfo(PROJECTS[0],{prs:{open:2},ci:{conclusion:'failure'},errors:{prs:'HTTPError',ci:'HTTPError'},verified_at:{prs:'"+recent+"',ci:'"+recent+"'}}, "+queueNow+")");
 assert.equal(errored.openPrs,null);
 assert.equal(errored.ciResult,null);
-assert.equal(p.fn("queueItems().length"),9);
+assert.equal(p.fn("queueItems().length"),p.fn("PROJECTS.length"),"A fila deve mostrar todos os projetos cadastrados");
 p.fn("queueFilter.value='all'; renderQueue()");
 assert.ok(p.elements.get("queue-list").innerHTML.includes("Onboarding homologado"));
 assert.ok(p.elements.get("queue-list").innerHTML.includes("Issues ↗"));
