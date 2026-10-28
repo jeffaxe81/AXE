@@ -293,3 +293,21 @@ o detalhe não promove nenhum item e sinaliza a divergência.
 As decisões formais vêm apenas de `release_control`: sem decisão registrada,
 continua exibido “Sem GO ou NO-GO formal registrado”. Uma CI verde não promove
 marcos, não cria evidências de teste e não se confunde com homologação operacional.
+
+## AXE Fomento — décimo projeto monitorado (28/10/2026)
+
+- Repositório: https://github.com/jeffaxe81/axe-fomento
+- Descrição do README: oportunidades de fomento para municípios, radar de editais,
+  classificação preliminar de aderência e organização de projetos de captação.
+- A branch pública `main` apresentava **apenas um README** na inspeção.
+  A implementação, segurança, integração com bases oficiais e uso real
+  **não estão comprovados** por esse repositório público.
+- Marcos editoriais: **1/5** (documentação da V1). Os quatro demais permanecem
+  pendentes. Portfólio passa de 9 projetos e 30/50 marcos para
+  **10 projetos e 31/55 marcos** (~56%). A mudança do percentual é
+  decorrente do aumento do escopo, não de uma regressão de projetos.
+- Nenhum GO/NO-GO formal registrado, cinco critérios `not_recorded`.
+- Link do cartão: https://jeffaxe81.github.io/AXE/resumo.html#p-axe-fomento
+- O histórico do snapshot pode conter 9 projetos enquanto a coleta agendada
+  é atualizada para incorporar o décimo. O painel distingue dados ainda
+  não observados de dados confirmados.
