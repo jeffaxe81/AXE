@@ -4,6 +4,8 @@ on:
     - cron: '7-57/5 * * * *'
   # O schedule do GitHub Actions é best-effort: execuções podem atrasar.
   # O painel público consulta a API diretamente quando o snapshot atrasa.
+  # Inclusão AXE Fomento: o coletor lê os 10 projetos e respectivos marcos do
+  # HTML revisado na branch gh-pages; não presume implementação nem GO.
   workflow_dispatch:
   push:
     branches: [main]
