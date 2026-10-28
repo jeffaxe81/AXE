@@ -124,14 +124,15 @@ for(const page of pages){
   assert.match(html,/const PROJECTS=\[/,"Catálogo de projetos ausente");
   const projectSection=html.slice(html.indexOf("const PROJECTS=["),html.indexOf("const grid="));
   const repoIds=[...projectSection.matchAll(/\bid:"([^"]+)"/g)].map(x=>x[1]);
-  assert.equal(repoIds.length,9,"Resumo deve listar os nove projetos monitorados");
-  assert.equal(new Set(repoIds).size,9,"Repositórios duplicados no resumo");
+  assert.equal(repoIds.length,10,"Resumo deve listar os dez projetos monitorados");
+  assert.equal(new Set(repoIds).size,10,"Repositórios duplicados no resumo");
   for(const project of ["crm-vendas","dispatch","pabx-mvp","axe-voice-desktop","dispatch-v2",
-     "centralizador-controle","aderencia_tecnica","axe-gestao-convites","central-despacho-alertas-publicacao"]){
+     "centralizador-controle","aderencia_tecnica","axe-gestao-convites","central-despacho-alertas-publicacao","axe-fomento"]){
     assert.ok(repoIds.includes(project),"Projeto ausente no resumo: "+project);
   }
   assert.match(html,/portfolio-status\.json/,"Resumo não consulta o snapshot oficial");
   assert.match(html,/source\.progress/,"Resumo não usa marcos verificados do snapshot");
+   assert.match(html,/axe-fomento/,"Resumo não possui AXE Fomento");
   assert.match(html,/function freshness\(data,now=Date\.now\(\)\)/,"Proteção de dados antigos ausente");
   assert.match(html,/now-time>20\*60000/,"Dados com mais de 20 min não sinalizados como antigos");
   assert.match(html,/status de execução não é homologação/,"Sem aviso de limite da CI");
@@ -157,7 +158,9 @@ for(const page of pages){
   vm.runInContext(html.slice(milestoneStart,milestoneEnd)+html.slice(logicStart,logicEnd),ctx);
   const actualMilestones=JSON.parse(JSON.stringify(vm.runInContext("MILESTONES",ctx)));
   assert.deepEqual(actualMilestones,expectedMilestones,"Resumos de marcos diferentes da fonte oficial do painel");
-  assert.equal(Object.keys(actualMilestones).length,9);
+  assert.equal(Object.keys(actualMilestones).length,10);
+  assert.deepEqual(actualMilestones["axe-fomento"],[["Escopo da V1 e roadmap registrados no README",true],["Código-fonte da V1 e testes disponíveis para verificação",false],["Integração verificável com editais oficiais e respectivas fontes",false],["Segurança, isolamento municipal e testes integrados homologados",false],["Aceite operacional e liberação para produção registrados",false]],"Somente a documentação do Fomento possui marco concluído");
+  assert.equal(actualMilestones["axe-fomento"].filter(x=>x[1]).length,1);
   const proj={id:"crm-vendas"},rows=actualMilestones[proj.id],done=rows.filter(x=>x[1]).length;
   const sample={progress:{"crm-vendas":{completed:done,total:rows.length}}};
   ctx.sample=sample;
