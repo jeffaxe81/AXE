@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#09111e">
-<meta name="description" content="Conheça os nove projetos do portfólio AXE, suas funcionalidades, marcos editoriais e próximos passos, com links para os repositórios do GitHub.">
+<meta name="description" content="Conheça os dez projetos do portfólio AXE, suas funcionalidades, marcos editoriais e próximos passos, com links para os repositórios do GitHub.">
 <meta property="og:title" content="AXE | Resumo dos projetos">
 <meta property="og:description" content="Um guia direto dos projetos AXE, com progresso rastreável e acesso ao código no GitHub.">
 <title>AXE | Resumo dos projetos</title>
@@ -109,7 +109,7 @@ footer a{color:var(--accent)}
   </div>
   <section id="projetos" aria-labelledby="catalog-title">
    <div class="controls">
-    <div><h2 id="catalog-title">Resumo dos projetos</h2><p id="result-count">Nove iniciativas organizadas por finalidade.</p></div>
+    <div><h2 id="catalog-title">Resumo dos projetos</h2><p id="result-count">Dez iniciativas organizadas por finalidade.</p></div>
     <div class="filters">
      <input id="search" class="search" type="search" placeholder="Pesquisar projeto…" aria-label="Pesquisar projetos" autocomplete="off">
      <div class="chips" role="group" aria-label="Filtrar projetos">
@@ -131,7 +131,7 @@ footer a{color:var(--accent)}
   </section>
  </main>
  <footer>
-  <span>AXE · Resumo público dos nove projetos monitorados</span>
+  <span>AXE · Resumo público dos dez projetos monitorados</span>
   <span><a href="./index.html">Portfólio</a> · <a href="./qualidade.html">PRs &amp; CI</a> · <a href="https://github.com/jeffaxe81">GitHub</a></span>
  </footer>
 </div>
@@ -175,7 +175,11 @@ const PROJECTS=[
  {id:"central-despacho-alertas-publicacao",name:"Central de Alertas",kind:"operacoes",label:"Alertas urbanos",symbol:"⚑",
   description:"Sistema de simulação e integração de alertas urbanos, com rastreabilidade da entrega de ocorrências a centrais de despacho.",
   scope:"Simulação por categoria, geolocalização, histórico, envio REST e validações em modo shadow.",
-  next:"Concluir validação integrada e homologação operacional da entrega real."}
+  next:"Concluir validação integrada e homologação operacional da entrega real."},
+ {id:"axe-fomento",name:"AXE Fomento",kind:"gestao",label:"Fomento público",symbol:"◇",
+  description:"Plataforma para prefeituras identificarem oportunidades de recursos e estruturarem projetos de captação, com análise preliminar de aderência.",
+  scope:"README documenta login municipal, radar e filtros de editais, projetos por município e roadmap de IA; código-fonte da V1 não verificável na main pública.",
+  next:"Disponibilizar código e testes da V1, integrar fontes oficiais, validar segurança e homologar a implantação."}
 ];
 const MILESTONES={
  "crm-vendas": [
@@ -395,6 +399,28 @@ const MILESTONES={
    "Homologação final para produção",
    false
   ]
+ ],
+ "axe-fomento": [
+  [
+   "Escopo da V1 e roadmap registrados no README",
+   true
+  ],
+  [
+   "Código-fonte da V1 e testes disponíveis para verificação",
+   false
+  ],
+  [
+   "Integração verificável com editais oficiais e respectivas fontes",
+   false
+  ],
+  [
+   "Segurança, isolamento municipal e testes integrados homologados",
+   false
+  ],
+  [
+   "Aceite operacional e liberação para produção registrados",
+   false
+  ]
  ]
 };
 const grid=document.getElementById("project-grid");
@@ -411,7 +437,9 @@ function progressFor(project){
 }
 function freshness(data,now=Date.now()){
  if(!data||data.schema_version!==1||data.owner!=="jeffaxe81"||
-    !data.projects||typeof data.projects!=="object"||Object.keys(data.projects).length!==9)return "invalid";
+    !data.projects||typeof data.projects!=="object"||
+    ![9,10].includes(Object.keys(data.projects).length)||
+    (Object.keys(data.projects).length===10&&!Object.hasOwn(data.projects,"axe-fomento")))return "invalid";
  const time=Date.parse(data.generated_at||"");
  if(!Number.isFinite(time)||time>now+300000)return "invalid";
  if(now-time>20*60000)return "stale";
