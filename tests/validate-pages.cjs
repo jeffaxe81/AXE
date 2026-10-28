@@ -136,6 +136,60 @@ for(const page of pages){
   assert.match(html,/now-time>20\*60000/,"Dados com mais de 20 min não sinalizados como antigos");
   assert.match(html,/status de execução não é homologação/,"Sem aviso de limite da CI");
   assert.match(html,/href="\.\/index\.html#liberacao"/,"Sem acesso à homologação");
+
+  assert.match(html,/function milestoneDetails\(/,"Resumo não apresenta marcos rastreáveis");
+  assert.match(html,/function releaseDetails\(/,"Resumo não verifica registro GO/NO-GO");
+  assert.match(html,/function observedEvidence\(/,"Resumo não mostra as fontes GitHub");
+  assert.match(html,/class="project-details"/,"Resumo sem detalhe expansível de projeto");
+  assert.match(html,/Link direto deste projeto/,"Links individuais ausentes");
+  const canonicalHtml=fs.readFileSync("index.html","utf8");
+  const expectedMilestones=Object.fromEntries(
+    [...canonicalHtml.matchAll(/\{id:"([^"]+)",name:"([^"]+)"[\s\S]*?milestones:\[([\s\S]*?)\],history:\[/g)]
+      .map(match=>[match[1],JSON.parse("["+match[3]+"]")])
+  );
+  const milestoneStart=html.indexOf("const MILESTONES="),
+        milestoneEnd=html.indexOf("const grid=",milestoneStart);
+  const logicStart=html.indexOf("function milestoneDetails("),
+        logicEnd=html.indexOf("function render(){",logicStart);
+  assert.ok(milestoneStart>=0&&milestoneEnd>milestoneStart&&logicEnd>logicStart,"Lógica de marcos não isolável");
+  const ctx=vm.createContext({source:null,repoUrl:id=>"https://github.com/jeffaxe81/"+id,
+    escapeText:str=>String(str).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))});
+  vm.runInContext(html.slice(milestoneStart,milestoneEnd)+html.slice(logicStart,logicEnd),ctx);
+  const actualMilestones=JSON.parse(JSON.stringify(vm.runInContext("MILESTONES",ctx)));
+  assert.deepEqual(actualMilestones,expectedMilestones,"Resumos de marcos diferentes da fonte oficial do painel");
+  assert.equal(Object.keys(actualMilestones).length,9);
+  const proj={id:"crm-vendas"},rows=actualMilestones[proj.id],done=rows.filter(x=>x[1]).length;
+  const sample={progress:{"crm-vendas":{completed:done,total:rows.length}}};
+  ctx.sample=sample;
+  assert.equal(vm.runInContext("milestoneDetails({id:'crm-vendas'},sample).state",ctx),"matching");
+  ctx.sample={progress:{"crm-vendas":{completed:done+1,total:rows.length}}};
+  assert.equal(vm.runInContext("milestoneDetails({id:'crm-vendas'},sample).state",ctx),"mismatch");
+  assert.equal(vm.runInContext("milestoneDetails({id:'unknown'},sample).state",ctx),"missing");
+  const checks=Object.fromEntries(["functional","security","data","rollback","approval"].map(
+    k=>[k,{status:"not_recorded",evidence:null}]));
+  ctx.ledger={owner:"jeffaxe81",schema_version:1,projects:{"crm-vendas":{checks,decisions:[]}}};
+  ctx.sample={release_control:ctx.ledger};
+  assert.equal(vm.runInContext("releaseDetails({id:'crm-vendas'},sample).state",ctx),"unrecorded");
+  ctx.sample.release_control.projects["crm-vendas"].decisions.push({outcome:"GO"});
+  assert.equal(vm.runInContext("releaseDetails({id:'crm-vendas'},sample).state",ctx),"unknown",
+    "GO without verified checks must not be shown as approved");
+  ctx.sample.release_control.projects["crm-vendas"].decisions[0].outcome="NO-GO";
+  assert.equal(vm.runInContext("releaseDetails({id:'crm-vendas'},sample).state",ctx),"no-go");
+  ctx.sample={projects:{"crm-vendas":{ci:{id:123,head_sha:"a".repeat(40),status:"completed",conclusion:"success"},
+    prs:{latest:{number:316,state:"open"}},commits:[{sha:"b".repeat(40),title:"Verified commit"}],errors:{}}}};
+  const evidence=vm.runInContext("observedEvidence({id:'crm-vendas'},sample)",ctx);
+  assert.equal(evidence.ci.url,"https://github.com/jeffaxe81/crm-vendas/actions/runs/123");
+  assert.equal(evidence.pr.url,"https://github.com/jeffaxe81/crm-vendas/pull/316");
+  ctx.sample.projects["crm-vendas"].ci.head_sha="invalid";
+  assert.equal(vm.runInContext("observedEvidence({id:'crm-vendas'},sample).ci",ctx),null);
+  const fake={id:"crm-vendas"};
+  ctx.project=fake;
+  ctx.details={state:"matching",rows:[["<script>alert(1)</script>",true]],done:1,total:1};
+  ctx.release={label:"Sem GO ou NO-GO formal registrado",checks:0,total:5};
+  ctx.evidence={pr:null,ci:null,commit:null};
+  const safe=vm.runInContext("renderProjectDetails(project,details,release,evidence)",ctx);
+  assert.ok(safe.includes("&lt;script&gt;")&&!safe.includes("<script>"),"HTML do projeto deve escapar conteúdo");
+
  }
  if(page==="qualidade.html"){
   for(const id of ["rows","status","refresh","export","merged-count","ci-count"]){

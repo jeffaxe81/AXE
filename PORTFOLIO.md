@@ -272,3 +272,24 @@ próximo passo, repositório GitHub e indicador editorial.
 - Filtros e pesquisa funcionam localmente, sem cadastrar ou coletar dados do visitante.
 - O link pode ser enviado no ChatGPT Web ou por qualquer mensageiro; isso não cria
   um atalho permanente na interface nativa do ChatGPT nem publica uma conversa.
+
+## Resumo expandido por projeto (V17)
+
+O catálogo em `resumo.html` inclui detalhes expansíveis para os nove projetos:
+marcos editoriais concluídos e pendentes, registros de decisões formais GO/NO-GO,
+quantidade de critérios documentais verificados e links seguros para a CI,
+a PR e o último commit identificados no snapshot público.
+
+Cada cartão tem uma âncora estável `resumo.html#p-<repo>` para compartilhamento
+no navegador ou no ChatGPT Web. A página preserva painéis abertos durante
+atualizações periódicas.
+
+Os **títulos e estados editoriais dos marcos** são um espelho literal
+dos marcos cadastrados na página principal; os testes em
+`tests/validate-pages.cjs` exigem igualdade com `index.html`.
+Se a coleta tiver contagens diferentes da lista de marcos cadastrada,
+o detalhe não promove nenhum item e sinaliza a divergência.
+
+As decisões formais vêm apenas de `release_control`: sem decisão registrada,
+continua exibido “Sem GO ou NO-GO formal registrado”. Uma CI verde não promove
+marcos, não cria evidências de teste e não se confunde com homologação operacional.

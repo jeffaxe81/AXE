@@ -52,6 +52,20 @@ h1 span{color:var(--accent)}
 .card-links{display:flex;justify-content:space-between;gap:8px;align-items:center;font-size:13px;padding-top:1px}
 .card-links a{color:var(--accent);font-weight:760}.card-links a:hover{text-decoration:underline;text-underline-offset:4px}
 .ci{font-size:11px;color:var(--muted)}
+.project-details{border:1px solid #304558;border-radius:12px;background:#0d1a29;padding:12px 14px;font-size:12px}
+.project-details summary{cursor:pointer;font-weight:800;color:var(--accent);list-style-position:inside}
+.detail-section{margin-top:14px;border-top:1px solid #2b4055;padding-top:12px}
+.detail-section h4{font-size:12px;margin:0 0 7px;letter-spacing:.01em;color:var(--text)}
+.detail-section p{color:var(--muted);margin:5px 0}
+.detail-section ul{margin:6px 0 0;padding-left:21px;line-height:1.7;color:var(--muted)}
+.detail-section li{margin-bottom:4px}
+.detail-section .done{color:#b6ec69}.detail-section .pending{color:var(--gold)}
+.detail-section a,.project-permalink{color:var(--cyan);text-decoration:underline;text-underline-offset:3px}
+.detail-section a:focus-visible{outline:2px solid var(--accent)}
+.project-permalink{display:inline-block;font-size:11px}
+.detail-warn{color:var(--gold)!important}
+.card:target{border-color:var(--accent);box-shadow:0 0 0 2px #b6ec6940}
+
 .empty{border:1px dashed var(--line);padding:26px;border-radius:14px;color:var(--muted);display:none}
 .help{margin:35px 0 55px;border:1px solid var(--line);border-radius:18px;background:var(--surface);padding:24px}
 .help h2{font-size:19px;margin:0 0 10px}.help p{margin:7px 0;color:var(--muted);font-size:13px;line-height:1.8}
@@ -163,6 +177,226 @@ const PROJECTS=[
   scope:"Simulação por categoria, geolocalização, histórico, envio REST e validações em modo shadow.",
   next:"Concluir validação integrada e homologação operacional da entrega real."}
 ];
+const MILESTONES={
+ "crm-vendas": [
+  [
+   "Monorepositório TypeScript documentado",
+   true
+  ],
+  [
+   "Estrutura multiempresa e RLS",
+   true
+  ],
+  [
+   "Proteções preventivas de restauração (#281)",
+   true
+  ],
+  [
+   "Ajustes de testes de idioma (#277)",
+   true
+  ],
+  [
+   "Onboarding homologado",
+   false
+  ],
+  [
+   "Auditoria funcional consolidada",
+   false
+  ],
+  [
+   "GO de produção validado",
+   false
+  ]
+ ],
+ "dispatch": [
+  [
+   "Bootstrap da primeira organização",
+   true
+  ],
+  [
+   "Pré-cadastro sem credenciais corrigido",
+   true
+  ],
+  [
+   "Integração de formulários D-012H",
+   true
+  ],
+  [
+   "Relatório de verificação D-012H",
+   true
+  ],
+  [
+   "Homologação ponta a ponta consolidada",
+   false
+  ],
+  [
+   "GO operacional de produção",
+   false
+  ]
+ ],
+ "pabx-mvp": [
+  [
+   "Sinalização TLS e mídia SRTP no MVP",
+   true
+  ],
+  [
+   "Contextos de ramais por empresa",
+   true
+  ],
+  [
+   "Provisionamento inicial de telefones",
+   true
+  ],
+  [
+   "Integração URA com STT/LLM/TTS (#64)",
+   true
+  ],
+  [
+   "Filtros temporais de relatórios (#63)",
+   true
+  ],
+  [
+   "Homologação para uso em produção",
+   false
+  ]
+ ],
+ "axe-voice-desktop": [
+  [
+   "Fundação do repositório e documentação",
+   true
+  ],
+  [
+   "Importação da baseline MicroSIP 3.22.16",
+   true
+  ],
+  [
+   "Consolidação de uma base independente Baresip",
+   false
+  ],
+  [
+   "Nova interface desktop compacta integrada",
+   false
+  ],
+  [
+   "Validação SIP ponta a ponta na nova base",
+   false
+  ],
+  [
+   "Empacotamento de instalador validado",
+   false
+  ]
+ ],
+ "dispatch-v2": [
+  [
+   "Estrutura React/tRPC/Drizzle registrada",
+   true
+  ],
+  [
+   "Ajustes em mapas e tiles CARTO",
+   true
+  ],
+  [
+   "Perfis padrão e glossário adicionados",
+   true
+  ],
+  [
+   "Versão 1.16.0 registrada",
+   true
+  ],
+  [
+   "Teste funcional end-to-end documentado",
+   false
+  ],
+  [
+   "Aprovação de produção comprovada",
+   false
+  ]
+ ],
+ "centralizador-controle": [
+  [
+   "Ciclo de políticas RBAC → PolicyBundle",
+   true
+  ],
+  [
+   "Testes unitários de componentes RBAC",
+   true
+  ],
+  [
+   "Prova de isolamento RLS em PostgreSQL",
+   true
+  ],
+  [
+   "Homologação integrada com os sistemas",
+   false
+  ],
+  [
+   "Operação de produção validada",
+   false
+  ]
+ ],
+ "aderencia_tecnica": [
+  [
+   "Interface Streamlit do protótipo",
+   true
+  ],
+  [
+   "Cálculo de dimensionamento com referência",
+   true
+  ],
+  [
+   "Geração de proposta em PDF",
+   true
+  ],
+  [
+   "Histórico local SQLite",
+   true
+  ],
+  [
+   "Validação de aderência para uso comercial",
+   false
+  ]
+ ],
+ "axe-gestao-convites": [
+  [
+   "Especificação da Release 1",
+   true
+  ],
+  [
+   "Plano de implantação e validação",
+   true
+  ],
+  [
+   "Fluxo funcional de confirmação implementado",
+   false
+  ],
+  [
+   "Relatórios de presença testados",
+   false
+  ],
+  [
+   "Publicação e testes ponta a ponta",
+   false
+  ]
+ ],
+ "central-despacho-alertas-publicacao": [
+  [
+   "Registro da release 1.12.0",
+   true
+  ],
+  [
+   "Observabilidade em modo shadow documentada",
+   true
+  ],
+  [
+   "Validação integrada da operação",
+   false
+  ],
+  [
+   "Homologação final para produção",
+   false
+  ]
+ ]
+};
 const grid=document.getElementById("project-grid");
 const statusNode=document.getElementById("source-message");
 const refresh=document.getElementById("refresh");
@@ -184,7 +418,76 @@ function freshness(data,now=Date.now()){
  return "recent";
 }
 function summaryLine(text,tag){const el=document.createElement("span");const strong=document.createElement("b");strong.textContent=tag;el.appendChild(strong);el.appendChild(document.createTextNode(text));return el}
+
+function milestoneDetails(project,data=source){
+ const rows=MILESTONES[project.id],record=data?.progress?.[project.id];
+ if(!Array.isArray(rows)||!record)return {state:"missing",rows:[]};
+ const done=rows.filter(entry=>Array.isArray(entry)&&entry[1]===true).length;
+ const ok=rows.every(entry=>Array.isArray(entry)&&entry.length===2&&typeof entry[0]==="string"&&typeof entry[1]==="boolean")&&
+  Number.isSafeInteger(record.completed)&&Number.isSafeInteger(record.total)&&
+  record.total===rows.length&&record.completed===done;
+ if(!ok)return {state:"mismatch",rows:[]};
+ return {state:"matching",rows,done,total:rows.length};
+}
+function releaseDetails(project,data=source){
+ const root=data?.release_control;
+ const record=root?.projects?.[project.id];
+ if(root?.owner!=="jeffaxe81"||root?.schema_version!==1||!record||
+    !record.checks||typeof record.checks!=="object"||!Array.isArray(record.decisions))
+    return {state:"unknown",label:"Registro de decisão indisponível",checks:0,total:5};
+ const keys=["functional","security","data","rollback","approval"];
+ if(keys.some(k=>!record.checks[k]||typeof record.checks[k].status!=="string"))
+    return {state:"unknown",label:"Registro de decisão incompleto",checks:0,total:5};
+ const checks=keys.filter(k=>record.checks[k].status==="verified").length;
+ const latest=record.decisions.at(-1);
+ if(!latest)return {state:"unrecorded",label:"Sem GO ou NO-GO formal registrado",checks,total:5};
+ if(!["GO","NO-GO"].includes(latest.outcome))return {state:"unknown",label:"Decisão precisa de revisão",checks,total:5};
+ // A GO is not assumed from the existence of a decision: checks must be verified.
+ if(latest.outcome==="GO"&&checks!==5)return {state:"unknown",label:"GO sem cinco evidências verificadas; conferir painel oficial",checks,total:5};
+ return {state:latest.outcome==="GO"?"go":"no-go",label:latest.outcome==="GO"?
+  "GO documentado — confirmar as condições no painel de homologação":"NO-GO documentado",checks,total:5};
+}
+function observedEvidence(project,data=source){
+ const record=data?.projects?.[project.id]||{};
+ const ci=record.ci;
+ const validCi=ci&&Number.isSafeInteger(ci.id)&&ci.id>0&&/^[a-f0-9]{40}$/.test(ci.head_sha||"")&&!record.errors?.ci;
+ const pr=record.prs?.latest;
+ const validPr=pr&&Number.isSafeInteger(pr.number)&&pr.number>0&&!record.errors?.prs;
+ const commits=Array.isArray(record.commits)?record.commits:[];
+ const first=commits.find(c=>c&&/^[a-f0-9]{40}$/.test(c.sha||"")&&typeof c.title==="string");
+ return {ci:validCi?{url:repoUrl(project.id)+"/actions/runs/"+ci.id,
+                         label:ci.status==="completed"?"CI "+String(ci.conclusion||"sem resultado"):"CI "+String(ci.status||"em andamento")}:null,
+         pr:validPr?{url:repoUrl(project.id)+"/pull/"+pr.number,
+                     label:"PR #"+pr.number+" · "+String(pr.state||"não verificado")}:null,
+         commit:first?{url:repoUrl(project.id)+"/commit/"+first.sha,
+                       label:String(first.title).slice(0,95)}:null};
+}
+function renderProjectDetails(project,detail,release,evidence){
+ const current=detail.state==="matching";
+ const done=current?detail.rows.filter(row=>row[1]===true):[];
+ const pending=current?detail.rows.filter(row=>row[1]===false):[];
+ const milestoneHtml=current?
+  '<p>Marcos do cadastro editorial: '+detail.done+' de '+detail.total+' concluídos.</p>'+
+  '<h4>Concluídos</h4>'+(done.length?'<ul>'+done.map(x=>'<li class="done">'+escapeText(x[0])+'</li>').join("")+'</ul>':'<p>Nenhum marco concluído no cadastro.</p>')+
+  '<h4>Pendentes</h4>'+(pending.length?'<ul>'+pending.map(x=>'<li class="pending">'+escapeText(x[0])+'</li>').join("")+'</ul>':'<p>Nenhum marco pendente no cadastro.</p>'):
+  '<p class="detail-warn">Marcos sem correspondência comprovada com o snapshot; consulte o portfólio principal.</p>';
+ const links=[evidence.pr?'<a href="'+evidence.pr.url+'" target="_blank" rel="noopener noreferrer">'+escapeText(evidence.pr.label)+'</a>':"",
+              evidence.ci?'<a href="'+evidence.ci.url+'" target="_blank" rel="noopener noreferrer">'+escapeText(evidence.ci.label)+'</a>':"",
+              evidence.commit?'<a href="'+evidence.commit.url+'" target="_blank" rel="noopener noreferrer">Commit: '+escapeText(evidence.commit.label)+'</a>':""].filter(Boolean);
+ return '<details class="project-details" data-project="'+escapeText(project.id)+'">'+
+  '<summary>Ver marcos, evidências e homologação</summary>'+
+  '<div class="detail-section">'+milestoneHtml+'</div>'+
+  '<div class="detail-section"><h4>Liberação operacional</h4><p>'+escapeText(release.label)+
+   ' · '+release.checks+'/'+release.total+' critérios verificados no registro público.</p>'+
+   '<p><a href="./index.html#liberacao">Revisar critérios e decisão GO/NO-GO no painel ↗</a></p></div>'+
+  '<div class="detail-section"><h4>Últimas referências disponíveis</h4>'+
+   (links.length?'<ul>'+links.map(x=>'<li>'+x+'</li>').join("")+'</ul>':
+    '<p>Não há PR, CI ou commit rastreável nesta coleta.</p>')+
+   '<p>Referências históricas da última coleta; CI aprovada não é homologação.</p></div>'+
+  '</details>';
+}
 function render(){
+ const expanded=new Set([...grid.querySelectorAll('details[data-project][open]')].map(x=>x.getAttribute("data-project")));
  const needle=document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
  const visible=PROJECTS.filter(p=>(filter==="todos"||p.kind===filter)&&
   (p.name+" "+p.label+" "+p.description+" "+p.scope).toLocaleLowerCase("pt-BR").includes(needle));
@@ -194,9 +497,12 @@ function render(){
   const prog=progressFor(p);
   const current=source&&source.projects&&source.projects[p.id];
   const ci=current&&current.ci;
+  const detail=milestoneDetails(p),release=releaseDetails(p),observed=observedEvidence(p);
+  const snapshotOld=source&&freshness(source)!=="recent";
   const ciText=ci&&ci.status==="completed"?
     (ci.conclusion==="success"?"CI observada: sucesso":ci.conclusion==="failure"?"CI observada: falha":"CI observada: "+(ci.conclusion||"sem conclusão")):
     ci?"CI observada: "+String(ci.status||"indefinida"):"Sem CI registrada na coleta";
+  const ciLabel=(snapshotOld?"Referência antiga · ":"")+ciText;
   return '<article class="card" id="p-'+escapeText(p.id)+'">'+
     '<div class="card-top"><div class="project-icon" aria-hidden="true">'+escapeText(p.symbol)+'</div>'+
     '<span class="tag">'+escapeText(p.label)+'</span></div>'+
@@ -208,8 +514,18 @@ function render(){
     '<div class="bar" role="progressbar" aria-label="Marcos editoriais de '+escapeText(p.name)+'" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+(prog?prog.percent:0)+'">'+
     '<span style="width:'+(prog?prog.percent:0)+'%"></span></div></div>'+
     '<div class="card-links"><a href="'+repoUrl(p.id)+'" target="_blank" rel="noopener noreferrer">Abrir repositório ↗</a>'+
-    '<span class="ci">'+escapeText(ciText)+'</span></div></article>';
+    '<span class="ci">'+escapeText(ciLabel)+'</span></div>'+
+    '<a class="project-permalink" href="./resumo.html#p-'+escapeText(p.id)+'">Link direto deste projeto ↗</a>'+
+    renderProjectDetails(p,detail,release,observed)+'</article>';
  }).join("");
+ for(const element of grid.querySelectorAll('details[data-project]')){
+   if(expanded.has(element.getAttribute("data-project")))element.open=true;
+ }
+ const hash=String(location.hash||"").slice(1);
+ if(/^p-[a-z0-9_-]+$/.test(hash)){
+   const target=document.getElementById(hash);
+   if(target){const detail=target.querySelector("details[data-project]");if(detail)detail.open=true;}
+ }
  const rows=PROJECTS.map(progressFor);
  const available=rows.every(Boolean);
  const done=available?rows.reduce((n,v)=>n+v.done,0):0;
